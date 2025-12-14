@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Main Process",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "env": {
+        "DISPLAY": ":0"
+      },
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args" : ["."],
+      "outputCapture": "std"
+    },
+     {
+      "name": "Debug Main Process - browser",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "env": {
+        "DISPLAY": ":0"
+      },
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args" : [".", "--remote-debugging-port=9222", "--enable-logging", "--headless"],
+      "outputCapture": "std"
+    },
+    
+  ]
+}
