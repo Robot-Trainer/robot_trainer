@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
+import { filterInterestingPorts } from './lib/serial_devices';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -11,20 +12,23 @@ if (started) {
   app.quit();
 }
 
-// Handle USB port scanning from renderer process
+// Handle Serial port port scanning from renderer process
 const setupIpcHandlers = () => {
-  ipcMain.handle('scan-usb-ports', async () => {
+  ipcMain.handle('scan-serial-ports', async () => {
     try {
       const ports = await SerialPort.list();
-      return ports.map(port => ({
-        path: port.path,
-        manufacturer: port.manufacturer || 'Unknown',
-        serialNumber: port.serialNumber || 'N/A',
-        productId: port.productId,
-        vendorId: port.vendorId,
-      }));
+      return ports.filter(filterInterestingPorts).map(port => {
+        return {
+          path: port.path,
+          manufacturer: port.manufacturer || 'Unknown Manufacturer',
+          serialNumber: port.serialNumber || 'N/A',
+          productId: port.productId || 'N/A',
+          vendorId: port.vendorId || 'N/A',
+          pnpId: port.pnpId || 'N/A'
+        }
+      } );
     } catch (error) {
-      console.error('Error scanning USB ports:', error);
+      console.error('Error scanning Serial ports:', error);
       throw error;
     }
   });

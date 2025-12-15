@@ -3,5 +3,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  scanUsbPorts: () => ipcRenderer.invoke('scan-usb-ports'),
+  scanSerialPorts: () => ipcRenderer.invoke('scan-serial-ports'),
 });

@@ -5,9 +5,10 @@
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "electron-forge start -- -enable-logging --logging-level=0",
     "browser": "electron . --headless --trace-warnings --remote-debugging-port=9222 --disable-gpu --no-sandbox --disable-software-rasterizer",
     "package": "electron-forge package",
+    "test": "vitest",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
@@ -39,7 +40,8 @@
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "typescript": "~4.5.4",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.0.15"
   },
   "dependencies": {
     "@serialport/bindings-cpp": "^13.0.1",

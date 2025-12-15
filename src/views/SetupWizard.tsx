@@ -5,19 +5,20 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { ChevronRight, CheckCircle } from '../icons';
 
-interface UsbPort {
+interface SerialPort {
   path: string;
   manufacturer: string;
   serialNumber: string;
   productId?: string;
   vendorId?: string;
+  pnpId?: string;
 }
 
 export const SetupWizard: React.FC = () => {
   const [step, setStep] = useState(1);
   const [cameras, setCameras] = useState<Array<any>>([]);
   const [scanning, setScanning] = useState(false);
-  const [usbPorts, setUsbPorts] = useState<UsbPort[]>([]);
+  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [calibration, setCalibration] = useState({ leader: false, follower: false });
 
@@ -29,8 +30,8 @@ export const SetupWizard: React.FC = () => {
     setScanning(true);
     setScanError(null);
     try {
-      const ports = await window.electronAPI.scanUsbPorts();
-      setUsbPorts(ports);
+      const ports = await window.electronAPI.scanSerialPorts();
+      setSerialPorts(ports);
       if (ports.length > 0) {
         setCalibration(prev => ({ ...prev, leader: true }));
       }
@@ -83,15 +84,26 @@ export const SetupWizard: React.FC = () => {
               <div>
                 <h4 className="text-sm font-semibold">Connected Devices</h4>
                 <div className="space-y-2 mt-2">
-                  {usbPorts.length === 0 && <p className="text-sm text-gray-500">No USB devices found. Click "Scan Ports" to search.</p>}
-                  {usbPorts.map((port, idx) => (
+                  {serialPorts.length === 0 && <p className="text-sm text-gray-500">No USB devices found. Click "Scan Ports" to search.</p>}
+                  {serialPorts.map((port, idx) => (
                     <div key={idx} className="p-3 border rounded-md bg-gray-50">
                       <div className="font-medium text-sm">{port.manufacturer || 'Unknown Device'}</div>
                       <div className="text-xs text-gray-500 mt-1">Port: {port.path}</div>
                       {port.serialNumber && port.serialNumber !== 'N/A' && (
                         <div className="text-xs text-gray-500">Serial: {port.serialNumber}</div>
                       )}
-                    </div>
+                      {port.manufacturer && port.manufacturer !== 'N/A' && (
+                        <div className="text-xs text-gray-500">Manufacturer: {port.manufacturer}</div>
+                      )}
+                      {port.pnpId && port.pnpId !== 'N/A' && (
+                        <div className="text-xs text-gray-500">Pnp ID: {port.pnpId}</div>
+                      )}
+                      {port.productId && port.productId !== 'N/A' && (
+                        <div className="text-xs text-gray-500">Product ID: {port.productId}</div>
+                      )}
+                      {port.vendorId && port.vendorId !== 'N/A' && (
+                        <div className="text-xs text-gray-500">Vendor ID: {port.vendorId}</div>
+                      )}                    </div>
                   ))}
                 </div>
               </div>
