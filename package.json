@@ -9,6 +9,7 @@
     "browser": "electron . --headless --trace-warnings --remote-debugging-port=9222 --disable-gpu --no-sandbox --disable-software-rasterizer",
     "package": "electron-forge package",
     "test": "vitest",
+    "test:playwright": "playwright test",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
@@ -29,6 +30,7 @@
     "@electron-forge/plugin-fuses": "^7.10.2",
     "@electron-forge/plugin-vite": "^7.10.2",
     "@electron/fuses": "^1.8.0",
+    "@playwright/test": "^1.57.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

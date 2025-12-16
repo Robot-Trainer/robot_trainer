@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import SetupWizard from './views/SetupWizard';
+import SystemSettings from './views/SystemSettings';
 import TrainingStudio from './views/TrainingStudio';
 import AssemblyView from './views/AssemblyView';
 import MonitoringView from './views/Monitoring';
@@ -18,11 +19,24 @@ const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  React.useEffect(() => {
+    const handler = (ev: Event) => {
+      try {
+        // @ts-ignore
+        const detail = (ev as CustomEvent).detail;
+        if (typeof detail === 'string') setActiveTab(detail);
+      } catch (e) {}
+    };
+    window.addEventListener('robotflow:navigate', handler as EventListener);
+    return () => window.removeEventListener('robotflow:navigate', handler as EventListener);
+  }, []);
+
   const renderContent = () => {
     switch(activeTab) {
       case 'dashboard': return <AssemblyView />;
       case 'training': return <TrainingStudio />;
       case 'setup': return <SetupWizard />;
+      case 'system-settings': return <SystemSettings />;
       case 'monitoring': return <MonitoringView />;
       default: return <AssemblyView />;
     }
@@ -46,6 +60,7 @@ const App: React.FC = () => {
             <NavItem id="setup" icon={Cpu} label="Setup New Robot" active={activeTab} onClick={setActiveTab} />
             <NavItem id="training" icon={Zap} label="Training Studio" active={activeTab} onClick={setActiveTab} />
             <NavItem id="lines" icon={Layout} label="Assembly Lines" active={activeTab} onClick={setActiveTab} />
+            <NavItem id="system-settings" icon={Settings} label="System Settings" active={activeTab} onClick={setActiveTab} />
           </div>
         </div>
 

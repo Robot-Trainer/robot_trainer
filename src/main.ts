@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import fs from 'fs/promises';
+import os from 'node:os';
 import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
@@ -32,6 +34,154 @@ const setupIpcHandlers = () => {
       throw error;
     }
   });
+
+  ipcMain.handle('save-system-settings', async (_event, settings) => {
+    try {
+      const userData = app.getPath('userData');
+      const configPath = path.join(userData, 'system-settings.json');
+      await fs.mkdir(userData, { recursive: true });
+      await fs.writeFile(configPath, JSON.stringify(settings, null, 2), 'utf8');
+      return { ok: true };
+    } catch (error) {
+      console.error('Error saving system settings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('load-system-settings', async () => {
+    try {
+      const userData = app.getPath('userData');
+      const configPath = path.join(userData, 'system-settings.json');
+      let data: string | null = null;
+      try {
+        data = await fs.readFile(configPath, 'utf8');
+      } catch (err) {
+        data = null;
+      }
+      if (!data) return null;
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Error loading system settings:', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('list-python-plugins', async (_event, options?: { pythonPath?: string; robots?: string[]; teleops?: string[] }) => {
+    try {
+      const pythonExec = (options && options.pythonPath) ? options.pythonPath : 'python3';
+      const scriptPath = path.join(__dirname, '..', 'python', 'main.py');
+      const args: string[] = [];
+      if (options?.robots && options.robots.length) {
+        args.push('--robots', ...options.robots);
+      }
+      if (options?.teleops && options.teleops.length) {
+        args.push('--teleops', ...options.teleops);
+      }
+
+      const { spawn } = await import('node:child_process');
+
+      return await new Promise((resolve, reject) => {
+        const child = spawn(pythonExec, [scriptPath, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', (chunk) => out += chunk.toString());
+        child.stderr.on('data', (chunk) => err += chunk.toString());
+        child.on('close', (code) => {
+          if (code !== 0) {
+            console.error('python scan exited', code, err);
+            return reject(new Error(err || `python exited ${code}`));
+          }
+          try {
+            const parsed = JSON.parse(out || '{}');
+            resolve(parsed);
+          } catch (e) {
+            reject(e);
+          }
+        });
+        child.on('error', (e) => reject(e));
+      });
+    } catch (error) {
+      console.error('Error running python plugin scanner:', error);
+      throw error;
+    }
+  });
+
+  // Check for local Anaconda/conda envs in the user's home directory and via PATH
+  ipcMain.handle('check-anaconda', async () => {
+    try {
+      const home = app.getPath('home') || os.homedir();
+      const candidates = ['anaconda3', 'Anaconda3', 'miniconda3', 'Miniconda3', 'miniconda', 'Miniconda', 'anaconda2', 'Anaconda2'];
+      let detectedPath: string | null = null;
+      for (const candidate of candidates) {
+        const p = path.join(home, candidate, 'envs');
+        try {
+          const stat = await fs.stat(p);
+          if (stat && stat.isDirectory()) {
+            detectedPath = p;
+            break;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Also check if `conda` is available on PATH
+      const { spawnSync } = await import('node:child_process');
+      let condaAvailable = false;
+      let condaVersion = '';
+      try {
+        const result = spawnSync('conda', ['--version'], { encoding: 'utf8' });
+        if (result.status === 0 && result.stdout) {
+          condaAvailable = true;
+          condaVersion = String(result.stdout).trim();
+        }
+      } catch (e) {
+        // not available
+      }
+
+      if (!detectedPath && !condaAvailable) {
+        return { found: false, path: null, envs: [], platform: process.platform, condaAvailable, condaVersion };
+      }
+
+      const envs: Array<{ name: string; pythonPath?: string | null }> = [];
+
+      if (detectedPath) {
+        const entries = await fs.readdir(detectedPath, { withFileTypes: true });
+        for (const e of entries) {
+          if (!e.isDirectory()) continue;
+          const envName = e.name;
+          const envRoot = path.join(detectedPath, envName);
+          // check for common python executable locations
+          const candidatesExec: string[] = [];
+          if (process.platform === 'win32') {
+            candidatesExec.push(path.join(envRoot, 'python.exe'));
+            candidatesExec.push(path.join(envRoot, 'Scripts', 'python.exe'));
+          } else {
+            candidatesExec.push(path.join(envRoot, 'bin', 'python'));
+            candidatesExec.push(path.join(envRoot, 'bin', 'python3'));
+          }
+          let foundExec: string | null = null;
+          for (const c of candidatesExec) {
+            try {
+              const st = await fs.stat(c);
+              if (st.isFile()) {
+                foundExec = c;
+                break;
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+          envs.push({ name: envName, pythonPath: foundExec });
+        }
+      }
+
+      return { found: true, path: detectedPath, envs, platform: process.platform, condaAvailable, condaVersion };
+    } catch (error: any) {
+      console.error('Error checking Anaconda envs:', error);
+      return { found: false, path: null, envs: [], platform: process.platform, error: String(error) };
+    }
+  });
 };
 
 const createWindow = () => {
@@ -41,6 +191,7 @@ const createWindow = () => {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      devTools: false
     },
   });
   // and load the index.html of the app.

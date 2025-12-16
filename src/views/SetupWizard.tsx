@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -21,6 +21,19 @@ export const SetupWizard: React.FC = () => {
   const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [calibration, setCalibration] = useState({ leader: false, follower: false });
+  const [pythonScanning, setPythonScanning] = useState(false);
+  const [pythonError, setPythonError] = useState<string | null>(null);
+  const [robotPlugins, setRobotPlugins] = useState<Array<any>>([]);
+  const [teleopPlugins, setTeleopPlugins] = useState<Array<any>>([]);
+  const [anacondaScanning, setAnacondaScanning] = useState(false);
+  const [anacondaError, setAnacondaError] = useState<string | null>(null);
+  const [anacondaResult, setAnacondaResult] = useState<{ found: boolean; path: string | null; envs: Array<{ name: string; pythonPath?: string | null }>; platform?: string; condaAvailable?: boolean; condaVersion?: string } | null>(null);
+  const [selectedCondaEnv, setSelectedCondaEnv] = useState<string | null>(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmPythonPath, setConfirmPythonPath] = useState<string | null>(null);
+  const [anacondaMessage, setAnacondaMessage] = useState<string | null>(null);
+  const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
+  const [selectedTeleop, setSelectedTeleop] = useState<string | null>(null);
 
   const addCamera = () => {
     setCameras(prev => [...prev, { id: Date.now(), name: `Camera ${prev.length + 1}`, active: true }]);
@@ -39,6 +52,66 @@ export const SetupWizard: React.FC = () => {
       setScanError(`Failed to scan USB ports: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setScanning(false);
+    }
+  };
+
+  const scanPythonPlugins = async () => {
+    setPythonScanning(true);
+    setPythonError(null);
+    try {
+      const res = await (window as any).electronAPI.listPythonPlugins();
+      // Expect { robots: [...], teleoperators: [...] }
+      setRobotPlugins(res?.robots || []);
+      setTeleopPlugins(res?.teleoperators || []);
+      if ((res?.robots || []).length > 0) setSelectedRobot((res.robots[0].class_name) || null);
+      if ((res?.teleoperators || []).length > 0) setSelectedTeleop((res.teleoperators[0].class_name) || null);
+    } catch (error) {
+      setPythonError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPythonScanning(false);
+    }
+  };
+
+  const checkAnaconda = async () => {
+    setAnacondaScanning(true);
+    setAnacondaError(null);
+    setAnacondaResult(null);
+    setSelectedCondaEnv(null);
+    setAnacondaMessage(null);
+    try {
+      const res = await (window as any).electronAPI.checkAnaconda();
+      setAnacondaResult(res);
+      if (res?.found && (res.envs || []).length > 0) {
+        setSelectedCondaEnv(res.envs[0].name || res.envs[0]);
+      }
+    } catch (err) {
+      setAnacondaError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAnacondaScanning(false);
+    }
+  };
+
+  const openConfirmForSelectedEnv = () => {
+    if (!anacondaResult || !selectedCondaEnv) return;
+    const env = anacondaResult.envs.find((e) => e.name === selectedCondaEnv);
+    let pythonExec: string | null = null;
+    if (env && env.pythonPath) pythonExec = env.pythonPath;
+    else if (anacondaResult.path) {
+      const envRoot = `${anacondaResult.path}${anacondaResult.path.endsWith('/') ? '' : '/'}${selectedCondaEnv}`;
+      pythonExec = (anacondaResult.platform === 'win32') ? `${envRoot}\\python.exe` : `${envRoot}/bin/python`;
+    }
+    setConfirmPythonPath(pythonExec);
+    setConfirmModalOpen(true);
+  };
+
+  const confirmSavePythonPath = async () => {
+    if (!confirmPythonPath) return;
+    try {
+      await (window as any).electronAPI.saveSystemSettings({ pythonPath: confirmPythonPath });
+      setAnacondaMessage(`Saved Python path: ${confirmPythonPath}`);
+      setConfirmModalOpen(false);
+    } catch (e) {
+      setAnacondaError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -119,6 +192,74 @@ export const SetupWizard: React.FC = () => {
                     <div>Follower Arm</div>
                     <div className="text-sm text-gray-500">{calibration.follower ? 'Calibrated' : 'Not Calibrated'}</div>
                   </div>
+                  <div className="mt-4 p-3 border rounded-md bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium">Python Plugins</div>
+                      <Button variant="ghost" onClick={scanPythonPlugins} disabled={pythonScanning}>{pythonScanning ? 'Scanning…' : 'Scan Python Plugins'}</Button>
+                    </div>
+                    {pythonError && <div className="text-sm text-red-600 mb-2">{pythonError}</div>}
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-600">Robot Class</label>
+                        <Select
+                          value={selectedRobot || ''}
+                          onChange={(e: any) => setSelectedRobot(e.target.value)}
+                          options={[{ label: 'Select robot', value: '' }, ...robotPlugins.map((r) => ({ label: `${r.name || r.class_name} — ${r.class_name}`, value: r.class_name }))]}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-600">Teleoperator Class</label>
+                        <Select
+                          value={selectedTeleop || ''}
+                          onChange={(e: any) => setSelectedTeleop(e.target.value)}
+                          options={[{ label: 'Select teleoperator', value: '' }, ...teleopPlugins.map((t) => ({ label: `${t.name || t.class_name} — ${t.class_name}`, value: t.class_name }))]}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 border rounded-md bg-white">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">Python Environment</div>
+                        <Button variant="ghost" onClick={checkAnaconda} disabled={anacondaScanning}>{anacondaScanning ? 'Detecting…' : 'Detect Anaconda'}</Button>
+                      </div>
+                      {anacondaError && <div className="text-sm text-red-600 mb-2">{anacondaError}</div>}
+                      {!anacondaResult && <div className="text-sm text-gray-500">Click "Detect Anaconda" to look for a local Anaconda installation.</div>}
+
+                      {anacondaResult && anacondaResult.found && (
+                        <div className="space-y-2">
+                          <div className="text-xs text-gray-600">Detected envs at: <span className="font-mono text-sm">{anacondaResult.path}</span></div>
+                          <div className="space-y-1 mt-2">
+                            {anacondaResult.envs.length === 0 && <div className="text-sm text-gray-500">No environments found in the Anaconda envs directory.</div>}
+                            {anacondaResult.envs.map((envObj) => (
+                              <label key={envObj.name} className="flex items-center gap-3 p-2 border rounded-md">
+                                <input type="radio" name="condaEnv" checked={selectedCondaEnv === envObj.name} onChange={() => setSelectedCondaEnv(envObj.name)} />
+                                <div className="text-sm">{envObj.name}</div>
+                                {envObj.pythonPath && <div className="ml-auto text-xs text-gray-500">{envObj.pythonPath}</div>}
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <Button onClick={openConfirmForSelectedEnv} disabled={!selectedCondaEnv}>Use this environment</Button>
+                            <div className="text-sm text-gray-500">or</div>
+                            <Button variant="ghost" onClick={() => { window.dispatchEvent(new CustomEvent('robotflow:navigate', { detail: 'system-settings' })); }}>Point to custom Python</Button>
+                          </div>
+                          {anacondaMessage && <div className="text-sm text-green-600">{anacondaMessage}</div>}
+                        </div>
+                      )}
+
+                      {anacondaResult && !anacondaResult.found && (
+                        <div className="space-y-2">
+                          <div className="text-sm">No Anaconda installation detected in your home directory.</div>
+                          <div className="flex items-center gap-3">
+                            <Button onClick={() => window.open('https://www.anaconda.com/download/success', '_blank')}>Install Anaconda</Button>
+                            <Button variant="ghost" onClick={() => { window.dispatchEvent(new CustomEvent('robotflow:navigate', { detail: 'system-settings' })); }}>Point to custom Python</Button>
+                          </div>
+                          <div className="text-sm text-gray-600">Anaconda is recommended for machine learning workflows used by Robot Trainer.</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -161,6 +302,21 @@ export const SetupWizard: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Confirmation modal for selecting python executable */}
+      {confirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-md shadow-lg w-96 p-6">
+            <h3 className="text-lg font-medium mb-2">Confirm Python Path</h3>
+            <p className="text-sm text-gray-600 mb-4">Please confirm the Python executable that will be used by Robot Trainer.</p>
+            <div className="p-3 mb-4 bg-gray-50 border rounded text-sm font-mono break-all">{confirmPythonPath || 'No Python executable detected for this environment.'}</div>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setConfirmModalOpen(false)}>Cancel</Button>
+              <Button onClick={confirmSavePythonPath} disabled={!confirmPythonPath}>Confirm</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-between mt-6">
         <Button variant="ghost" disabled={step === 1} onClick={() => setStep(s => Math.max(1, s-1))}>Back</Button>

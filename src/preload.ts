@@ -4,4 +4,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   scanSerialPorts: () => ipcRenderer.invoke('scan-serial-ports'),
+  saveSystemSettings: (settings: any) => ipcRenderer.invoke('save-system-settings', settings),
+  loadSystemSettings: () => ipcRenderer.invoke('load-system-settings'),
+  listPythonPlugins: (options?: { pythonPath?: string; robots?: string[]; teleops?: string[] }) => ipcRenderer.invoke('list-python-plugins', options),
+  checkAnaconda: () => ipcRenderer.invoke('check-anaconda'),
 });
