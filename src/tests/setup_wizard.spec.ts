@@ -1,50 +1,52 @@
 import { _electron as electron, ElectronApplication, Page } from 'playwright';
-import { test, expect } from '@playwright/test';
+import base, { expect } from '@playwright/test';
 
-test.beforeAll(async () => { });
-test.describe('Electron startup', () => {
-  test('opens a window and renders', async () => {
-    // Launch the Electron app. Use '.' so Playwright finds the current project.
-    const electronApp: ElectronApplication = await electron.launch({ args: ['.vite/build/main.js', '--enable-logging', '--logging-level=0'] });
+type Fixtures = {
+  electronApp: ElectronApplication;
+  window: Page;
+};
 
-    // Run code in the main process to get the app path.
-    const appPath = await electronApp.evaluate(async ({ app }: any) => {
-      return app.getAppPath();
-    });
-    // Basic sanity check - path should be a non-empty string.
-    expect(typeof appPath).toBe('string');
-    expect(appPath.length).toBeGreaterThan(0);
+const test = base.extend<Fixtures>({
+  electronApp: async ({}, use) => {
+    // Launch the Electron app. Use the built main entry used by package task.
+    const app = await electron.launch({ args: ['.vite/build/main.js', '--enable-logging', '--logging-level=0'] });
+    // Provide the app to tests.
+    await use(app);
+    // Teardown: close the app after tests complete (acts like afterAll).
+    await app.close();
+  },
 
-    // Get the first renderer window and do some simple assertions.
-    const window: Page = await electronApp.firstWindow();
-    // Wait for content to load so the page has a layout with non-zero dimensions.
-    await window.waitForLoadState('domcontentloaded');
-    // Ensure root element is present (app render has started).
+  window: async ({ electronApp }, use) => {
+    const win = await electronApp.firstWindow();
+    // Wait for renderer to begin rendering and ensure layout is available.
+    await win.waitForLoadState('domcontentloaded');
     try {
-      await window.waitForSelector('#root', { timeout: 5000 });
+      await win.waitForSelector('#root', { timeout: 5000 });
     } catch (err) {
-      // ignore - proceed even if selector isn't found in time
+      // ignore
     }
-    // Ensure the page has a usable viewport (some Electron windows start with 0 size).
-    // Set an explicit viewport size before taking a screenshot.
     try {
-      await window.setViewportSize({ width: 1280, height: 800 });
+      await win.setViewportSize({ width: 1280, height: 800 });
     } catch (e) {
-      // Some platforms/bindings may ignore this; continue without failing the test.
-      console.warn('setViewportSize failed:', e);
+      // ignore
     }
+    await use(win);
+  },
+});
 
+test.describe('Electron startup', () => {
+  test('opens a window and renders', async ({ window }) => {
+    // Keep the test minimal: only the highlighted assertions and actions.
     const title = await window.title();
     // The app title should be a non-empty string.
     expect(title).toBeTruthy();
 
     // Save a screenshot for debugging if needed. Setting viewport avoids 0-width error.
-    await window.screenshot({ path: 'intro.png' });
+      await expect(window).toHaveScreenshot();
 
     // Forward console messages from the renderer to the test output.
     window.on('console', (msg) => console.log('renderer console>', msg.text()));
-
-    // Close the app at the end of the test.
-    await electronApp.close();
   });
 });
+
+export { test, expect };
