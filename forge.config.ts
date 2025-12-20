@@ -9,7 +9,10 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true
+    asar: true,
+    // include the built python binary directory into packaged resources so the main process
+    // can find and execute the bundled `robot_trainer_py` binary.
+    extraResource: ['src/python/dist'],
   },
   rebuildConfig: {},
   makers: [

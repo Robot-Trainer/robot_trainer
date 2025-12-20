@@ -5,6 +5,7 @@ import os from 'node:os';
 import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
+import runPythonScanner from './lib/python_scanner';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -68,38 +69,7 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('list-python-plugins', async (_event, options?: { pythonPath?: string; robots?: string[]; teleops?: string[] }) => {
     try {
-      const pythonExec = (options && options.pythonPath) ? options.pythonPath : 'python3';
-      const scriptPath = path.join(__dirname, '..', 'python', 'main.py');
-      const args: string[] = [];
-      if (options?.robots && options.robots.length) {
-        args.push('--robots', ...options.robots);
-      }
-      if (options?.teleops && options.teleops.length) {
-        args.push('--teleops', ...options.teleops);
-      }
-
-      const { spawn } = await import('node:child_process');
-
-      return await new Promise((resolve, reject) => {
-        const child = spawn(pythonExec, [scriptPath, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
-        let out = '';
-        let err = '';
-        child.stdout.on('data', (chunk) => out += chunk.toString());
-        child.stderr.on('data', (chunk) => err += chunk.toString());
-        child.on('close', (code) => {
-          if (code !== 0) {
-            console.error('python scan exited', code, err);
-            return reject(new Error(err || `python exited ${code}`));
-          }
-          try {
-            const parsed = JSON.parse(out || '{}');
-            resolve(parsed);
-          } catch (e) {
-            reject(e);
-          }
-        });
-        child.on('error', (e) => reject(e));
-      });
+      return await runPythonScanner(options);
     } catch (error) {
       console.error('Error running python plugin scanner:', error);
       throw error;

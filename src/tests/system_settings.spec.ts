@@ -1,40 +1,5 @@
-import { _electron as electron, ElectronApplication, Page } from 'playwright';
-import base, { expect } from '@playwright/test';
-
-type Fixtures = {
-  electronApp: ElectronApplication;
-  window: Page;
-  setIpcHandlers: (handlers: Record<string, (...args: any[]) => any>) => Promise<void>;
-};
-
-const test = base.extend<Fixtures>({
-  electronApp: async ({ }, use) => {
-    const app = await electron.launch({ args: ['.vite/build/main.js', '--enable-logging', '--logging-level=0'] });
-    await use(app);
-    await app.close();
-  },
-
-  setIpcHandlers: async ({ electronApp }, use) => {
-    await use(async (handlers: Record<string, (...args: any[]) => any>) => {
-      const serialized: Record<string, string> = {};
-      for (const [channel, fn] of Object.entries(handlers)) serialized[channel] = fn.toString();
-      await electronApp.evaluate(async ({ ipcMain }, handlerMap: Record<string, string>) => {
-        for (const channel of Object.keys(handlerMap)) {
-          try { ipcMain.removeHandler(channel); } catch (e) { }
-          const fn = eval(`(${handlerMap[channel]})`);
-          ipcMain.handle(channel, fn);
-        }
-      }, serialized);
-    });
-  },
-
-  window: async ({ electronApp }, use) => {
-    const win = await electronApp.firstWindow();
-    await win.waitForLoadState('domcontentloaded');
-    try { await win.setViewportSize({ width: 1200, height: 800 }); } catch { }
-    await use(win);
-  }
-});
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 
 test.describe('System Settings integration with ConfigManager IPC', () => {
   test('saves settings successfully', async ({ window, setIpcHandlers, electronApp }) => {
@@ -72,7 +37,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     expect(pyVal).toBe('');
   });
 
-  test.only('reacts to external settings change event', async ({ window, setIpcHandlers, electronApp }) => {
+  test('reacts to external settings change event', async ({ window, setIpcHandlers, electronApp }) => {
     await setIpcHandlers({
       'load-system-settings': async () => ({ pythonPath: '/initial', venvPath: '', extraPath: '', envVars: [] }),
       'save-system-settings': async () => ({ ok: true }),

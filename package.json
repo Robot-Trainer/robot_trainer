@@ -8,9 +8,13 @@
     "start": "electron-forge start -- -enable-logging --logging-level=0",
     "browser": "electron . --headless --trace-warnings --remote-debugging-port=9222 --disable-gpu --no-sandbox --disable-software-rasterizer",
     "package": "electron-forge package",
+    "prepackage": "npm run build-python",
     "test": "vitest",
     "test:playwright": "npm run package && npx playwright test",
     "make": "electron-forge make",
+    "premake": "npm run build-python",
+    "build-python": "cd src/python && pyinstaller --onefile --name robot_trainer_py main.py --distpath dist --workpath build/pyinstaller --specpath build/pyinstaller_spec",
+    "build-and-include-python": "npm run build-python",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },

@@ -9,3 +9,8 @@ dependencies = [
     "pyinstaller>=6.17.0",
     "torch>=2.9.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.17.0",
+]

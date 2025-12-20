@@ -4586,12 +4586,20 @@ dependencies = [
     { name = "torch" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pyinstaller" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "lerobot", extras = ["all"], specifier = ">=0.3.2" },
     { name = "pyinstaller", specifier = ">=6.17.0" },
     { name = "torch", specifier = ">=2.9.1" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pyinstaller", specifier = ">=6.17.0" }]
 
 [[package]]
 name = "python-dateutil"
