@@ -4,10 +4,11 @@ import SystemSettings from './views/SystemSettings';
 import TrainingStudio from './views/TrainingStudio';
 import AssemblyView from './views/AssemblyView';
 import MonitoringView from './views/Monitoring';
-import { Home, Activity, Cpu, Zap, Layout, Settings } from './icons';
+
+import { Home, Activity, Cpu, Robot, Zap, Layout, Settings } from './icons';
 import Button from './ui/Button';
 
-const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; onClick: (id: string) => void }>= ({ id, icon: Icon, label, active, onClick }) => (
+const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, onClick }) => (
   <button
     onClick={() => onClick(id)}
     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${active === id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>

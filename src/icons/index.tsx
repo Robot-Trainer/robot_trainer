@@ -42,6 +42,33 @@ export const Cpu = (props: any) => (
   </svg>
 );
 
+export const Robot = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+         d="M 11,6 V 5 c 0,0 0,-1 1,-1 v 0 c 0,0 1,0 1,1 v 1" id="path17" />
+    <path stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="round" fill="none"
+         d="M 17,20 H 7 C 5,20 3,19 3,17 V 9 C 3,7 5,6 7,6 h 10 c 2,0 4,1 4,3 v 8 c 0,2 -2,3 -4,3 z"
+      id="path8" />
+    <circle stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
+         cx="15"
+         cy="12"
+         id="ellipse8"
+      r="1.5" />
+    <circle transform="rotate(-73.440702)"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
+         cx="-9"
+         cy="12"
+         id="ellipse9"
+      r="1.5" />
+    <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
+         d="m 2,16 v 0 C 1,16 1,16 1,15 v -4 c 0,-1 0,-1 1,-1 v 0 c 1,0 1,0 1,1 v 4 c 0,1 0,1 -1,1 z"
+      id="path11" />
+    <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
+         d="m 22,16 v 0 c 1,0 1,0 1,-1 v -4 c 0,-1 0,-1 -1,-1 v 0 c -1,0 -1,0 -1,1 v 4 c 0,1 0,1 1,1 z"
+         id="path12" />
+  </svg>
+);
+
 export const Layout = (props: any) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M3 3h18v18H3V3zm4 4v10h10V7H7z" />
@@ -71,4 +98,5 @@ export default {
   Layout,
   Plus,
   Settings,
+  Robot
 };

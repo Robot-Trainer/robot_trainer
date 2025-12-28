@@ -25,7 +25,6 @@
  *  });
  * ```
  */
-console.log('👋 This message is being logged by "src/renderer.ts"');
 import App from './app.tsx';
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
