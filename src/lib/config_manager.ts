@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { EventEmitter } from 'events';
+import Robot from './robot';
+import Camera from './camera';
 
 type JSONObject = { [k: string]: any };
 
@@ -21,6 +23,8 @@ export default class ConfigManager extends EventEmitter {
   private defaults: JSONObject;
   private userSettings: JSONObject = {};
   private settingsPath: string;
+  private robots: Robot[];
+  private cameras: Camera[];
   private tmpPath: string;
   private writing = false;
   private writeQueue: Array<() => Promise<void>> = [];
