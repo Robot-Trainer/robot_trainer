@@ -1,6 +1,6 @@
 import React from 'react';
 import ResourceManager from '../ui/ResourceManager';
-import Robot from '../lib/robot';
+import { robotsTable } from '../db/schema';
 import SetupWizard from './SetupWizard';
 
 const RobotFields = [
@@ -19,7 +19,7 @@ const RobotsView: React.FC = () => {
 
   return (
     <div className="p-6">
-      <ResourceManager title="Robots" resourceKey="resources.robots" fields={RobotFields} renderForm={renderForm} />
+      <ResourceManager title="Robots" table={robotsTable} renderForm={renderForm} />
     </div>
   );
 };

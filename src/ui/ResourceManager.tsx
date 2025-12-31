@@ -1,43 +1,91 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "./Button";
 import Card from "./Card";
 import useUIStore from "../lib/uiStore";
+import { tableResource } from "../db/tableResource";
 
 type Field = { name: string; label: string; type?: "text" | "number" };
 
+type ResourceAPI = {
+  list: () => Promise<any[]>;
+  create: (item: any) => Promise<any>;
+  update: (id: string, item: any) => Promise<any>;
+  delete: (id: string) => Promise<any>;
+};
+
 type Props = {
   title: string;
-  resourceKey: string; // config key where resources are stored, e.g. 'resources.robots'
-  fields: Field[];
+  // either supply a resource API directly
+  resource?: ResourceAPI;
+  // or supply a drizzle `table` to reflect fields and build a resource
+  table?: any;
+  fields?: Field[];
   renderForm?: (opts: {
     onCancel: () => void;
     onSaved: (item: any) => void;
   }) => React.ReactNode;
 };
 
-const emptyFromFields = (fields: Field[]) => {
+const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
-  for (const f of fields) o[f.name] = f.type === "number" ? 0 : "";
+  for (const f of (fields || [])) o[f.name] = f.type === "number" ? 0 : "";
   return o;
 };
 
 export const ResourceManager: React.FC<Props> = ({
   title,
-  resourceKey,
+  resource,
+  table,
   fields,
   renderForm,
 }) => {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>(emptyFromFields(fields));
+  // build a resource from table when provided (memoized)
+  const fullTableResource = useMemo(() => {
+    if (!table) return null;
+    try {
+      // lazy require to avoid circular deps at module load
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return tableResource(table);
+    } catch (e) {
+      return null;
+    }
+  }, [table]);
+
+  // activeResource: prefer explicit resource prop, otherwise use tableResource
+  const activeResource: ResourceAPI = (resource as any) || (fullTableResource as any);
+
+  // infer fields from table columns if not provided
+  const inferredFields = useMemo(() => {
+    if (fields && fields.length) {
+      console.error(`Fields were not defined in ResourceManager for table ${table.name}`);
+      return fields;
+    }
+    if (!table || !table.columns) {
+      console.error(`Could not find columns for table ${table.name}`);
+      return [];
+    }
+    return Object.keys(table.columns)
+      .filter((k) => k !== "id")
+      .map((k) => ({ name: k, label: k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) }));
+  }, [fields, table]);
+
+  console.log('inferredFields', inferredFields);
+  const [form, setForm] = useState<any>(emptyFromFields(inferredFields));
   const showForm = useUIStore((s: any) => s.resourceManagerShowForm);
   const setShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const [loading, setLoading] = useState(false);
 
+
   const load = async () => {
     setLoading(true);
     try {
-      const res = await (window as any).electronAPI.getConfig(resourceKey);
+      if (!activeResource || typeof activeResource.list !== 'function') {
+        setItems([]);
+        return;
+      }
+      const res = await activeResource.list();
       setItems(Array.isArray(res) ? res : []);
     } catch (e) {
       setItems([]);
@@ -48,21 +96,23 @@ export const ResourceManager: React.FC<Props> = ({
 
   useEffect(() => {
     load();
-    // try to listen to external changes if api provides it
-    try {
-      (window as any).electronAPI?.onConfigChanged?.((k: string) => {
-        if (k === resourceKey) load();
-      });
-    } catch {}
-  }, [resourceKey]);
+  }, [activeResource]);
 
   const saveAll = async (next: any[]) => {
-    await (window as any).electronAPI.setConfig(resourceKey, next);
-    setItems(next);
+    // upsert items by id
+    for (const it of next) {
+      if (!activeResource) continue;
+      if (it.id) {
+        try { await activeResource.update(it.id, it); } catch { await activeResource.create(it); }
+      } else {
+        await activeResource.create(it);
+      }
+    }
+    await load();
   };
 
   const onCreate = () => {
-    setForm(emptyFromFields(fields));
+    setForm(emptyFromFields(inferredFields));
     setEditing(null);
     setShowForm(true);
   };
@@ -73,24 +123,29 @@ export const ResourceManager: React.FC<Props> = ({
   };
 
   const onSave = async () => {
-    if (editing) {
-      const next = items.map((i) =>
-        i.id === editing.id ? { ...i, ...form } : i
-      );
-      await saveAll(next);
-      setEditing(null);
-    } else {
-      const id = Date.now().toString();
-      const next = [...items, { id, ...form }];
-      await saveAll(next);
+    try {
+      if (!activeResource) return;
+      if (editing) {
+        await activeResource.update(editing.id, { ...editing, ...form });
+        setEditing(null);
+      } else {
+        await activeResource.create({ ...form });
+      }
+      await load();
+    } catch (e) {
+      // ignore for now
     }
     setForm(emptyFromFields(fields));
     setShowForm(false);
   };
 
   const onDelete = async (id: string) => {
-    const next = items.filter((i) => i.id !== id);
-    await saveAll(next);
+    try {
+      if (activeResource) await activeResource.delete(id);
+      await load();
+    } catch (e) {
+      setItems(items.filter((i) => i.id !== id));
+    }
   };
 
   return (
@@ -112,7 +167,7 @@ export const ResourceManager: React.FC<Props> = ({
                   <div className="text-sm text-gray-500">
                     No {title.toLowerCase()} defined
                   </div>
-                    <Button onClick={() => { setShowForm(true); }} className=" card w-sm h-48 m-auto p-auto my-8 justify-around items-center text-center border rounded-xl border-transparent flex">
+                  <Button onClick={() => { setShowForm(true); }} className=" card w-sm h-48 m-auto p-auto my-8 justify-around items-center text-center border rounded-xl border-transparent flex">
                     <span>Add a {title.replace(/s$/, "")}</span>
                   </Button>
                 </div>
@@ -169,7 +224,7 @@ export const ResourceManager: React.FC<Props> = ({
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
-                {fields.map((f) => (
+                {inferredFields.map((f) => (
                   <label
                     key={f.name}
                     className="flex flex-col text-sm border border-transparent hover:border-gray-200 rounded px-2 py-1 transition-colors"
@@ -196,7 +251,7 @@ export const ResourceManager: React.FC<Props> = ({
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    setForm(emptyFromFields(fields));
+                    setForm(emptyFromFields(inferredFields));
                     setEditing(null);
                     setShowForm(false);
                   }}

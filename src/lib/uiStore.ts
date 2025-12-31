@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import ConfigManager from "./config_manager";
+import { configResource } from "../db/resources";
 
 type JSONObject = { [k: string]: any };
 
@@ -20,13 +20,36 @@ const useUIStore = create<UIState>((set) => ({
     resourceManagerShowForm: false,
     setResourceManagerShowForm: (v: boolean) => set(() => ({ resourceManagerShowForm: v })),
     config: {},
-    setConfig: (cfg: JSONObject) => set(() => {
-        if (typeof window !== 'undefined' && (window as any).electronAPI && (window as any).electronAPI.saveSystemSettings) {
-            (window as any).electronAPI.saveSystemSettings(cfg);
-        }
-        return { config: cfg };
-    }),
+    setConfig: (cfg: JSONObject) => set(() => ({ config: cfg })),
     setConfigLocal: (cfg: JSONObject) => set(() => ({ config: cfg })),
 }));
 
 export default useUIStore;
+
+// persist uiStore.config -> user_config.config.uiStore
+let suppressPersist = false;
+
+// on store config changes, persist to DB unless suppressed
+useUIStore.subscribe((s) => s.config, async (cfg, prev) => {
+    if (suppressPersist) return;
+    try {
+        await configResource.setKey('uiStore', cfg);
+    } catch (e) {
+        // ignore persistence errors
+    }
+});
+
+// load initial uiStore from DB
+(async () => {
+    try {
+        const stored = await configResource.getKey('uiStore');
+        if (stored && typeof stored === 'object') {
+            suppressPersist = true;
+            useUIStore.getState().setConfigLocal(stored);
+            // release suppression on next tick
+            setTimeout(() => { suppressPersist = false; }, 0);
+        }
+    } catch (e) {
+        // ignore
+    }
+})();

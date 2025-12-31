@@ -6,7 +6,6 @@ import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
 import runPythonScanner from './lib/python_scanner';
-import ConfigManager from './lib/config_manager';
 import migrations from './db/migrations.json';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -19,19 +18,7 @@ if (started) {
 
 // Handle Serial port port scanning from renderer process
 const setupIpcHandlers = () => {
-  // single ConfigManager instance for main process settings
-  const configManager = new ConfigManager();
-  // forward external changes (e.g. file modified by another process) to renderer
-  configManager.on('external-change', () => {
-    try {
-      const data = configManager.get('systemSettings') || null;
-      BrowserWindow.getAllWindows().forEach((w) => {
-        try { w.webContents.send('system-settings-changed', data); } catch { }
-      });
-    } catch (e) {
-      console.error('Error forwarding external config change to renderers:', e);
-    }
-  });
+
   ipcMain.handle('get-migrations', async () => {
     return migrations;
   });
@@ -51,30 +38,6 @@ const setupIpcHandlers = () => {
     } catch (error) {
       console.error('Error scanning Serial ports:', error);
       throw error;
-    }
-  });
-
-  ipcMain.handle('save-system-settings', async (_event, settings) => {
-    try {
-      await configManager.set('systemSettings', settings);
-      // notify renderer(s)
-      BrowserWindow.getAllWindows().forEach((w) => {
-        try { w.webContents.send('system-settings-changed', settings); } catch { }
-      });
-      return { ok: true };
-    } catch (error) {
-      console.error('Error saving system settings:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('load-system-settings', async () => {
-    try {
-      const data = configManager.get('systemSettings');
-      return data || null;
-    } catch (error) {
-      console.error('Error loading system settings:', error);
-      return null;
     }
   });
 
@@ -234,6 +197,38 @@ const setupIpcHandlers = () => {
       throw error;
     }
   });
+
+  // Provide pglite assets to renderer via IPC (renderer can't read node files)
+  ipcMain.handle('get-pglite-asset', async (_event, name: string) => {
+    const candidates = [
+      // Dev / tests: node_modules copy
+      path.resolve(process.cwd(), 'node_modules', '@electric-sql', 'pglite', 'dist', name),
+      // Built renderer next to main bundle: ../renderer/<name> (matches createWindow loadFile)
+      path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, name),
+      path.join(__dirname, 'assets', name),
+      // Built renderer assets folder
+      path.join(__dirname, '..', 'renderer', MAIN_WINDOW_VITE_NAME, 'assets', name),
+      // Fallback: renderer root next to main
+      path.join(__dirname, '..', 'renderer', name),
+      // Packaged app resources
+      path.join(process.resourcesPath, 'renderer', MAIN_WINDOW_VITE_NAME, name),
+      path.join(process.resourcesPath, 'app', 'renderer', MAIN_WINDOW_VITE_NAME, name),
+      path.join(process.resourcesPath, name),
+    ];
+
+    for (const p of candidates) {
+      try {
+        const data = await fs.readFile(p);
+        return data.toString('base64');
+      } catch (_e) {
+        // try next
+      }
+    }
+
+    const err = new Error(`pglite asset not found (tried ${candidates.join(', ')})`);
+    console.error('Error reading pglite asset', name, err);
+    throw err;
+  });
 };
 
 const createWindow = () => {
@@ -256,7 +251,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-//  mainWindow.webContents.openDevTools();
+  //  mainWindow.webContents.openDevTools();
 };
 
 // This method will be called when Electron has finished

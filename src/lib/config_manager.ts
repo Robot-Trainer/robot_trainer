@@ -1,9 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import { EventEmitter } from 'events';
-import Robot from './robot';
-import Camera from './camera';
+import { configResource } from '../db/resources';
 
 type JSONObject = { [k: string]: any };
 
@@ -22,64 +18,23 @@ function deepMerge(a: any, b: any): any {
 export default class ConfigManager extends EventEmitter {
   private defaults: JSONObject;
   private userSettings: JSONObject = {};
-  private settingsPath: string;
-  private robots: Robot[];
-  private cameras: Camera[];
-  private tmpPath: string;
+  private rowId: number | null = null;
   private writing = false;
   private writeQueue: Array<() => Promise<void>> = [];
-  private watcher?: fs.FSWatcher;
 
   constructor(defaults: JSONObject = {}) {
     super();
     this.defaults = defaults;
-    const userData = (process as any).electronAppPath || undefined;
-    // prefer electron.app.getPath('userData') if available at runtime
-    let baseDir: string;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const electron = require('electron');
-      baseDir = (electron.app && electron.app.getPath) ? electron.app.getPath('userData') : (userData || path.join(os.homedir(), '.config', 'robot_trainer'));
-    } catch (e) {
-      baseDir = (userData || path.join(os.homedir(), '.config', 'robot_trainer'));
-    }
-    this.settingsPath = path.join(baseDir, 'settings.json');
-    this.tmpPath = this.settingsPath + '.tmp';
-    this.load();
-    this.watch();
+    // initialize from DB
+    this.init().catch((err) => {
+      this.emit('error', err);
+    });
   }
 
-  private safeParse(data: string): JSONObject | null {
+  private async init() {
     try {
-      return JSON.parse(data);
-    } catch (err) {
-      return null;
-    }
-  }
-
-  private async ensureDir() {
-    const dir = path.dirname(this.settingsPath);
-    await fs.promises.mkdir(dir, { recursive: true });
-  }
-
-  private async load() {
-    try {
-      await this.ensureDir();
-      const raw = await fs.promises.readFile(this.settingsPath, 'utf8').catch(() => null);
-      if (!raw) {
-        this.userSettings = {};
-        this.emit('loaded');
-        return;
-      }
-      const parsed = this.safeParse(raw);
-      if (!parsed) {
-        // backup corrupt file
-        const corruptPath = this.settingsPath + '.corrupt';
-        await fs.promises.copyFile(this.settingsPath, corruptPath).catch(() => { });
-        this.emit('corrupt', this.settingsPath);
-        return;
-      }
-      this.userSettings = parsed;
+      const cfg = await configResource.getAll();
+      this.userSettings = cfg || {};
       this.emit('loaded');
     } catch (err) {
       this.emit('error', err);
@@ -105,7 +60,6 @@ export default class ConfigManager extends EventEmitter {
 
   public async set(key: string, value: any) {
     const task = async () => {
-      // update in-memory
       const parts = key.split('.');
       let o: any = this.userSettings || {};
       for (let i = 0; i < parts.length - 1; i++) {
@@ -115,21 +69,11 @@ export default class ConfigManager extends EventEmitter {
       }
       o[parts[parts.length - 1]] = value;
 
-      // write atomically
       try {
-        await this.ensureDir();
-        const data = JSON.stringify(this.userSettings, null, 2) + '\n';
-        await fs.promises.writeFile(this.tmpPath, data, 'utf8');
-        // flush to disk
-        const fd = await fs.promises.open(this.tmpPath, 'r');
-        try { await fd.sync(); } finally { await fd.close(); }
-        await fs.promises.rename(this.tmpPath, this.settingsPath);
+        await configResource.setAll(this.userSettings);
         this.emit('changed', key, value);
       } catch (err: any) {
-        // handle permission issues
         this.emit('error', err);
-        // attempt to cleanup tmp
-        try { await fs.promises.unlink(this.tmpPath).catch(() => { }); } catch { }
         throw err;
       }
     };
@@ -147,29 +91,12 @@ export default class ConfigManager extends EventEmitter {
     this.writing = true;
     while (this.writeQueue.length) {
       const job = this.writeQueue.shift()!;
-      try { await job(); } catch (e) { /* swallow - individual callers get rejection */ }
+      try { await job(); } catch (e) { /* swallow */ }
     }
     this.writing = false;
   }
 
-  private watch() {
-    try {
-      const dir = path.dirname(this.settingsPath);
-      this.watcher = fs.watch(dir, (eventType, filename) => {
-        if (!filename) return;
-        if (filename === path.basename(this.settingsPath)) {
-          // reload
-          this.load();
-          this.emit('external-change');
-        }
-      });
-    } catch (err) {
-      // ignore watcher errors
-      this.emit('error', err);
-    }
-  }
-
   public close() {
-    try { this.watcher?.close(); } catch { }
+    // no-op for DB-backed manager
   }
 }
