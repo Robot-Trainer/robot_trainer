@@ -1,9 +1,11 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { dismissSetupWizard } from './helpers';
 
 test.describe('System Settings integration with ConfigManager IPC', () => {
   test('saves settings successfully', async ({ window, setIpcHandlers, electronApp }) => {
     await setIpcHandlers({});
+    await dismissSetupWizard(window);
     // Register renderer-side listener to respond to main's request
     await window.evaluate(() => {
       // @ts-ignore
@@ -27,6 +29,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
 
   test('shows error when save fails', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({});
+    await dismissSetupWizard(window);
     await window.evaluate(() => {
       // @ts-ignore
       window.electronAPI.onRequestLoadSystemSettings(() => {
@@ -49,6 +52,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
 
   test('handles malformed settings on load gracefully', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({});
+    await dismissSetupWizard(window);
     await window.evaluate(() => {
       // @ts-ignore
       window.electronAPI.onRequestLoadSystemSettings(() => {
@@ -65,6 +69,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
 
   test('reacts to external settings change event', async ({ window, setIpcHandlers, electronApp }) => {
     await setIpcHandlers({});
+    await dismissSetupWizard(window);
     await window.evaluate(() => {
       // @ts-ignore
       window.electronAPI.onRequestLoadSystemSettings(() => {

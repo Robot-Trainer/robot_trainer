@@ -119,6 +119,7 @@ export const ResourceManager: React.FC<Props> = ({
   const onEdit = (it: any) => {
     setEditing(it);
     setForm({ ...it });
+    setShowForm(true);
   };
 
   const onSave = async () => {
@@ -186,7 +187,6 @@ export const ResourceManager: React.FC<Props> = ({
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        setShowForm(true);
                         onEdit(it);
                       }}
                     >

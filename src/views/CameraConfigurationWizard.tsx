@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import Button from '../ui/Button';
 
-const CameraConfigurationWizard: React.FC = () => {
-  const [cameraConfigs, setCameraConfigs] = useState<Array<any>>([]);
+interface CameraConfigurationWizardProps {
+  initialCameras?: any[];
+  onSave?: (cameras: any[]) => void;
+  onCancel?: () => void;
+}
+
+const CameraConfigurationWizard: React.FC<CameraConfigurationWizardProps> = ({ initialCameras = [], onSave, onCancel }) => {
+  const [cameraConfigs, setCameraConfigs] = useState<Array<any>>(initialCameras);
   const [newCamera, setNewCamera] = useState<{ name: string; resolution: string; fps: number; rotation: number }>({ name: '', resolution: '1280x720', fps: 30, rotation: 0 });
   const [cameraCalibration, setCameraCalibration] = useState<Record<string, boolean>>({});
 
@@ -14,6 +20,12 @@ const CameraConfigurationWizard: React.FC = () => {
   };
 
   const removeCameraConfig = (id: string) => setCameraConfigs((prev) => prev.filter((c) => c.id !== id));
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave(cameraConfigs);
+    }
+  };
 
   return (
     <div>
@@ -90,6 +102,13 @@ const CameraConfigurationWizard: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {onSave && (
+          <div className="mt-6 flex justify-end gap-2">
+            {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+            <Button onClick={handleSave}>Save Configuration</Button>
+          </div>
+        )}
       </div>
     </div>
   );

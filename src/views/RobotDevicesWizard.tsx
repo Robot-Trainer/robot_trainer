@@ -3,7 +3,12 @@ import Button from '../ui/Button';
 
 interface SerialPort { path: string; manufacturer: string; serialNumber: string; productId?: string; vendorId?: string; pnpId?: string; }
 
-const RobotDevicesWizard: React.FC = () => {
+interface RobotDevicesWizardProps {
+  onSelect?: (config: { follower?: SerialPort | null, leader?: SerialPort | null }) => void;
+  onCancel?: () => void;
+}
+
+const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCancel }) => {
   const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -17,6 +22,14 @@ const RobotDevicesWizard: React.FC = () => {
   useEffect(() => {
     // no-op on mount for tests; callers may call scanPorts
   }, []);
+
+  const handleConfirm = () => {
+    if (onSelect) {
+      const follower = serialPorts.find(p => p.path === selectedFollowerPort) || null;
+      const leader = serialPorts.find(p => p.path === selectedLeaderPort) || null;
+      onSelect({ follower, leader });
+    }
+  };
 
   const scanPorts = async () => {
     setScanning(true);
@@ -115,6 +128,12 @@ const RobotDevicesWizard: React.FC = () => {
           </div>
         </div>
       </div>
+      {onSelect && (
+        <div className="mt-6 flex justify-end gap-2">
+          {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+          <Button onClick={handleConfirm}>Confirm Selection</Button>
+        </div>
+      )}
     </div>
   );
 };

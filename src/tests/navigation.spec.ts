@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { dismissSetupWizard } from './helpers';
 
 test.describe('Navigation resets ResourceManager form', () => {
   test('opening form then navigating away clears showForm state', async ({ window, setIpcHandlers }) => {
@@ -8,6 +9,8 @@ test.describe('Navigation resets ResourceManager form', () => {
       'get-config': async (key: string) => store[key] || [],
       'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
     });
+
+    await dismissSetupWizard(window);
 
     // Open Robots view
     await window.click('text=Robots');

@@ -24,6 +24,8 @@ dist/*/*.js
 dist/*/*.js.map
 dist/*/*/*.js
 dist/*/*/*.js.map
+dist/*/*/*/*.js
+dist/*/*/*/*.js.map
 src/bin/*/*
 
 

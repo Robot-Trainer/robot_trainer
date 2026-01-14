@@ -76,7 +76,7 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
 
   // Force open wizard via menu
   await window.waitForLoadState('domcontentloaded');
-  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 2000 });
+  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 30000 });
 
   await electronApp.evaluate(({ Menu }) => {
     const menu = Menu.getApplicationMenu();

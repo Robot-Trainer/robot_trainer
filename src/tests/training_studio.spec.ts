@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { dismissSetupWizard } from './helpers';
 
 test('Training Studio starts simulation with provided config', async ({ window, setIpcHandlers, electronApp }) => {
   await setIpcHandlers({
@@ -10,6 +11,8 @@ test('Training Studio starts simulation with provided config', async ({ window, 
       return { ok: true, wsUrl: 'ws://localhost:9999' };
     }
   });
+
+  await dismissSetupWizard(window);
 
   // Navigate to Training Studio
   await window.click('text=Training Studio');

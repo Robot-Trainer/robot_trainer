@@ -1,0 +1,824 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e15]:
+    - navigation "Main toolbar" [ref=e16]:
+      - toolbar [ref=e17]:
+        - generic:
+          - generic "Select an element in the page to inspect it" [ref=e18]:
+            - button "Select an element in the page to inspect it - Ctrl + Shift + C" [ref=e19]
+          - generic "Toggle device toolbar" [ref=e21]:
+            - button "Toggle device toolbar - Ctrl + Shift + M" [ref=e22]
+      - generic:
+        - tablist "Panels":
+          - tab "Elements" [selected] [ref=e25]:
+            - generic [ref=e26]: Elements
+          - tab "Console" [ref=e27]:
+            - generic [ref=e28]: Console
+          - tab "Sources" [ref=e29]:
+            - generic [ref=e30]: Sources
+          - tab "Network" [ref=e31]:
+            - generic [ref=e32]: Network
+        - button "More tabs" [ref=e33]
+      - toolbar [ref=e36]:
+        - generic:
+          - generic "Open Console to view 1 warning" [ref=e39]:
+            - button "Open Console to view 1 warning" [ref=e40]:
+              - generic [ref=e42]: "1"
+          - generic "Settings" [ref=e44]:
+            - button "Settings - F1 - Shift + ?" [ref=e45]
+          - button "Customize and control DevTools" [ref=e47]:
+            - button "Customize and control DevTools" [ref=e48]
+          - generic "Close" [ref=e50]:
+            - button "Close" [ref=e51]
+    - tabpanel "Elements panel" [ref=e54]:
+      - generic "elements" [ref=e55]:
+        - generic [ref=e57]:
+          - generic [ref=e60]:
+            - generic:
+              - generic [ref=e61]:
+                - button "Switch to Accessibility Tree view" [ref=e63]
+                - main "DOM tree explorer" [ref=e65]:
+                  - tree "Page DOM" [ref=e69]:
+                    - treeitem "<!DOCTYPE html>" [ref=e70]:
+                      - generic [ref=e74]: <!DOCTYPE html>
+                    - treeitem "<html>" [expanded] [ref=e75]:
+                      - generic "<html>" [ref=e79]
+                    - group [ref=e80]:
+                      - treeitem "<head> Expand …</head>" [ref=e81]:
+                        - generic [ref=e84]:
+                          - generic "<head>" [ref=e85]
+                          - button "Expand" [ref=e87]
+                          - text: …
+                          - generic "</head>" [ref=e89]
+                      - treeitem "<body>" [expanded] [selected] [ref=e90]:
+                        - generic [ref=e91]:
+                          - generic "<body>" [ref=e96]
+                          - generic [ref=e97]: == $0
+                      - group [ref=e98]:
+                        - treeitem "<div id=\"root\"> Expand …</div>" [ref=e99]:
+                          - generic [ref=e102]:
+                            - generic "<div id=\"root\">" [ref=e103]:
+                              - text: <div
+                              - generic [ref=e104]: id="root"
+                              - text: ">"
+                            - button "Expand" [ref=e106]
+                            - text: …
+                            - generic "</div>" [ref=e108]
+                        - treeitem "</body>" [ref=e109]:
+                          - generic "</body>" [ref=e113]
+                      - 'treeitem "<x-pw-glass style=\"position: fixed; inset: 0px; z-index: 2147483647; pointer-events: none; display: flex; background-color: transparent;\"> Expand …</x-pw-glass> Enable flex mode" [ref=e114]':
+                        - generic [ref=e115]:
+                          - generic [ref=e117]:
+                            - 'generic "<x-pw-glass style=\"position: fixed; inset: 0px; z-index: 2147483647; pointer-events: none; display: flex; background-color: transparent;\">" [ref=e118]':
+                              - text: <x-pw-glass
+                              - generic [ref=e119]: "style=\"position: fixed; inset: 0px; z-index: 2147483647; pointer-events: none; display: flex; background-color: transparent;\""
+                              - text: ">"
+                            - button "Expand" [ref=e121]
+                            - text: …
+                            - generic "</x-pw-glass>" [ref=e123]
+                          - button "Enable flex mode" [ref=e125]:
+                            - generic [ref=e127]: flex
+                      - treeitem "</html>" [ref=e128]:
+                        - generic "</html>" [ref=e132]
+              - navigation "DOM tree breadcrumbs" [ref=e135]:
+                - list [ref=e137]:
+                  - listitem [ref=e138]:
+                    - link "html" [ref=e139] [cursor=pointer]:
+                      - /url: "#"
+                      - generic [ref=e141]: html
+                  - listitem [ref=e142]:
+                    - link "body" [ref=e143] [cursor=pointer]:
+                      - /url: "#"
+                      - generic [ref=e145]: body
+          - generic [ref=e148]:
+            - navigation "Side panel toolbar" [ref=e149]:
+              - generic:
+                - tablist:
+                  - tab "Styles" [selected] [ref=e150]:
+                    - generic [ref=e151]: Styles
+                  - tab "Computed" [ref=e152]:
+                    - generic [ref=e153]: Computed
+                  - tab "Layout" [ref=e154]:
+                    - generic [ref=e155]: Layout
+                  - tab "Event Listeners" [ref=e156]:
+                    - generic [ref=e157]: Event Listeners
+                  - tab "DOM Breakpoints" [ref=e158]:
+                    - generic [ref=e159]: DOM Breakpoints
+                  - tab "Properties" [ref=e160]:
+                    - generic [ref=e161]: Properties
+                - button "More tabs" [ref=e162]
+            - complementary "Side panel content" [ref=e165]:
+              - tabpanel "Styles panel" [ref=e166]:
+                - generic [ref=e171]:
+                  - generic [ref=e173]:
+                    - toolbar [ref=e174]:
+                      - generic [ref=e175]:
+                        - generic:
+                          - textbox "Filter" [ref=e180]
+                          - generic "Toggle CSS Layers view" [ref=e181]:
+                            - button "Toggle CSS Layers view" [ref=e182]
+                          - generic "Toggle Element State" [ref=e184]:
+                            - button "Toggle Element State" [ref=e185]
+                          - generic "Element Classes" [ref=e187]:
+                            - button "Element Classes" [ref=e188]
+                          - generic "New Style Rule" [ref=e190]:
+                            - button "New Style Rule" [ref=e191]
+                          - generic "Toggle common rendering emulations" [ref=e194]:
+                            - button "Toggle common rendering emulations" [ref=e195]
+                          - generic "Show Computed Styles sidebar" [ref=e197]:
+                            - button "Show Computed Styles sidebar" [ref=e198]
+                    - list [ref=e200]:
+                      - listitem "element.style, css selector" [ref=e201]:
+                        - generic [ref=e203]:
+                          - generic [ref=e205]:
+                            - text: element.style
+                            - text: "{"
+                          - generic [ref=e206]:
+                            - generic:
+                              - tree
+                          - generic [ref=e207]: "}"
+                      - listitem "body, css selector" [ref=e208]:
+                        - link "index-Br95Ud-x.css:1" [ref=e210] [cursor=pointer]
+                        - generic [ref=e211]:
+                          - generic [ref=e213]:
+                            - generic "CSS selector" [ref=e214]: body
+                            - text: "{"
+                          - tree [ref=e217]:
+                            - 'treeitem "CSS property name: margin : CSS property value: 0;" [ref=e218]':
+                              - text: margin
+                              - generic [ref=e219]: ":"
+                              - 'generic "CSS property value: 0" [ref=e221]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: padding : CSS property value: 0;" [ref=e222]':
+                              - text: padding
+                              - generic [ref=e223]: ":"
+                              - 'generic "CSS property value: 0" [ref=e225]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: font-family : CSS property value: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;" [ref=e226]':
+                              - text: font-family
+                              - generic [ref=e227]: ":"
+                              - 'generic "CSS property value: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif" [ref=e228]': "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                              - text: ;
+                          - generic [ref=e229]: "}"
+                      - generic [ref=e230]:
+                        - generic [ref=e231]: Layer
+                        - button "base" [ref=e232] [cursor=pointer]
+                      - listitem "*, :after, :before, ::backdrop, css selector" [ref=e233]:
+                        - link "index-Br95Ud-x.css:1" [ref=e235] [cursor=pointer]
+                        - generic [ref=e236]:
+                          - generic [ref=e238]:
+                            - generic "CSS selector" [ref=e239]: "*, :after, :before, ::backdrop"
+                            - text: "{"
+                          - tree [ref=e242]:
+                            - 'treeitem "CSS property name: box-sizing : CSS property value: border-box;" [ref=e243]':
+                              - text: box-sizing
+                              - generic [ref=e244]: ":"
+                              - 'generic "CSS property value: border-box" [ref=e245]': border-box
+                              - text: ;
+                            - 'treeitem "CSS property name: border : CSS property value: 0 solid;" [ref=e246]':
+                              - text: border
+                              - generic [ref=e247]: ":"
+                              - 'generic "CSS property value: 0 solid" [ref=e249]': 0 solid
+                              - text: ;
+                            - 'treeitem "CSS property name: margin : CSS property value: 0;" [ref=e250]':
+                              - text: margin
+                              - generic [ref=e251]: ":"
+                              - 'generic "CSS property value: 0" [ref=e253]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: padding : CSS property value: 0;" [ref=e254]':
+                              - text: padding
+                              - generic [ref=e255]: ":"
+                              - 'generic "CSS property value: 0" [ref=e257]': "0"
+                              - text: ;
+                          - generic [ref=e258]: "}"
+                      - generic [ref=e259]:
+                        - generic [ref=e260]: Layer
+                        - generic [ref=e261]: user agent stylesheet
+                      - listitem "body, css selector" [ref=e262]:
+                        - generic [ref=e263]: user agent stylesheet
+                        - generic [ref=e264]:
+                          - generic [ref=e266]:
+                            - generic "CSS selector" [ref=e267]: body
+                            - text: "{"
+                          - tree [ref=e270]:
+                            - 'treeitem "CSS property name: display : CSS property value: block;" [ref=e271]':
+                              - text: display
+                              - generic [ref=e272]: ":"
+                              - 'generic "CSS property value: block" [ref=e273]': block
+                              - text: ;
+                            - 'treeitem "CSS property name: margin : CSS property value: 8px;" [ref=e274]':
+                              - text: margin
+                              - generic [ref=e275]: ":"
+                              - 'generic "CSS property value: 8px" [ref=e277]': 8px
+                              - text: ;
+                          - generic [ref=e278]: "}"
+                      - generic [ref=e279]:
+                        - text: Inherited from
+                        - button "html" [ref=e283] [cursor=pointer]:
+                          - generic [ref=e284]: html
+                      - generic [ref=e285]:
+                        - generic [ref=e286]: Layer
+                        - button "base" [ref=e287] [cursor=pointer]
+                      - listitem "html, :host, css selector" [ref=e288]:
+                        - link "index-Br95Ud-x.css:1" [ref=e290] [cursor=pointer]
+                        - generic [ref=e291]:
+                          - generic [ref=e293]:
+                            - generic "CSS selector" [ref=e294]: html, :host
+                            - text: "{"
+                          - tree [ref=e297]:
+                            - 'treeitem "CSS property name: -webkit-text-size-adjust : CSS property value: 100%;" [ref=e298]':
+                              - text: "-webkit-text-size-adjust"
+                              - generic [ref=e299]: ":"
+                              - 'generic "CSS property value: 100%" [ref=e300]': 100%
+                              - text: ;
+                            - 'treeitem "CSS property name: tab-size : CSS property value: 4;" [ref=e301]':
+                              - text: tab-size
+                              - generic [ref=e302]: ":"
+                              - 'generic "CSS property value: 4" [ref=e303]': "4"
+                              - text: ;
+                            - 'treeitem "CSS property name: line-height : CSS property value: 1.5;" [ref=e304]':
+                              - text: line-height
+                              - generic [ref=e305]: ":"
+                              - 'generic "CSS property value: 1.5" [ref=e306]': "1.5"
+                              - text: ;
+                            - 'treeitem "CSS property name: font-family : CSS property value: var(--default-font-family,ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\");" [ref=e307]':
+                              - text: font-family
+                              - generic [ref=e308]: ":"
+                              - 'generic "CSS property value: var(--default-font-family,ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\")" [ref=e309]':
+                                - generic [ref=e311]:
+                                  - generic [ref=e312]: var
+                                  - text: (
+                                  - link "--default-font-family" [ref=e314] [cursor=pointer]
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: font-feature-settings : CSS property value: var(--default-font-feature-settings,normal);" [ref=e315]':
+                              - text: font-feature-settings
+                              - generic [ref=e316]: ":"
+                              - 'generic "CSS property value: var(--default-font-feature-settings,normal)" [ref=e317]':
+                                - generic [ref=e319]:
+                                  - generic [ref=e320]: var
+                                  - text: (
+                                  - link "--default-font-feature-settings" [disabled] [ref=e322] [cursor=pointer]
+                                  - text: ", normal)"
+                              - text: ;
+                            - 'treeitem "CSS property name: font-variation-settings : CSS property value: var(--default-font-variation-settings,normal);" [ref=e323]':
+                              - text: font-variation-settings
+                              - generic [ref=e324]: ":"
+                              - 'generic "CSS property value: var(--default-font-variation-settings,normal)" [ref=e325]':
+                                - generic [ref=e327]:
+                                  - generic [ref=e328]: var
+                                  - text: (
+                                  - link "--default-font-variation-settings" [disabled] [ref=e330] [cursor=pointer]
+                                  - text: ", normal)"
+                              - text: ;
+                            - 'treeitem "CSS property name: -webkit-tap-highlight-color : CSS property value: transparent;" [ref=e331]':
+                              - text: "-webkit-tap-highlight-color"
+                              - generic [ref=e332]: ":"
+                              - 'generic "CSS property value: transparent" [ref=e333]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e335]
+                                - text: transparent
+                              - text: ;
+                          - generic [ref=e337]: "}"
+                      - generic [ref=e338]:
+                        - generic [ref=e339]: Layer
+                        - button "theme" [ref=e340] [cursor=pointer]
+                      - listitem ":root, :host, css selector" [ref=e341]:
+                        - link "index-Br95Ud-x.css:1" [ref=e343] [cursor=pointer]
+                        - generic [ref=e344]:
+                          - generic [ref=e346]:
+                            - generic "CSS selector" [ref=e347]: :root, :host
+                            - text: "{"
+                          - tree [ref=e350]:
+                            - 'treeitem "CSS property name: --font-sans : CSS property value: ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\";" [ref=e351]':
+                              - text: "--font-sans"
+                              - generic [ref=e352]: ":"
+                              - 'generic "CSS property value: ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"" [ref=e353]': ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"
+                              - text: ;
+                            - 'treeitem "CSS property name: --font-mono : CSS property value: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace;" [ref=e354]':
+                              - text: "--font-mono"
+                              - generic [ref=e355]: ":"
+                              - 'generic "CSS property value: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,\"Liberation Mono\",\"Courier New\",monospace" [ref=e356]': ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-50 : CSS property value: oklch(97.1% .013 17.38);" [ref=e357]':
+                              - text: "--color-red-50"
+                              - generic [ref=e358]: ":"
+                              - 'generic "CSS property value: oklch(97.1% .013 17.38)" [ref=e359]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e361]
+                                - generic [ref=e363]:
+                                  - generic [ref=e364]: oklch
+                                  - text: (97.1% .013 17.38)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-100 : CSS property value: oklch(93.6% .032 17.717);" [ref=e365]':
+                              - text: "--color-red-100"
+                              - generic [ref=e366]: ":"
+                              - 'generic "CSS property value: oklch(93.6% .032 17.717)" [ref=e367]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e369]
+                                - generic [ref=e371]:
+                                  - generic [ref=e372]: oklch
+                                  - text: (93.6% .032 17.717)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-200 : CSS property value: oklch(88.5% .062 18.334);" [ref=e373]':
+                              - text: "--color-red-200"
+                              - generic [ref=e374]: ":"
+                              - 'generic "CSS property value: oklch(88.5% .062 18.334)" [ref=e375]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e377]
+                                - generic [ref=e379]:
+                                  - generic [ref=e380]: oklch
+                                  - text: (88.5% .062 18.334)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-500 : CSS property value: oklch(63.7% .237 25.331);" [ref=e381]':
+                              - text: "--color-red-500"
+                              - generic [ref=e382]: ":"
+                              - 'generic "CSS property value: oklch(63.7% .237 25.331)" [ref=e383]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e385]
+                                - generic [ref=e387]:
+                                  - generic [ref=e388]: oklch
+                                  - text: (63.7% .237 25.331)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-600 : CSS property value: oklch(57.7% .245 27.325);" [ref=e389]':
+                              - text: "--color-red-600"
+                              - generic [ref=e390]: ":"
+                              - 'generic "CSS property value: oklch(57.7% .245 27.325)" [ref=e391]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e393]
+                                - generic [ref=e395]:
+                                  - generic [ref=e396]: oklch
+                                  - text: (57.7% .245 27.325)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-red-700 : CSS property value: oklch(50.5% .213 27.518);" [ref=e397]':
+                              - text: "--color-red-700"
+                              - generic [ref=e398]: ":"
+                              - 'generic "CSS property value: oklch(50.5% .213 27.518)" [ref=e399]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e401]
+                                - generic [ref=e403]:
+                                  - generic [ref=e404]: oklch
+                                  - text: (50.5% .213 27.518)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-orange-400 : CSS property value: oklch(75% .183 55.934);" [ref=e405]':
+                              - text: "--color-orange-400"
+                              - generic [ref=e406]: ":"
+                              - 'generic "CSS property value: oklch(75% .183 55.934)" [ref=e407]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e409]
+                                - generic [ref=e411]:
+                                  - generic [ref=e412]: oklch
+                                  - text: (75% .183 55.934)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-yellow-500 : CSS property value: oklch(79.5% .184 86.047);" [ref=e413]':
+                              - text: "--color-yellow-500"
+                              - generic [ref=e414]: ":"
+                              - 'generic "CSS property value: oklch(79.5% .184 86.047)" [ref=e415]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e417]
+                                - generic [ref=e419]:
+                                  - generic [ref=e420]: oklch
+                                  - text: (79.5% .184 86.047)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-green-100 : CSS property value: oklch(96.2% .044 156.743);" [ref=e421]':
+                              - text: "--color-green-100"
+                              - generic [ref=e422]: ":"
+                              - 'generic "CSS property value: oklch(96.2% .044 156.743)" [ref=e423]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e425]
+                                - generic [ref=e427]:
+                                  - generic [ref=e428]: oklch
+                                  - text: (96.2% .044 156.743)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-green-500 : CSS property value: oklch(72.3% .219 149.579);" [ref=e429]':
+                              - text: "--color-green-500"
+                              - generic [ref=e430]: ":"
+                              - 'generic "CSS property value: oklch(72.3% .219 149.579)" [ref=e431]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e433]
+                                - generic [ref=e435]:
+                                  - generic [ref=e436]: oklch
+                                  - text: (72.3% .219 149.579)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-green-600 : CSS property value: oklch(62.7% .194 149.214);" [ref=e437]':
+                              - text: "--color-green-600"
+                              - generic [ref=e438]: ":"
+                              - 'generic "CSS property value: oklch(62.7% .194 149.214)" [ref=e439]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e441]
+                                - generic [ref=e443]:
+                                  - generic [ref=e444]: oklch
+                                  - text: (62.7% .194 149.214)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-green-700 : CSS property value: oklch(52.7% .154 150.069);" [ref=e445]':
+                              - text: "--color-green-700"
+                              - generic [ref=e446]: ":"
+                              - 'generic "CSS property value: oklch(52.7% .154 150.069)" [ref=e447]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e449]
+                                - generic [ref=e451]:
+                                  - generic [ref=e452]: oklch
+                                  - text: (52.7% .154 150.069)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-blue-50 : CSS property value: oklch(97% .014 254.604);" [ref=e453]':
+                              - text: "--color-blue-50"
+                              - generic [ref=e454]: ":"
+                              - 'generic "CSS property value: oklch(97% .014 254.604)" [ref=e455]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e457]
+                                - generic [ref=e459]:
+                                  - generic [ref=e460]: oklch
+                                  - text: (97% .014 254.604)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-blue-100 : CSS property value: oklch(93.2% .032 255.585);" [ref=e461]':
+                              - text: "--color-blue-100"
+                              - generic [ref=e462]: ":"
+                              - 'generic "CSS property value: oklch(93.2% .032 255.585)" [ref=e463]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e465]
+                                - generic [ref=e467]:
+                                  - generic [ref=e468]: oklch
+                                  - text: (93.2% .032 255.585)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-blue-500 : CSS property value: oklch(62.3% .214 259.815);" [ref=e469]':
+                              - text: "--color-blue-500"
+                              - generic [ref=e470]: ":"
+                              - 'generic "CSS property value: oklch(62.3% .214 259.815)" [ref=e471]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e473]
+                                - generic [ref=e475]:
+                                  - generic [ref=e476]: oklch
+                                  - text: (62.3% .214 259.815)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-blue-600 : CSS property value: oklch(54.6% .245 262.881);" [ref=e477]':
+                              - text: "--color-blue-600"
+                              - generic [ref=e478]: ":"
+                              - 'generic "CSS property value: oklch(54.6% .245 262.881)" [ref=e479]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e481]
+                                - generic [ref=e483]:
+                                  - generic [ref=e484]: oklch
+                                  - text: (54.6% .245 262.881)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-blue-700 : CSS property value: oklch(48.8% .243 264.376);" [ref=e485]':
+                              - text: "--color-blue-700"
+                              - generic [ref=e486]: ":"
+                              - 'generic "CSS property value: oklch(48.8% .243 264.376)" [ref=e487]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e489]
+                                - generic [ref=e491]:
+                                  - generic [ref=e492]: oklch
+                                  - text: (48.8% .243 264.376)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-pink-500 : CSS property value: oklch(65.6% .241 354.308);" [ref=e493]':
+                              - text: "--color-pink-500"
+                              - generic [ref=e494]: ":"
+                              - 'generic "CSS property value: oklch(65.6% .241 354.308)" [ref=e495]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e497]
+                                - generic [ref=e499]:
+                                  - generic [ref=e500]: oklch
+                                  - text: (65.6% .241 354.308)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-50 : CSS property value: oklch(98.5% .002 247.839);" [ref=e501]':
+                              - text: "--color-gray-50"
+                              - generic [ref=e502]: ":"
+                              - 'generic "CSS property value: oklch(98.5% .002 247.839)" [ref=e503]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e505]
+                                - generic [ref=e507]:
+                                  - generic [ref=e508]: oklch
+                                  - text: (98.5% .002 247.839)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-100 : CSS property value: oklch(96.7% .003 264.542);" [ref=e509]':
+                              - text: "--color-gray-100"
+                              - generic [ref=e510]: ":"
+                              - 'generic "CSS property value: oklch(96.7% .003 264.542)" [ref=e511]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e513]
+                                - generic [ref=e515]:
+                                  - generic [ref=e516]: oklch
+                                  - text: (96.7% .003 264.542)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-200 : CSS property value: oklch(92.8% .006 264.531);" [ref=e517]':
+                              - text: "--color-gray-200"
+                              - generic [ref=e518]: ":"
+                              - 'generic "CSS property value: oklch(92.8% .006 264.531)" [ref=e519]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e521]
+                                - generic [ref=e523]:
+                                  - generic [ref=e524]: oklch
+                                  - text: (92.8% .006 264.531)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-300 : CSS property value: oklch(87.2% .01 258.338);" [ref=e525]':
+                              - text: "--color-gray-300"
+                              - generic [ref=e526]: ":"
+                              - 'generic "CSS property value: oklch(87.2% .01 258.338)" [ref=e527]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e529]
+                                - generic [ref=e531]:
+                                  - generic [ref=e532]: oklch
+                                  - text: (87.2% .01 258.338)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-400 : CSS property value: oklch(70.7% .022 261.325);" [ref=e533]':
+                              - text: "--color-gray-400"
+                              - generic [ref=e534]: ":"
+                              - 'generic "CSS property value: oklch(70.7% .022 261.325)" [ref=e535]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e537]
+                                - generic [ref=e539]:
+                                  - generic [ref=e540]: oklch
+                                  - text: (70.7% .022 261.325)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-500 : CSS property value: oklch(55.1% .027 264.364);" [ref=e541]':
+                              - text: "--color-gray-500"
+                              - generic [ref=e542]: ":"
+                              - 'generic "CSS property value: oklch(55.1% .027 264.364)" [ref=e543]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e545]
+                                - generic [ref=e547]:
+                                  - generic [ref=e548]: oklch
+                                  - text: (55.1% .027 264.364)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-600 : CSS property value: oklch(44.6% .03 256.802);" [ref=e549]':
+                              - text: "--color-gray-600"
+                              - generic [ref=e550]: ":"
+                              - 'generic "CSS property value: oklch(44.6% .03 256.802)" [ref=e551]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e553]
+                                - generic [ref=e555]:
+                                  - generic [ref=e556]: oklch
+                                  - text: (44.6% .03 256.802)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-700 : CSS property value: oklch(37.3% .034 259.733);" [ref=e557]':
+                              - text: "--color-gray-700"
+                              - generic [ref=e558]: ":"
+                              - 'generic "CSS property value: oklch(37.3% .034 259.733)" [ref=e559]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e561]
+                                - generic [ref=e563]:
+                                  - generic [ref=e564]: oklch
+                                  - text: (37.3% .034 259.733)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-800 : CSS property value: oklch(27.8% .033 256.848);" [ref=e565]':
+                              - text: "--color-gray-800"
+                              - generic [ref=e566]: ":"
+                              - 'generic "CSS property value: oklch(27.8% .033 256.848)" [ref=e567]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e569]
+                                - generic [ref=e571]:
+                                  - generic [ref=e572]: oklch
+                                  - text: (27.8% .033 256.848)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-gray-900 : CSS property value: oklch(21% .034 264.665);" [ref=e573]':
+                              - text: "--color-gray-900"
+                              - generic [ref=e574]: ":"
+                              - 'generic "CSS property value: oklch(21% .034 264.665)" [ref=e575]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e577]
+                                - generic [ref=e579]:
+                                  - generic [ref=e580]: oklch
+                                  - text: (21% .034 264.665)
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-black : CSS property value: #000;" [ref=e581]':
+                              - text: "--color-black"
+                              - generic [ref=e582]: ":"
+                              - 'generic "CSS property value: #000" [ref=e583]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e585]
+                                - text: "#000"
+                              - text: ;
+                            - 'treeitem "CSS property name: --color-white : CSS property value: #fff;" [ref=e587]':
+                              - text: "--color-white"
+                              - generic [ref=e588]: ":"
+                              - 'generic "CSS property value: #fff" [ref=e589]':
+                                - generic "Open color picker. Shift + Click to change color format." [ref=e591]
+                                - text: "#fff"
+                              - text: ;
+                            - 'treeitem "CSS property name: --spacing : CSS property value: .25rem;" [ref=e593]':
+                              - text: "--spacing"
+                              - generic [ref=e594]: ":"
+                              - 'generic "CSS property value: .25rem" [ref=e595]': .25rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --container-sm : CSS property value: 24rem;" [ref=e596]':
+                              - text: "--container-sm"
+                              - generic [ref=e597]: ":"
+                              - 'generic "CSS property value: 24rem" [ref=e598]': 24rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --container-2xl : CSS property value: 42rem;" [ref=e599]':
+                              - text: "--container-2xl"
+                              - generic [ref=e600]: ":"
+                              - 'generic "CSS property value: 42rem" [ref=e601]': 42rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --container-4xl : CSS property value: 56rem;" [ref=e602]':
+                              - text: "--container-4xl"
+                              - generic [ref=e603]: ":"
+                              - 'generic "CSS property value: 56rem" [ref=e604]': 56rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-xs : CSS property value: .75rem;" [ref=e605]':
+                              - text: "--text-xs"
+                              - generic [ref=e606]: ":"
+                              - 'generic "CSS property value: .75rem" [ref=e607]': .75rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-xs--line-height : CSS property value: calc(1/.75);" [ref=e608]':
+                              - text: "--text-xs--line-height"
+                              - generic [ref=e609]: ":"
+                              - 'generic "CSS property value: calc(1/.75)" [ref=e610]':
+                                - generic [ref=e611]:
+                                  - generic [ref=e612]: calc
+                                  - text: (
+                                  - generic [ref=e613]:
+                                    - generic [ref=e614]: "1"
+                                    - generic [ref=e615]: /
+                                    - generic [ref=e616]: ".75"
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-sm : CSS property value: .875rem;" [ref=e617]':
+                              - text: "--text-sm"
+                              - generic [ref=e618]: ":"
+                              - 'generic "CSS property value: .875rem" [ref=e619]': .875rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-sm--line-height : CSS property value: calc(1.25/.875);" [ref=e620]':
+                              - text: "--text-sm--line-height"
+                              - generic [ref=e621]: ":"
+                              - 'generic "CSS property value: calc(1.25/.875)" [ref=e622]':
+                                - generic [ref=e623]:
+                                  - generic [ref=e624]: calc
+                                  - text: (
+                                  - generic [ref=e625]:
+                                    - generic [ref=e626]: "1.25"
+                                    - generic [ref=e627]: /
+                                    - generic [ref=e628]: ".875"
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-lg : CSS property value: 1.125rem;" [ref=e629]':
+                              - text: "--text-lg"
+                              - generic [ref=e630]: ":"
+                              - 'generic "CSS property value: 1.125rem" [ref=e631]': 1.125rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-lg--line-height : CSS property value: calc(1.75/1.125);" [ref=e632]':
+                              - text: "--text-lg--line-height"
+                              - generic [ref=e633]: ":"
+                              - 'generic "CSS property value: calc(1.75/1.125)" [ref=e634]':
+                                - generic [ref=e635]:
+                                  - generic [ref=e636]: calc
+                                  - text: (
+                                  - generic [ref=e637]:
+                                    - generic [ref=e638]: "1.75"
+                                    - generic [ref=e639]: /
+                                    - generic [ref=e640]: "1.125"
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-xl : CSS property value: 1.25rem;" [ref=e641]':
+                              - text: "--text-xl"
+                              - generic [ref=e642]: ":"
+                              - 'generic "CSS property value: 1.25rem" [ref=e643]': 1.25rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-xl--line-height : CSS property value: calc(1.75/1.25);" [ref=e644]':
+                              - text: "--text-xl--line-height"
+                              - generic [ref=e645]: ":"
+                              - 'generic "CSS property value: calc(1.75/1.25)" [ref=e646]':
+                                - generic [ref=e647]:
+                                  - generic [ref=e648]: calc
+                                  - text: (
+                                  - generic [ref=e649]:
+                                    - generic [ref=e650]: "1.75"
+                                    - generic [ref=e651]: /
+                                    - generic [ref=e652]: "1.25"
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-2xl : CSS property value: 1.5rem;" [ref=e653]':
+                              - text: "--text-2xl"
+                              - generic [ref=e654]: ":"
+                              - 'generic "CSS property value: 1.5rem" [ref=e655]': 1.5rem
+                              - text: ;
+                            - 'treeitem "CSS property name: --text-2xl--line-height : CSS property value: calc(2/1.5);" [ref=e656]':
+                              - text: "--text-2xl--line-height"
+                              - generic [ref=e657]: ":"
+                              - 'generic "CSS property value: calc(2/1.5)" [ref=e658]':
+                                - generic [ref=e659]:
+                                  - generic [ref=e660]: calc
+                                  - text: (
+                                  - generic [ref=e661]:
+                                    - generic [ref=e662]: "2"
+                                    - generic [ref=e663]: /
+                                    - generic [ref=e664]: "1.5"
+                                  - text: )
+                              - text: ;
+                            - 'treeitem "CSS property name: --font-weight-medium : CSS property value: 500;" [ref=e665]':
+                              - text: "--font-weight-medium"
+                              - generic [ref=e666]: ":"
+                              - 'generic "CSS property value: 500" [ref=e667]': "500"
+                              - text: ;
+                            - 'treeitem "CSS property name: --font-weight-semibold : CSS property value: 600;" [ref=e668]':
+                              - text: "--font-weight-semibold"
+                              - generic [ref=e669]: ":"
+                              - 'generic "CSS property value: 600" [ref=e670]': "600"
+                              - text: ;
+                            - 'treeitem "CSS property name: --font-weight-bold : CSS property value: 700;" [ref=e671]':
+                              - text: "--font-weight-bold"
+                              - generic [ref=e672]: ":"
+                              - 'generic "CSS property value: 700" [ref=e673]': "700"
+                              - text: ;
+                            - 'treeitem "CSS property name: --tracking-tight : CSS property value: -.025em;" [ref=e674]':
+                              - text: "--tracking-tight"
+                              - generic [ref=e675]: ":"
+                              - 'generic "CSS property value: -.025em" [ref=e676]': "-.025em"
+                              - text: ;
+                          - button "Show all properties (12 more)" [ref=e677]:
+                            - generic: Show all properties (12 more)
+                          - generic [ref=e678]: "}"
+                      - generic [ref=e679]: Pseudo ::before element
+                      - generic [ref=e680]:
+                        - generic [ref=e681]: Layer
+                        - button "base" [ref=e682] [cursor=pointer]
+                      - listitem "*, :after, :before, ::backdrop, css selector" [ref=e683]:
+                        - link "index-Br95Ud-x.css:1" [ref=e685] [cursor=pointer]
+                        - generic [ref=e686]:
+                          - generic [ref=e688]:
+                            - generic "CSS selector" [ref=e689]: "*, :after, :before, ::backdrop"
+                            - text: "{"
+                          - tree [ref=e692]:
+                            - 'treeitem "CSS property name: box-sizing : CSS property value: border-box;" [ref=e693]':
+                              - text: box-sizing
+                              - generic [ref=e694]: ":"
+                              - 'generic "CSS property value: border-box" [ref=e695]': border-box
+                              - text: ;
+                            - 'treeitem "CSS property name: border : CSS property value: 0 solid;" [ref=e696]':
+                              - text: border
+                              - generic [ref=e697]: ":"
+                              - 'generic "CSS property value: 0 solid" [ref=e699]': 0 solid
+                              - text: ;
+                            - 'treeitem "CSS property name: margin : CSS property value: 0;" [ref=e700]':
+                              - text: margin
+                              - generic [ref=e701]: ":"
+                              - 'generic "CSS property value: 0" [ref=e703]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: padding : CSS property value: 0;" [ref=e704]':
+                              - text: padding
+                              - generic [ref=e705]: ":"
+                              - 'generic "CSS property value: 0" [ref=e707]': "0"
+                              - text: ;
+                          - generic [ref=e708]: "}"
+                      - generic [ref=e709]: Pseudo ::after element
+                      - generic [ref=e710]:
+                        - generic [ref=e711]: Layer
+                        - button "base" [ref=e712] [cursor=pointer]
+                      - listitem "*, :after, :before, ::backdrop, css selector" [ref=e713]:
+                        - link "index-Br95Ud-x.css:1" [ref=e715] [cursor=pointer]
+                        - generic [ref=e716]:
+                          - generic [ref=e718]:
+                            - generic "CSS selector" [ref=e719]: "*, :after, :before, ::backdrop"
+                            - text: "{"
+                          - tree [ref=e722]:
+                            - 'treeitem "CSS property name: box-sizing : CSS property value: border-box;" [ref=e723]':
+                              - text: box-sizing
+                              - generic [ref=e724]: ":"
+                              - 'generic "CSS property value: border-box" [ref=e725]': border-box
+                              - text: ;
+                            - 'treeitem "CSS property name: border : CSS property value: 0 solid;" [ref=e726]':
+                              - text: border
+                              - generic [ref=e727]: ":"
+                              - 'generic "CSS property value: 0 solid" [ref=e729]': 0 solid
+                              - text: ;
+                            - 'treeitem "CSS property name: margin : CSS property value: 0;" [ref=e730]':
+                              - text: margin
+                              - generic [ref=e731]: ":"
+                              - 'generic "CSS property value: 0" [ref=e733]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: padding : CSS property value: 0;" [ref=e734]':
+                              - text: padding
+                              - generic [ref=e735]: ":"
+                              - 'generic "CSS property value: 0" [ref=e737]': "0"
+                              - text: ;
+                          - generic [ref=e738]: "}"
+                      - generic [ref=e739]: Pseudo ::backdrop element
+                      - generic [ref=e740]:
+                        - generic [ref=e741]: Layer
+                        - button "base" [ref=e742] [cursor=pointer]
+                      - listitem "*, :after, :before, ::backdrop, css selector" [ref=e743]:
+                        - link "index-Br95Ud-x.css:1" [ref=e745] [cursor=pointer]
+                        - generic [ref=e746]:
+                          - generic [ref=e748]:
+                            - generic "CSS selector" [ref=e749]: "*, :after, :before, ::backdrop"
+                            - text: "{"
+                          - tree [ref=e752]:
+                            - 'treeitem "CSS property name: box-sizing : CSS property value: border-box;" [ref=e753]':
+                              - text: box-sizing
+                              - generic [ref=e754]: ":"
+                              - 'generic "CSS property value: border-box" [ref=e755]': border-box
+                              - text: ;
+                            - 'treeitem "CSS property name: border : CSS property value: 0 solid;" [ref=e756]':
+                              - text: border
+                              - generic [ref=e757]: ":"
+                              - 'generic "CSS property value: 0 solid" [ref=e759]': 0 solid
+                              - text: ;
+                            - 'treeitem "CSS property name: margin : CSS property value: 0;" [ref=e760]':
+                              - text: margin
+                              - generic [ref=e761]: ":"
+                              - 'generic "CSS property value: 0" [ref=e763]': "0"
+                              - text: ;
+                            - 'treeitem "CSS property name: padding : CSS property value: 0;" [ref=e764]':
+                              - text: padding
+                              - generic [ref=e765]: ":"
+                              - 'generic "CSS property value: 0" [ref=e767]': "0"
+                              - text: ;
+                          - generic [ref=e768]: "}"
+                      - generic [ref=e769]: "@property"
+                  - generic [ref=e774]:
+                    - generic [ref=e775]: margin
+                    - generic [ref=e776]: "0"
+                    - generic [ref=e777]: "0"
+                    - generic [ref=e778]:
+                      - generic [ref=e779]: border
+                      - generic [ref=e780]: "0"
+                      - generic [ref=e781]: "0"
+                      - generic [ref=e782]:
+                        - generic [ref=e783]: padding
+                        - generic [ref=e784]: "0"
+                        - generic [ref=e785]: "0"
+                        - generic [ref=e786]:
+                          - generic [ref=e787]: "1200"
+                          - generic [ref=e788]: ×
+                          - generic [ref=e789]: "800"
+                        - generic [ref=e790]: "0"
+                        - generic [ref=e791]: "0"
+                      - generic [ref=e792]: "0"
+                      - generic [ref=e793]: "0"
+                    - generic [ref=e794]: "0"
+                    - generic [ref=e795]: "0"
+  - alert [ref=e798]: DevTools is docked to right
+  - status
+```

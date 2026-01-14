@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { dismissSetupWizard } from './helpers';
 
 test.describe('Cameras CRUD', () => {
   test('create, edit, delete camera', async ({ window, setIpcHandlers }) => {
@@ -9,7 +10,10 @@ test.describe('Cameras CRUD', () => {
       'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
     });
 
-    await window.click('text=Cameras');
+    await dismissSetupWizard(window);
+
+    await window.getByText('Cameras').highlight();
+    await window.click("text=Cameras");
     await window.waitForSelector('text=Cameras');
 
     await window.click('text=Add Camera');
@@ -19,7 +23,6 @@ test.describe('Cameras CRUD', () => {
     await inputs[2].fill('1920x1080');
     await inputs[3].fill('30');
     await window.click('button:is(:text("Create"))');
-    // await window.locator('text=Create').highlight();
     await window.waitForSelector('text=Front Cam');
 
     // edit

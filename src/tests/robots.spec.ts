@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { dismissSetupWizard } from './helpers';
 
 test.describe('Robots CRUD', () => {
   test('create, edit, delete robot', async ({ window, setIpcHandlers }) => {
@@ -14,6 +15,8 @@ test.describe('Robots CRUD', () => {
         return { ok: true };
       }
     });
+
+    await dismissSetupWizard(window);
 
     // pre-populate a robot in the in-memory config store
     store['resources.robots'] = [{ id: 'r1', serialNumber: 'R-001', name: 'Test Robot' }];

@@ -1,7 +1,7 @@
 import React from 'react';
 import ResourceManager from '../ui/ResourceManager';
 import { robotsTable } from '../db/schema';
-import SetupWizard from './SetupWizard';
+import RobotDevicesWizard from './RobotDevicesWizard';
 
 const RobotFields = [
   { name: 'serialNumber', label: 'Serial Number' },
@@ -13,7 +13,11 @@ const RobotFields = [
 const RobotsView: React.FC = () => {
   return (
     <div className="p-6">
-      <ResourceManager title="Robots" table={robotsTable} />
+      <ResourceManager 
+        title="Robots" 
+        table={robotsTable} 
+        renderForm={(props) => <RobotDevicesWizard {...props} />}
+      />
     </div>
   );
 };

@@ -45,7 +45,7 @@ const App: React.FC = () => {
       }
       // Check LeRobot
       const lr = await window.electronAPI.checkLerobot();
-      return !lr.installed;
+      return lr.installed;
     } catch (e) {
       return false;
     }
