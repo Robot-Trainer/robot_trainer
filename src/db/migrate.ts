@@ -14,7 +14,7 @@ export async function migrate() {
     } else {
         if (!db.ready) await db.waitReady;
         console.log("Running migrations...");
-        db.dialect.migrate(migrations, db.session, {
+        await db.dialect.migrate(migrations, db.session, {
             migrationsTable: "drizzle_migrations",
         } satisfies Omit<MigrationConfig, "migrationsFolder">);
 
