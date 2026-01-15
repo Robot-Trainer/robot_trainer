@@ -1,8 +1,8 @@
 import { db } from './db';
-import { eq, getTableColumns } from 'drizzle-orm';
+import { eq, getTableColumns, Table } from 'drizzle-orm';
 
 // Table is a drizzle pgTable instance
-export function tableResource(table: any) {
+export function tableResource(table: Table) {
   return {
     list: async () => {
       const rows: any = await db.select().from(table);
@@ -34,6 +34,7 @@ export function tableResource(table: any) {
     delete: async (id: string) => {
       await db.delete(table).where(eq(table.id, id));
       return { ok: true };
-    }
+    },
+    table
   };
 }

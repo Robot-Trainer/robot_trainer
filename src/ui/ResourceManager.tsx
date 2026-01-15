@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { getTableColumns } from "drizzle-orm";
 import { Button } from "./Button";
 import Card from "./Card";
 import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
 
-type Field = { name: string; label: string; type?: "text" | "number" };
+type Field = { name: string; label: string; type?: "text" | "number"; required?: boolean };
 
 type ResourceAPI = {
   list: () => Promise<any[]>;
@@ -28,7 +29,7 @@ type Props = {
 
 const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
-  for (const f of (fields || [])) o[f.name] = f.type === "number" ? 0 : "";
+  for (const f of (fields || [])) o[f.name] = "";
   return o;
 };
 
@@ -41,6 +42,9 @@ export const ResourceManager: React.FC<Props> = ({
 }) => {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   // build a resource from table when provided (memoized)
   const fullTableResource = useMemo(() => {
     if (!table) return null;
@@ -57,18 +61,65 @@ export const ResourceManager: React.FC<Props> = ({
   const activeResource: ResourceAPI = (resource as any) || (fullTableResource as any);
 
   // infer fields from table columns if not provided
-  const inferredFields = useMemo(() => {
+  const inferredFields = useMemo<Field[]>(() => {
     if (fields && fields.length) {
-      console.error(`Fields were not defined in ResourceManager for table ${table.name}`);
+      // If table is present, enrich fields with type/required info
+      if (table) {
+        try {
+          const cols = getTableColumns(table);
+          return fields.map((f) => {
+            const col = cols[f.name];
+            return {
+              ...f,
+              type:
+                f.type ||
+                (col && (col.dataType === "integer" || col.dataType === "number")
+                  ? "number"
+                  : "text"),
+              required:
+                f.required !== undefined
+                  ? f.required
+                  : col?.notNull && !col?.hasDefault,
+            };
+          });
+        } catch (e) { /* ignore */ }
+      }
       return fields;
     }
     if (!table) {
-      console.error(`Could not find columns for table ${table.name}`);
+      console.error(`Could not find columns for table ${table?.name}`);
       return [];
     }
-    return Object.keys(table)
-      .filter((k) => k !== "id" && k !== "enableRLS")
-      .map((k) => ({ name: k, label: k.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) }));
+
+    // Try to use getTableColumns
+    try {
+      const cols = getTableColumns(table);
+      return Object.keys(cols)
+        .filter((k) => k !== "id")
+        .map((k) => {
+          const col = cols[k];
+          const isNumber =
+            col.dataType === "number" || col.dataType === "integer";
+          return {
+            name: k,
+            label: k
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (s) => s.toUpperCase()),
+            type: isNumber ? "number" : "text",
+            required: col.notNull && !col.hasDefault,
+          };
+        });
+    } catch (e) {
+      // Fallback
+      return Object.keys(table)
+        .filter((k) => k !== "id" && k !== "enableRLS")
+        .map((k) => ({
+          name: k,
+          label: k
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (s) => s.toUpperCase()),
+        }));
+    }
   }, [fields, table]);
 
   const [form, setForm] = useState<any>(emptyFromFields(inferredFields));
@@ -114,16 +165,61 @@ export const ResourceManager: React.FC<Props> = ({
     setForm(emptyFromFields(inferredFields));
     setEditing(null);
     setShowForm(true);
+    setErrors({});
+    setSaveError(null);
   };
 
   const onEdit = (it: any) => {
     setEditing(it);
     setForm({ ...it });
     setShowForm(true);
+    setErrors({});
+    setSaveError(null);
+  };
+
+  const validate = (data: any) => {
+    const newErrors: Record<string, string> = {};
+    for (const f of inferredFields) {
+      const val = data[f.name];
+      if (f.required) {
+        if (val === undefined || val === null || val === "") {
+          newErrors[f.name] = "This field is required";
+        }
+      }
+      if (f.type === "number") {
+        if (val !== "" && val !== null && val !== undefined && isNaN(Number(val))) {
+          newErrors[f.name] = "Must be a number";
+        }
+      }
+    }
+    return newErrors;
   };
 
   const onSave = async (overrideData?: any) => {
-    const dataToSave = overrideData || form;
+    setErrors({});
+    setSaveError(null);
+
+    const rawData = overrideData || form;
+    const validationErrors = validate(rawData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    const dataToSave = { ...rawData };
+    // Convert numeric fields from string to number
+    for (const f of inferredFields) {
+      if (f.type === "number") {
+        const val = dataToSave[f.name];
+        if (val !== "" && val !== null && val !== undefined) {
+          dataToSave[f.name] = Number(val);
+        } else if (val === "") {
+          // default to 0 for empty strings on number fields to satisfy integer type
+          dataToSave[f.name] = 0;
+        }
+      }
+    }
+
     try {
       if (!activeResource) return;
       if (editing) {
@@ -134,7 +230,9 @@ export const ResourceManager: React.FC<Props> = ({
       }
       await load();
     } catch (e) {
-      // ignore for now
+      console.error(e);
+      setSaveError("Failed to save. Please check your data and try again.");
+      return; 
     }
     setForm(emptyFromFields(fields));
     setShowForm(false);
@@ -227,25 +325,34 @@ export const ResourceManager: React.FC<Props> = ({
                 {inferredFields.map((f) => (
                   <label
                     key={f.name}
-                    className="flex flex-col text-sm border border-transparent hover:border-gray-200 rounded px-2 py-1 transition-colors"
+                    className={`flex flex-col text-sm border hover:border-gray-200 rounded px-2 py-1 transition-colors ${
+                      errors[f.name] ? "border-red-500" : "border-transparent"
+                    }`}
                   >
-                    <span className="text-gray-600 mb-1">{f.label}</span>
+                    <span className="text-gray-600 mb-1">
+                      {f.label} {f.required && "*"}
+                    </span>
                     <input
                       value={form[f.name] ?? ""}
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          [f.name]:
-                            f.type === "number"
-                              ? Number(e.target.value)
-                              : e.target.value,
+                          [f.name]: e.target.value,
                         })
                       }
                       className="w-full outline-none"
                     />
+                    {errors[f.name] && (
+                      <span className="text-red-500 text-xs mt-1">
+                        {errors[f.name]}
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
+              {saveError && (
+                <div className="mt-2 text-red-500 text-sm">{saveError}</div>
+              )}
               <div className="mt-3 flex gap-2">
                 <Button onClick={() => onSave()}>{editing ? "Save" : "Create"}</Button>
                 <Button

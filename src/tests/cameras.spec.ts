@@ -34,4 +34,28 @@ test.describe('Cameras CRUD', () => {
     await window.click('text=Delete');
     await expect(window.locator('text=Front Camera v2')).toHaveCount(0);
   });
+
+  test('validation: numeric field should reject non-numbers', async ({ window }) => {
+    await dismissSetupWizard(window);
+    await window.click("text=Cameras");
+    await window.waitForSelector('text=Cameras');
+
+    await window.click('text=Add Camera');
+    
+    const inputs = await window.locator('input').all();
+    // FPS is usually the last input based on schema order: id, serialNumber, name, resolution, fps, data
+    // inferFields filters 'id'. So: serialNumber, name, resolution, fps.
+    // Index 3 is FPS.
+    await inputs[3].fill('abc');
+    
+    await window.click('button:is(:text("Create"))');
+    
+    await expect(window.locator('text=Must be a number')).toBeVisible();
+    
+    // Correct it
+    await inputs[3].fill('60');
+    // Ensure error goes away after save (implied by successful save closing form)
+    await window.click('button:is(:text("Create"))');
+    await expect(window.locator('text=Must be a number')).toHaveCount(0);
+  });
 });
