@@ -10,20 +10,21 @@ import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Home, Activity, Cpu, Robot, Zap, Layout, Settings } from './icons';
+import { Home, Activity, Cpu, Robot, Zap, Layout, Settings, Loader } from './icons';
 import Button from './ui/Button';
 
-const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, onClick }) => (
+const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
     onClick={() => onClick(id)}
     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${active === id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
-    <Icon className="h-4 w-4" />
+    <Icon className={`h-4 w-4 ${iconClassName || ''}`} />
     {label}
   </button>
 );
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isCheckingEnv, setIsCheckingEnv] = useState(true);
   const currentPage = useUIStore((s: any) => s.currentPage);
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
   const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
@@ -79,11 +80,12 @@ const App: React.FC = () => {
         setConfigLocal(cfg);
         // If config missing python/conductor settings, show the setup wizard
         try {
-          if (!cfg || !cfg.condaRoot || !cfg.pythonPath) {
-            setShowSetupWizard(true);
-          }
+          // Check env while showing "Loading env..." in nav
+          setIsCheckingEnv(true);
           const condaOk = await checkConda();
-          if (!condaOk) {
+          setIsCheckingEnv(false);
+          
+          if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
             setShowSetupWizard(true);
           }
           // The main process may request the renderer to load/save settings via
@@ -197,6 +199,16 @@ const App: React.FC = () => {
             <NavItem id="training" icon={Zap} label="Training Studio" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
             <NavItem id="lines" icon={Layout} label="Assembly Lines" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
             <NavItem id="system-settings" icon={Settings} label="System Settings" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            {isCheckingEnv && (
+              <NavItem
+                id="loading-env"
+                icon={Loader}
+                label="Loading env..."
+                active=""
+                iconClassName="animate-spin"
+                onClick={() => { setShowSetupWizard(true); setShowSetupWizardForced(true); }}
+              />
+            )}
           </div>
         </div>
 

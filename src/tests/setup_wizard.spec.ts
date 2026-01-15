@@ -33,7 +33,6 @@ test.describe('Robot Configuration Wizard', () => {
     await window.click('text=Robots');
     await window.waitForSelector('text=Robots');
     await window.click('text=Add Robot');
-    await window.click('text=Create');
     
     // Expect "Robot Setup" title
     await window.waitForSelector('text=Robot Setup');
