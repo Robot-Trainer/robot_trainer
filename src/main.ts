@@ -623,13 +623,13 @@ const setupIpcHandlers = () => {
         args = ['-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
       }
 
-      const vm = new VideoManager(9999);
+      const vm = new VideoManager(0);
       const recordingPath = path.join(app.getPath('userData'), `simulation_${Date.now()}.mp4`);
 
       await vm.startSimulation(command, args, recordingPath);
       videoManagers.set(id, vm);
 
-      return { ok: true, wsUrl: 'ws://localhost:9999' };
+      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
     } catch (error) {
       console.error('start-simulation failed', error);
       throw error;
@@ -652,13 +652,12 @@ const setupIpcHandlers = () => {
       const id = `camera_${devicePath}`;
       if (videoManagers.has(id)) return { ok: false, message: 'already running' };
 
-      const port = 10000 + videoManagers.size;
-      const vm = new VideoManager(port);
+      const vm = new VideoManager(0);
       const recordingPath = path.join(app.getPath('userData'), `camera_${Date.now()}.mp4`);
 
       await vm.startCamera(devicePath, recordingPath);
       videoManagers.set(id, vm);
-      return { ok: true, wsUrl: `ws://localhost:${port}` };
+      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
     } catch (e) {
       console.error(e);
       throw e;
@@ -670,13 +669,12 @@ const setupIpcHandlers = () => {
       const id = `rtsp_${url}`;
       if (videoManagers.has(id)) return { ok: false, message: 'already running' };
 
-      const port = 10000 + videoManagers.size;
-      const vm = new VideoManager(port);
+      const vm = new VideoManager(0);
       const recordingPath = path.join(app.getPath('userData'), `rtsp_${Date.now()}.mp4`);
 
       await vm.startRTSP(url, recordingPath);
       videoManagers.set(id, vm);
-      return { ok: true, wsUrl: `ws://localhost:${port}` };
+      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
     } catch (e) {
       console.error(e);
       throw e;

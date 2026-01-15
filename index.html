@@ -7,5 +7,9 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/renderer.ts"></script>
+    <script type="module">
+    import {PGlite} from 'https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js';
+    window.db = new PGlite('idb://robot-trainer')
+    </script>
   </body>
 </html>

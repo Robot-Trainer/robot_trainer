@@ -18,18 +18,23 @@ test.describe('Robots CRUD', () => {
 
     await dismissSetupWizard(window);
 
-    // pre-populate a robot in the in-memory config store
-    store['resources.robots'] = [{ id: 'r1', serialNumber: 'R-001', name: 'Test Robot' }];
-
     // open Robots view from app nav
     await window.click('text=Robots');
     await window.waitForSelector('text=Robots');
 
-    // ensure the prepopulated robot appears
-    await window.waitForSelector('text=Test Robot');
+    // Create a new robot
+    await window.click('text=Add Robot');
+    await window.waitForSelector('text=Python Plugins'); // Confirm wizard loaded
+    // We can't really select ports in CI environment easily unless mocked, 
+    // but we can assume confirming empty selection works or creates a robot with no devices.
+    await window.click('text=Confirm Selection');
+
+    // ensure the robot appears (might be unnamed)
+    // The default name is usually empty string, displayed as "(unnamed)"
+    await window.waitForSelector('text=(unnamed)');
 
     // edit the robot (editing uses the built-in form)
-    await window.locator('text=Test Robot').locator('..').locator('text=Edit').click();
+    await window.locator('text=(unnamed)').locator('..').locator('text=Edit').click();
     const nameInput = await window.locator('input').nth(1);
     await nameInput.fill('Test Robot v2');
     await window.click('text=Save');

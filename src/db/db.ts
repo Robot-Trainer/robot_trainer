@@ -5,4 +5,4 @@ const client = new PGlite("idb://robot-trainer");
 
 const db = drizzle(client);
 
-export { db };
+export { db, client };

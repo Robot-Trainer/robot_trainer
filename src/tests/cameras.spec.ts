@@ -12,7 +12,6 @@ test.describe('Cameras CRUD', () => {
 
     await dismissSetupWizard(window);
 
-    await window.getByText('Cameras').highlight();
     await window.click("text=Cameras");
     await window.waitForSelector('text=Cameras');
 

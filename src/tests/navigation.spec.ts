@@ -16,11 +16,10 @@ test.describe('Navigation resets ResourceManager form', () => {
     await window.click('text=Robots');
     await window.waitForSelector('text=Robots');
 
-    // Click Add to open form (showForm = true -> renders SetupWizard because renderForm returns it)
+    // Click Add to open form
     await window.click('text=Add Robot');
-    await window.click('text=Create');
-    // SetupWizard should be visible
-    await window.waitForSelector('text=Setup New Robot');
+    // SetupWizard (RobotDevicesWizard) should be visible
+    await window.waitForSelector('text=Confirm Selection');
 
     // Navigate to Home
     await window.click('text=Home');
@@ -30,8 +29,8 @@ test.describe('Navigation resets ResourceManager form', () => {
     await window.click('text=Robots');
     await window.waitForSelector('text=Robots');
 
-    // Ensure SetupWizard is not present and Add Robot button visible
-    await expect(window.locator('text=Setup New Robot')).toHaveCount(0);
+    // Ensure Wizard is not present and Add Robot button visible
+    await expect(window.locator('text=Confirm Selection')).toHaveCount(0);
     await expect(window.locator('text=Add Robot')).toHaveCount(1);
   });
 });

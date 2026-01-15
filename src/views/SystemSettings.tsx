@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import { configResource } from '../db/resources';
 
 interface SystemSettingsShape {
   pythonPath?: string;
@@ -25,10 +26,7 @@ const SystemSettings: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // prefer electron API if available
-        const loaded = (window as any).electronAPI?.loadSystemSettings
-          ? await (window as any).electronAPI.loadSystemSettings()
-          : JSON.parse(localStorage.getItem('systemSettings') || 'null');
+        const loaded = await configResource.getAll();
         if (loaded && typeof loaded === 'object') setSettings(loaded as SystemSettingsShape);
       } catch (err) {
         // ignore
@@ -52,10 +50,12 @@ const SystemSettings: React.FC = () => {
     setSaving(true);
     setMessage(null);
     try {
+      await configResource.setAll(settings);
       if ((window as any).electronAPI?.saveSystemSettings) {
-        await (window as any).electronAPI.saveSystemSettings(settings);
-      } else {
-        localStorage.setItem('systemSettings', JSON.stringify(settings));
+        const res = await (window as any).electronAPI.saveSystemSettings(settings);
+        if (res && res.success === false) {
+           throw new Error(res.error || 'Unknown error');
+        }
       }
       setMessage('Settings saved');
     } catch (err) {

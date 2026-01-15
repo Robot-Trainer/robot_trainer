@@ -9,11 +9,6 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     // Register renderer-side listener to respond to main's request
     await window.evaluate(() => {
       // @ts-ignore
-      window.electronAPI.onRequestLoadSystemSettings(() => {
-        // @ts-ignore
-        window.electronAPI.replyLoadSystemSettings({ pythonPath: '', venvPath: '', extraPath: '', envVars: [] });
-      });
-      // @ts-ignore
       window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
         // pretend save OK
         // @ts-ignore
@@ -32,11 +27,6 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await dismissSetupWizard(window);
     await window.evaluate(() => {
       // @ts-ignore
-      window.electronAPI.onRequestLoadSystemSettings(() => {
-        // @ts-ignore
-        window.electronAPI.replyLoadSystemSettings({});
-      });
-      // @ts-ignore
       window.electronAPI.onRequestSaveSystemSettings(() => {
         // simulate failure
         // @ts-ignore
@@ -50,17 +40,10 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await window.waitForSelector('text=Failed to save settings', { timeout: 5000 });
   });
 
-  test('handles malformed settings on load gracefully', async ({ window, setIpcHandlers }) => {
+  test('handles defaults on fresh load gracefully', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
-    await window.evaluate(() => {
-      // @ts-ignore
-      window.electronAPI.onRequestLoadSystemSettings(() => {
-        // @ts-ignore
-        window.electronAPI.replyLoadSystemSettings(null);
-      });
-    });
-
+    
     await window.click('text=System Settings');
     // fields should retain defaults (empty)
     const pyVal = await window.inputValue('label:has-text("Python Interpreter Path") + div input');
@@ -72,11 +55,6 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await dismissSetupWizard(window);
     await window.evaluate(() => {
       // @ts-ignore
-      window.electronAPI.onRequestLoadSystemSettings(() => {
-        // @ts-ignore
-        window.electronAPI.replyLoadSystemSettings({ pythonPath: '/initial', venvPath: '', extraPath: '', envVars: [] });
-      });
-      // @ts-ignore
       window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
         // @ts-ignore
         window.electronAPI.replySaveSystemSettings({ success: true, settings });
@@ -84,11 +62,13 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     });
 
     await window.click('text=System Settings');
-    await window.waitForSelector('input[value="/initial"]');
+    
+    // Set initial value via UI
+    await window.fill('label:has-text("Python Interpreter Path") + div input', '/initial');
+    await expect(window.locator('input[value="/initial"]')).toHaveCount(1);
+
 
     // simulate main process broadcasting an external change
-    // Note: `require` is not available inside the evaluate context; Playwright provides
-    // main-process modules as properties on the first argument. Destructure `BrowserWindow`.
     await electronApp.evaluate(async ({ BrowserWindow }, data) => {
       const wins = BrowserWindow.getAllWindows();
       if (wins && wins[0]) wins[0].webContents.send('system-settings-changed', data);

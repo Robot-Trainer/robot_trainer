@@ -122,14 +122,15 @@ export const ResourceManager: React.FC<Props> = ({
     setShowForm(true);
   };
 
-  const onSave = async () => {
+  const onSave = async (overrideData?: any) => {
+    const dataToSave = overrideData || form;
     try {
       if (!activeResource) return;
       if (editing) {
-        await activeResource.update(editing.id, { ...editing, ...form });
+        await activeResource.update(editing.id, { ...editing, ...dataToSave });
         setEditing(null);
       } else {
-        await activeResource.create({ ...form });
+        await activeResource.create({ ...dataToSave });
       }
       await load();
     } catch (e) {
@@ -213,7 +214,7 @@ export const ResourceManager: React.FC<Props> = ({
                 setEditing(null);
               },
               onSaved: async (item: any) => {
-                await onSave();
+                await onSave(item);
               },
             })
           ) : (
@@ -246,7 +247,7 @@ export const ResourceManager: React.FC<Props> = ({
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
-                <Button onClick={onSave}>{editing ? "Save" : "Create"}</Button>
+                <Button onClick={() => onSave()}>{editing ? "Save" : "Create"}</Button>
                 <Button
                   variant="ghost"
                   onClick={() => {

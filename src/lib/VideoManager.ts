@@ -11,18 +11,35 @@ export class VideoManager extends EventEmitter {
   private wss: WebSocketServer | null = null;
   private activeClients: Set<WebSocket> = new Set();
 
-  constructor(private wsPort: number = 9999) {
+  constructor(private wsPort: number = 0) {
     super();
   }
 
-  public startServer() {
+  public async startServer() {
     if (this.wss) return;
-    this.wss = new WebSocketServer({ port: this.wsPort });
-    this.wss.on('connection', (ws) => {
-      this.activeClients.add(ws);
-      ws.on('close', () => this.activeClients.delete(ws));
+    return new Promise<void>((resolve, reject) => {
+      this.wss = new WebSocketServer({ port: this.wsPort });
+      this.wss.on('listening', () => {
+        const address = this.wss!.address();
+        if (address && typeof address !== 'string') {
+            this.wsPort = address.port;
+        }
+        console.log(`Video WebSocket server started on port ${this.wsPort}`);
+        resolve();
+      });
+      this.wss.on('error', (err) => {
+         console.error('VideoManager WS Server Error:', err);
+         reject(err);
+      });
+      this.wss.on('connection', (ws) => {
+        this.activeClients.add(ws);
+        ws.on('close', () => this.activeClients.delete(ws));
+      });
     });
-    console.log(`Video WebSocket server started on port ${this.wsPort}`);
+  }
+
+  public getPort(): number {
+    return this.wsPort;
   }
 
   public stopServer() {
@@ -73,7 +90,7 @@ export class VideoManager extends EventEmitter {
 
   public async startSimulation(command: string, args: string[], recordingPath: string) {
     this.stopAll();
-    this.startServer();
+    await this.startServer();
 
     // 1. Spawn Python Simulation
     // It expects to write raw RGB24 640x480 frames to stdout
@@ -133,7 +150,7 @@ export class VideoManager extends EventEmitter {
 
   public async startCamera(devicePath: string, recordingPath: string) {
     this.stopAll();
-    this.startServer();
+    await this.startServer();
 
     // Input: V4L2 device
     const ffmpegArgs = [
@@ -174,7 +191,7 @@ export class VideoManager extends EventEmitter {
 
   public async startRTSP(url: string, recordingPath: string) {
     this.stopAll();
-    this.startServer();
+    await this.startServer();
 
     const ffmpegArgs = [
       '-rtsp_transport', 'tcp', // Force TCP for reliability
