@@ -32,3 +32,12 @@ export const robotModelsTable = pgTable("robot_models", {
   configClassName: varchar('config_class_name').notNull(),
   properties: json('properties').default({}),
 });
+
+export const teleoperatorModelsTable = pgTable("teleoperator_models", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name').notNull(),
+  dirName: varchar('dir_name').notNull(),
+  className: varchar('class_name').notNull(),
+  configClassName: varchar('config_class_name').notNull(),
+  data: json('data').default({})
+});
