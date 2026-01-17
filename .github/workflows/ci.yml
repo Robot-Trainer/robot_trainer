@@ -34,9 +34,6 @@ jobs:
           cd src/python
           pip install .
 
-      - name: Download ffmpeg
-        run: npm run download-ffmpeg
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
