@@ -62,11 +62,6 @@ npm run browser
 
 Before packaging, build the Python binary (this is also run automatically by the `prepackage` script):
 
-```bash
-npm run build-python
-# This runs pyinstaller inside src/python and produces dist/robot_trainer_py
-```
-
 Then package the Electron app (example):
 
 ```bash

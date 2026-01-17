@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgres://dummy:dummy@localhost:5432/dummy" # Required by drizzle.config.ts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Install Python Dependencies
+        run: |
+          cd src/python
+          pip install .
+
+      - name: Download ffmpeg
+        run: npm run download-ffmpeg
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Lint
+        run: npm run lint
+
+      - name: Run Unit Tests
+        run: npm run test
+
+      - name: Build and E2E Tests
+        # Force 1 worker for stability and compatibility with limited CI runners
+        run: |
+          npm run db:generate
+          npm run package
+          npx playwright test --workers=1
