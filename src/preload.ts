@@ -6,11 +6,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   scanSerialPorts: () => ipcRenderer.invoke("scan-serial-ports"),
   saveSystemSettings: (settings: any) =>
     ipcRenderer.invoke("save-system-settings", settings),
-  listPythonPlugins: (options?: {
-    pythonPath?: string;
-    robots?: string[];
-    teleops?: string[];
-  }) => ipcRenderer.invoke("list-python-plugins", options),
   checkAnaconda: () => ipcRenderer.invoke("check-anaconda"),
   createAnacondaEnv: (name: string) =>
     ipcRenderer.invoke("create-anaconda-env", name),

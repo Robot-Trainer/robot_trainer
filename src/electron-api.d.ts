@@ -12,11 +12,6 @@ interface ElectronAPI {
   getMigrations: () => JSON;
   saveSystemSettings: (settings: any) => Promise<void>;
   loadSystemSettings: () => Promise<any>;
-  listPythonPlugins: (options?: {
-    pythonPath?: string;
-    robots?: string[];
-    teleops?: string[];
-  }) => Promise<any>;
   checkAnaconda: () => Promise<{
     found: boolean;
     path: string | null;

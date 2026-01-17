@@ -22,7 +22,6 @@ describe('RobotDevicesWizard', () => {
         { path: '/dev/ttyUSB0', manufacturer: 'Acme', serialNumber: 'A1' },
         { path: '/dev/ttyUSB1', manufacturer: 'RobCo', serialNumber: 'B2' },
       ]),
-      listPythonPlugins: vi.fn(async () => ({ robots: [{ class_name: 'R1' }], teleoperators: [{ class_name: 'T1' }] })),
     };
     // attach mock to both global and window to be safe in the test environment
     (global as any).electronAPI = mockAPI;
@@ -46,11 +45,6 @@ describe('RobotDevicesWizard', () => {
     // select second as leader
     const leaderRadios = Array.from(container.querySelectorAll('input[type="radio"]')).filter((r) => r.nextSibling && (r.nextSibling as Element).textContent === 'Use as Leader');
     (leaderRadios[1] as HTMLInputElement).click();
-
-    const scanPyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent && b.textContent.includes('Scan Python Plugins')) as HTMLButtonElement;
-    scanPyBtn.click();
-
-    await waitForText(container, '1 found');
 
     root.unmount();
     container.remove();

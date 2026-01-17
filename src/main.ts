@@ -5,7 +5,6 @@ import os from 'node:os';
 import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
-import runPythonScanner from './lib/python_scanner';
 import migrations from './db/migrations.json';
 
 import { VideoManager } from './lib/VideoManager';
@@ -352,14 +351,6 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('list-python-plugins', async (_event, options?: { pythonPath?: string; robots?: string[]; teleops?: string[] }) => {
-    try {
-      return await runPythonScanner(options);
-    } catch (error) {
-      console.error('Error running python plugin scanner:', error);
-      throw error;
-    }
-  });
 
   // Check for local Anaconda/conda envs in the user's home directory and via PATH
   ipcMain.handle('check-anaconda', async () => {

@@ -51,20 +51,6 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
     }
   };
 
-  const scanPythonPlugins = async () => {
-    setPythonScanning(true);
-    setPythonError(null);
-    try {
-      const res = await (window as any).electronAPI.listPythonPlugins();
-      setRobotPlugins(res?.robots || []);
-      setTeleopPlugins(res?.teleoperators || []);
-    } catch (error) {
-      setPythonError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPythonScanning(false);
-    }
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
@@ -109,24 +95,6 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
             ))}
           </div>
         )}
-      </div>
-
-      <div className="mt-6 p-3 rounded-md bg-white">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium">Python Plugins</div>
-          <Button variant="ghost" onClick={scanPythonPlugins} disabled={pythonScanning}>{pythonScanning ? 'Scanning…' : 'Scan Python Plugins'}</Button>
-        </div>
-        {pythonError && <div className="text-sm text-red-600 mb-2">{pythonError}</div>}
-        <div className="space-y-2">
-          <div>
-            <label className="text-xs text-gray-600">Robot Class</label>
-            <div className="text-sm text-gray-700">{robotPlugins.length} found</div>
-          </div>
-          <div>
-            <label className="text-xs text-gray-600">Teleoperator Class</label>
-            <div className="text-sm text-gray-700">{teleopPlugins.length} found</div>
-          </div>
-        </div>
       </div>
       {onSelect && (
         <div className="mt-6 flex justify-end gap-2">
