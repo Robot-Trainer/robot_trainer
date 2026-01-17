@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { tableResource } from './tableResource';
-import { camerasTable } from './schema';
+import { camerasTable, teleoperatorModelsTable } from './schema';
 import { migrate } from './migrate';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
@@ -21,6 +21,7 @@ vi.mock('./db', async () => {
       ready: true,
       waitReady: Promise.resolve(),
     }),
+    client
   };
 });
 
@@ -54,7 +55,7 @@ describe('tableResource', () => {
 
     expect(created).toMatchObject(newCamera);
     expect(created.id).toBeDefined();
-    expect(typeof created.id).toBe('string');
+    expect(typeof created.id).toBe('number');
 
     // Verify it's in the database
     const list = await resource.list();
@@ -62,17 +63,23 @@ describe('tableResource', () => {
     expect(list[0]).toMatchObject(created);
   });
 
-  it('create() should handle provided id', async () => {
+  it('create() should handle provided id (using teleoperatorModelsTable)', async () => {
+    // camerasTable is identity, so we test provided ID with teleoperatorModelsTable (varchar PK)
+    const resourceT = tableResource(teleoperatorModelsTable);
+    await db.delete(teleoperatorModelsTable);
+
     const id = 'custom-id-123';
-    const newCamera = {
+    // configClassName is required
+    const newItem = {
       id,
-      name: 'Fixed ID Camera',
+      className: 'Fixed ID Teleop',
+      configClassName: 'FixedConfig' 
     };
 
-    const created = await resource.create(newCamera);
+    const created = await resourceT.create(newItem);
     expect(created.id).toBe(id);
 
-    const list = await resource.list();
+    const list = await resourceT.list();
     expect(list[0].id).toBe(id);
   });
 

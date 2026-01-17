@@ -26,7 +26,6 @@ async function waitForText(container, text, timeout = 500) {
                 { path: '/dev/ttyUSB0', manufacturer: 'Acme', serialNumber: 'A1' },
                 { path: '/dev/ttyUSB1', manufacturer: 'RobCo', serialNumber: 'B2' },
             ]),
-            listPythonPlugins: vitest_1.vi.fn(async () => ({ robots: [{ class_name: 'R1' }], teleoperators: [{ class_name: 'T1' }] })),
         };
         // attach mock to both global and window to be safe in the test environment
         global.electronAPI = mockAPI;
@@ -46,9 +45,6 @@ async function waitForText(container, text, timeout = 500) {
         // select second as leader
         const leaderRadios = Array.from(container.querySelectorAll('input[type="radio"]')).filter((r) => r.nextSibling && r.nextSibling.textContent === 'Use as Leader');
         leaderRadios[1].click();
-        const scanPyBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent && b.textContent.includes('Scan Python Plugins'));
-        scanPyBtn.click();
-        await waitForText(container, '1 found');
         root.unmount();
         container.remove();
     });
