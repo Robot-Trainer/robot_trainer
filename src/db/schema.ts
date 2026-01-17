@@ -7,7 +7,7 @@ export const userConfigTable = pgTable("user_config", {
 });
 
 export const robotsTable = pgTable("robots", {
-  id: varchar('id').primaryKey(),
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
   serialNumber: varchar('serial_number').default(''),
   name: varchar('name').default(''),
   model: varchar('model').default(''),
@@ -16,10 +16,19 @@ export const robotsTable = pgTable("robots", {
 });
 
 export const camerasTable = pgTable("cameras", {
-  id: varchar('id').primaryKey(),
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
   serialNumber: varchar('serial_number').default(''),
   name: varchar('name').default(''),
   resolution: varchar('resolution').default(''),
   fps: integer('fps').default(0),
   data: json('data').default({})
+});
+
+export const robotModelsTable = pgTable("robot_models", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name').notNull(),
+  dirName: varchar('dir_name').notNull(),
+  className: varchar('class_name').notNull(),
+  configClassName: varchar('config_class_name').notNull(),
+  properties: json('properties').default({}),
 });
