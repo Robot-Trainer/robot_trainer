@@ -1,9 +1,0 @@
-([('main',
-   '/home/bernie/code/robot_trainer/src/python/build/main/main',
-   'EXECUTABLE'),
-  ('libpython3.10.so.1.0',
-   '/home/bernie/snap/code/215/.local/share/uv/python/cpython-3.10.16-linux-x86_64-gnu/lib/libpython3.10.so.1.0',
-   'BINARY'),
-  ('base_library.zip',
-   '/home/bernie/code/robot_trainer/src/python/build/main/base_library.zip',
-   'DATA')],)
