@@ -29,11 +29,6 @@ jobs:
       - name: Install Node Dependencies
         run: npm ci
 
-      - name: Install Python Dependencies
-        run: |
-          cd src/python
-          pip install .
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
