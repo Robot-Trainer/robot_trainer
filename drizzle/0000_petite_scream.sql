@@ -1,0 +1,88 @@
+CREATE TABLE "cameras" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "cameras_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"serial_number" varchar DEFAULT '',
+	"name" varchar DEFAULT '',
+	"resolution" varchar DEFAULT '',
+	"fps" integer DEFAULT 0,
+	"data" json DEFAULT '{}'::json,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "config_cameras" (
+	"configuration_id" integer NOT NULL,
+	"camera_id" integer NOT NULL,
+	"snapshot" jsonb NOT NULL,
+	CONSTRAINT "config_cameras_configuration_id_camera_id_pk" PRIMARY KEY("configuration_id","camera_id")
+);
+--> statement-breakpoint
+CREATE TABLE "config_robots" (
+	"configuration_id" integer NOT NULL,
+	"robot_id" integer NOT NULL,
+	"snapshot" jsonb NOT NULL,
+	CONSTRAINT "config_robots_configuration_id_robot_id_pk" PRIMARY KEY("configuration_id","robot_id")
+);
+--> statement-breakpoint
+CREATE TABLE "config_teleoperators" (
+	"configuration_id" integer NOT NULL,
+	"teleoperator_id" varchar NOT NULL,
+	"snapshot" jsonb NOT NULL,
+	CONSTRAINT "config_teleoperators_configuration_id_teleoperator_id_pk" PRIMARY KEY("configuration_id","teleoperator_id")
+);
+--> statement-breakpoint
+CREATE TABLE "robot_configurations" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "robot_configurations_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"name" varchar NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "robot_models" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "robot_models_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"name" varchar NOT NULL,
+	"dir_name" varchar NOT NULL,
+	"class_name" varchar NOT NULL,
+	"config_class_name" varchar NOT NULL,
+	"properties" json DEFAULT '{}'::json,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "robots" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "robots_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"serial_number" varchar DEFAULT '',
+	"name" varchar DEFAULT '',
+	"model" varchar DEFAULT '',
+	"notes" text DEFAULT '',
+	"data" json DEFAULT '{}'::json,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "teleoperator_models" (
+	"id" varchar PRIMARY KEY NOT NULL,
+	"class_name" varchar NOT NULL,
+	"config_class_name" varchar NOT NULL,
+	"data" json DEFAULT '{}'::json,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "teleoperators" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "teleoperators_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"serial_number" varchar DEFAULT '',
+	"name" varchar DEFAULT '',
+	"model" varchar DEFAULT '',
+	"notes" text DEFAULT '',
+	"data" json DEFAULT '{}'::json,
+	"created_at" timestamp with time zone DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "user_config" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "user_config_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"user_id" uuid,
+	"config" json DEFAULT '{}'::json
+);
+--> statement-breakpoint
+ALTER TABLE "config_cameras" ADD CONSTRAINT "config_cameras_configuration_id_robot_configurations_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "public"."robot_configurations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "config_cameras" ADD CONSTRAINT "config_cameras_camera_id_cameras_id_fk" FOREIGN KEY ("camera_id") REFERENCES "public"."cameras"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "config_robots" ADD CONSTRAINT "config_robots_configuration_id_robot_configurations_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "public"."robot_configurations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "config_robots" ADD CONSTRAINT "config_robots_robot_id_robots_id_fk" FOREIGN KEY ("robot_id") REFERENCES "public"."robots"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "config_teleoperators" ADD CONSTRAINT "config_teleoperators_configuration_id_robot_configurations_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "public"."robot_configurations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "config_teleoperators" ADD CONSTRAINT "config_teleoperators_teleoperator_id_teleoperator_models_id_fk" FOREIGN KEY ("teleoperator_id") REFERENCES "public"."teleoperator_models"("id") ON DELETE set null ON UPDATE no action;
