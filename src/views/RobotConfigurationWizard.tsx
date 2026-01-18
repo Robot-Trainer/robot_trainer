@@ -256,3 +256,5 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
     </div>
   );
 };
+
+export default RobotConfigurationWizard;

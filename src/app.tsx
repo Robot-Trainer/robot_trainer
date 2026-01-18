@@ -6,6 +6,7 @@ import AssemblyView from './views/AssemblyView';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
+import RobotConfigurations from './views/RobotConfigurations';
 import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
@@ -168,14 +169,24 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <AssemblyView />;
-      case 'training': return <TrainingStudio />;
-      case 'robots': return <Robots />;
-      case 'cameras': return <Cameras />;
-      case 'setup': return <SetupWizard />;
-      case 'system-settings': return <SystemSettings />;
-      case 'monitoring': return <MonitoringView />;
-      default: return <AssemblyView />;
+      case "dashboard":
+        return <AssemblyView />;
+      case "training":
+        return <TrainingStudio />;
+      case "robot-configurations":
+        return <RobotConfigurations />;
+      case "robots":
+        return <Robots />;
+      case "cameras":
+        return <Cameras />;
+      case "setup":
+        return <SetupWizard />;
+      case "system-settings":
+        return <SystemSettings />;
+      case "monitoring":
+        return <MonitoringView />;
+      default:
+        return <AssemblyView />;
     }
   };
 
@@ -184,21 +195,104 @@ const App: React.FC = () => {
       <aside className="w-64 border-r border-gray-200 bg-gray-50 flex flex-col">
         <div className="h-14 flex items-center px-6 border-b border-gray-200 bg-white">
           <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-orange-400 rounded-md mr-3 shadow-sm"></div>
-          <span className="font-bold text-lg tracking-tight text-gray-800">Robot Trainer</span>
+          <span className="font-bold text-lg tracking-tight text-gray-800">
+            Robot Trainer
+          </span>
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
-            <NavItem id="dashboard" icon={Home} label="Home" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
-            <NavItem id="monitoring" icon={Activity} label="Monitoring" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem
+              id="dashboard"
+              icon={Home}
+              label="Home"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="monitoring"
+              icon={Activity}
+              label="Monitoring"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
           </div>
 
           <div className="mb-8">
-            <NavItem id="robots" icon={Robot} label="Robots" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
-            <NavItem id="cameras" icon={Cpu} label="Cameras" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
-            <NavItem id="training" icon={Zap} label="Training Studio" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
-            <NavItem id="lines" icon={Layout} label="Assembly Lines" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
-            <NavItem id="system-settings" icon={Settings} label="System Settings" active={activeTab} onClick={(id) => { setActiveTab(id); setCurrentPage(id); setResourceManagerShowForm(false); }} />
+            <NavItem
+              id="robots"
+              icon={Robot}
+              label="Robots"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="robot-configurations"
+              icon={RobotConfigurations}
+              label="Robot Configurations"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="cameras"
+              icon={Cpu}
+              label="Cameras"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="training"
+              icon={Zap}
+              label="Training Studio"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="lines"
+              icon={Layout}
+              label="Assembly Lines"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="system-settings"
+              icon={Settings}
+              label="System Settings"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
             {isCheckingEnv && (
               <NavItem
                 id="loading-env"
@@ -206,7 +300,10 @@ const App: React.FC = () => {
                 label="Loading env..."
                 active=""
                 iconClassName="animate-spin"
-                onClick={() => { setShowSetupWizard(true); setShowSetupWizardForced(true); }}
+                onClick={() => {
+                  setShowSetupWizard(true);
+                  setShowSetupWizardForced(true);
+                }}
               />
             )}
           </div>
@@ -223,8 +320,7 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center text-sm text-gray-500"></div>
-          <div className="flex items-center gap-3">
-          </div>
+          <div className="flex items-center gap-3"></div>
         </div>
 
         <div className="flex-1 overflow-hidden relative">
@@ -234,7 +330,15 @@ const App: React.FC = () => {
               <div className="bg-white rounded-md max-w-4xl w-full mx-4 p-4 shadow-xl">
                 <SetupWizard />
                 <div className="mt-3 text-right">
-                  <button className="text-sm text-gray-600" onClick={() => { setShowSetupWizard(false); setShowSetupWizardForced(false);}}>Close</button>
+                  <button
+                    className="text-sm text-gray-600"
+                    onClick={() => {
+                      setShowSetupWizard(false);
+                      setShowSetupWizardForced(false);
+                    }}
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>
