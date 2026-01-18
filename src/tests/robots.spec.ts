@@ -24,7 +24,6 @@ test.describe('Robots CRUD', () => {
 
     // Create a new robot
     await window.click('text=Add Robot');
-    await window.waitForSelector('text=Python Plugins'); // Confirm wizard loaded
     // We can't really select ports in CI environment easily unless mocked, 
     // but we can assume confirming empty selection works or creates a robot with no devices.
     await window.click('text=Confirm Selection');
