@@ -14,10 +14,6 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
   const [scanError, setScanError] = useState<string | null>(null);
   const [selectedFollowerPort, setSelectedFollowerPort] = useState<string | null>(null);
   const [selectedLeaderPort, setSelectedLeaderPort] = useState<string | null>(null);
-  const [robotPlugins, setRobotPlugins] = useState<Array<any>>([]);
-  const [teleopPlugins, setTeleopPlugins] = useState<Array<any>>([]);
-  const [pythonScanning, setPythonScanning] = useState(false);
-  const [pythonError, setPythonError] = useState<string | null>(null);
 
   useEffect(() => {
     // no-op on mount for tests; callers may call scanPorts
@@ -56,14 +52,22 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
         <div>
           <h3 className="text-lg font-medium">Select a device.</h3>
-          <p className="text-sm text-gray-500">Which device below is your robot?</p>
+          <p className="text-sm text-gray-500">
+            Which device below is your robot?
+          </p>
         </div>
         <div>
-          <Button variant="ghost" onClick={scanPorts} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan Ports'}</Button>
+          <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
+            {scanning ? "Scanning…" : "Scan ports"}
+          </Button>
         </div>
       </div>
 
-      {scanError && <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">{scanError}</div>}
+      {scanError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+          {scanError}
+        </div>
+      )}
 
       <div>
         {serialPorts.length === 0 ? (
@@ -73,21 +77,47 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
         ) : (
           <div className="space-y-2">
             {serialPorts.map((p, i) => (
-              <div key={i} data-path={p.path} className="serial-port-card p-3 border rounded-md bg-gray-50 flex items-start gap-3">
+              <div
+                key={i}
+                data-path={p.path}
+                className="serial-port-card p-3 border rounded-md bg-gray-50 flex items-start gap-3"
+              >
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <div className="font-medium text-sm">{p.manufacturer || 'Unknown Device'}</div>
+                    <div className="font-medium text-sm">
+                      {p.manufacturer || "Unknown Device"}
+                    </div>
                     <div className="text-xs text-gray-500">Port: {p.path}</div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">Serial: {p.serialNumber || 'N/A'}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Serial: {p.serialNumber || "N/A"}
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <label className="flex items-center gap-2">
-                    <input type="radio" name={`follower-${p.path}`} checked={selectedFollowerPort === p.path} onChange={() => { if (selectedLeaderPort === p.path) setSelectedLeaderPort(null); setSelectedFollowerPort(p.path); }} />
+                    <input
+                      type="radio"
+                      name={`follower-${p.path}`}
+                      checked={selectedFollowerPort === p.path}
+                      onChange={() => {
+                        if (selectedLeaderPort === p.path)
+                          setSelectedLeaderPort(null);
+                        setSelectedFollowerPort(p.path);
+                      }}
+                    />
                     <span className="text-sm">Use as Follower</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name={`leader-${p.path}`} checked={selectedLeaderPort === p.path} onChange={() => { if (selectedFollowerPort === p.path) setSelectedFollowerPort(null); setSelectedLeaderPort(p.path); }} />
+                    <input
+                      type="radio"
+                      name={`leader-${p.path}`}
+                      checked={selectedLeaderPort === p.path}
+                      onChange={() => {
+                        if (selectedFollowerPort === p.path)
+                          setSelectedFollowerPort(null);
+                        setSelectedLeaderPort(p.path);
+                      }}
+                    />
                     <span className="text-sm">Use as Leader</span>
                   </label>
                 </div>
@@ -95,10 +125,23 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
             ))}
           </div>
         )}
+        <div>
+          <p>
+            <Button className="inline-block mt-4 mr-2 mb-4" variant="secondary" onClick={scanPorts} disabled={scanning}>
+              {scanning ? "Scanning…" : "Scan ports"}
+            </Button>
+            <Button className="inline-block ml-2" variant="secondary">Create a simulated device</Button>
+          </p>
+        </div>
       </div>
+
       {onSelect && (
         <div className="mt-6 flex justify-end gap-2">
-          {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+          {onCancel && (
+            <Button variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button onClick={handleConfirm}>Confirm Selection</Button>
         </div>
       )}
