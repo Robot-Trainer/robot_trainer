@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import SetupWizard from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
 import TrainingStudio from './views/TrainingStudio';
-import AssemblyView from './views/AssemblyView';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
@@ -11,7 +10,7 @@ import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Home, Activity, Cpu, Robot, Zap, Layout, RobotConfiguration, Settings, Loader, Camera } from './icons';
+import { Activity, Robot, Zap, RobotConfiguration, Settings, Loader, Camera } from './icons';
 import Button from './ui/Button';
 
 const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
@@ -24,7 +23,7 @@ const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; 
 );
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('robot-configurations');
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
   const currentPage = useUIStore((s: any) => s.currentPage);
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
@@ -169,8 +168,6 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard":
-        return <AssemblyView />;
       case "training":
         return <TrainingStudio />;
       case "robot-configurations":
@@ -186,7 +183,7 @@ const App: React.FC = () => {
       case "monitoring":
         return <MonitoringView />;
       default:
-        return <AssemblyView />;
+        return <RobotConfigurations />;
     }
   };
 
@@ -202,17 +199,6 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
-            <NavItem
-              id="dashboard"
-              icon={Home}
-              label="Home"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
             <NavItem
               id="monitoring"
               icon={Activity}

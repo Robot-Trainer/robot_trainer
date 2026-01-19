@@ -21,7 +21,7 @@ type UIState = {
 };
 
 const useUIStore = create<UIState>((set) => ({
-    currentPage: "home",
+    currentPage: "robot-configurations",
     setCurrentPage: (p: string) => set(() => ({ currentPage: p })),
     resourceManagerShowForm: false,
     setResourceManagerShowForm: (v: boolean) => set(() => ({ resourceManagerShowForm: v })),

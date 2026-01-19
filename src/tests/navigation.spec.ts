@@ -18,9 +18,9 @@ test.describe('Navigation resets ResourceManager form', () => {
 
     await window.click('text=Cameras');
     await window.waitForSelector('text=Cameras');
-    // Navigate to Home
-    await window.click('text=Home');
-    await window.waitForSelector('text=Home');
+    // Navigate to Monitoring
+    await window.click('text=Monitoring');
+    await window.waitForSelector('text=Monitoring');
 
     // Navigate back to Robots - the ResourceManager should show list (not form)
     await window.click('text=Robots');
