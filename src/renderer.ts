@@ -25,17 +25,11 @@
  *  });
  * ```
  */
-import App from './app.tsx';
-import { StrictMode, createElement } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import { migrate } from "./db/migrate";
+import { StrictMode, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import { MigrationRoot } from './MigrationRoot';
 
-migrate().then(() => {
-  createRoot(document.getElementById("root")!).render(
-    createElement(StrictMode, null, createElement(App))
-  );
-
-}).catch(err => {
-  console.error("Migration failed:", err);
-});
+createRoot(document.getElementById("root")!).render(
+  createElement(StrictMode, null, createElement(MigrationRoot))
+);
