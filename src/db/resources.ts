@@ -1,5 +1,11 @@
 import { db } from './db';
-import { userConfigTable } from './schema';
+import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, camerasTable } from './schema';
+import { tableResource } from './tableResource';
+
+export const robotModelsResource = tableResource(robotModelsTable);
+export const teleoperatorModelsResource = tableResource(teleoperatorModelsTable);
+export const robotsResource = tableResource(robotsTable);
+export const camerasResource = tableResource(camerasTable);
 
 export const configResource = {
   getAll: async () => {
