@@ -17,15 +17,15 @@ const teleoperators = [
   { id: 13, name: "Gamepad",dirName: "gamepad", className: "GamepadTeleop", configClassName: "GamepadTeleopConfig" },
 ];
 
-async function seed() {
+export async function seedTeleoperators() {
   console.log("Seeding teleoperator models...");
-  await db.insert(teleoperatorModelsTable).values(teleoperators).onConflictDoNothing();
+  for (const t of teleoperators) {    
+      await db.insert(teleoperatorModelsTable).values({
+          id: t.id,
+          className: t.className,
+          configClassName: t.configClassName,
+          data: { name: t.name }
+      }).onConflictDoNothing();
+  }
   console.log("Seeding complete.");
-}
-
-if (require.main === module) {
-  seed().catch((err) => {
-    console.error("Seeding failed:", err);
-    process.exit(1);
-  });
 }

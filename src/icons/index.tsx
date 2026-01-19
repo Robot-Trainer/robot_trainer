@@ -92,10 +92,42 @@ export const Loader = (props: any) => (
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
+export const RobotConfiguration = (props: any) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    {/* Robot Head Outline placed slightly to the left */}
+    <path d="M14 6H7C5 6 3 7 3 9v8c0 2 2 3 4 3h10c2 0 4-1 4-3V13" />
+    {/* Robot Eyes */}
+    <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+    {/* Integrated Settings Gear in the top right cranium area */}
+    <path d="M19.5 10.1l-1.2-.7c-.3-.2-.6-.5-.7-.9l.6-1.3c.2-.4.1-1-.3-1.3l-1.4-.7c-.4-.2-1-.1-1.3.3l-.6 1.3c-.3.1-.7.1-1 0l-.6-1.3c-.2-.4-.8-.5-1.3-.3l-1.4.7c-.4.2-.5.8-.3 1.3l.6 1.3c-.2.3-.5.6-.9.7l-1.2.7c-.4.2-.6.8-.4 1.2l.7 1.4c.2.4.8.6 1.2.4l1.3-.6c.3.2.6.5.7.9l-.6 1.3c-.2.4-.1 1 .3 1.3l1.4.7c.2.1.4.1.6.1.3 0 .5-.1.7-.4l.6-1.3c.3-.1.7-.1 1 0l.6 1.3c.2.4.8.5 1.3.3l1.4-.7c.4-.2.5-.8.3-1.3l-.6-1.3c.2-.3.5-.6.9-.7l1.2-.7c.4-.2.6-.8.4-1.2l-.7-1.4c-.2-.4-.8-.6-1.2-.4z" />
+    <circle cx="15.5" cy="10.5" r="1.5" />
+  </svg>
+);
+
+export const Pencil = (props: any) => (
+  <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
+    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+  </svg>
+);
+
+export const Camera = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+  </svg>
+);
 
 export default {
   Loader,
-
+  Pencil,
   ChevronRight,
   CheckCircle,
   Play,
@@ -106,5 +138,6 @@ export default {
   Layout,
   Plus,
   Settings,
-  Robot
+  Robot,
+  Camera
 };
