@@ -1,5 +1,5 @@
 {
-  "id": "c056d856-3dfa-4583-85c6-b538851f0371",
+  "id": "1c4f4b51-8ddb-4370-aacc-64bbd54c966d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -14,7 +14,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "cameras_id_seq",
             "schema": "public",
             "increment": "1",
@@ -59,6 +59,14 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'::json"
+        },
+        "modality": {
+          "name": "modality",
+          "type": "cameraModality",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'real'"
         },
         "created_at": {
           "name": "created_at",
@@ -220,7 +228,7 @@
         },
         "teleoperator_id": {
           "name": "teleoperator_id",
-          "type": "varchar",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -284,7 +292,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "robot_configurations_id_seq",
             "schema": "public",
             "increment": "1",
@@ -333,7 +341,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "robot_models_id_seq",
             "schema": "public",
             "increment": "1",
@@ -401,7 +409,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "robots_id_seq",
             "schema": "public",
             "increment": "1",
@@ -447,6 +455,14 @@
           "notNull": false,
           "default": "'{}'::json"
         },
+        "modality": {
+          "name": "modality",
+          "type": "robotModality",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'real'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -469,9 +485,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar",
+          "type": "integer",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "teleoperator_models_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "class_name": {
           "name": "class_name",
@@ -518,7 +545,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "teleoperators_id_seq",
             "schema": "public",
             "increment": "1",
@@ -590,7 +617,7 @@
           "primaryKey": true,
           "notNull": true,
           "identity": {
-            "type": "always",
+            "type": "byDefault",
             "name": "user_config_id_seq",
             "schema": "public",
             "increment": "1",
@@ -624,7 +651,24 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.cameraModality": {
+      "name": "cameraModality",
+      "schema": "public",
+      "values": [
+        "real",
+        "simulated"
+      ]
+    },
+    "public.robotModality": {
+      "name": "robotModality",
+      "schema": "public",
+      "values": [
+        "real",
+        "simulated"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
