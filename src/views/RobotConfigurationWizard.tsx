@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
-// import { AVAILABLE_ROBOTS, AVAILABLE_TELEOPERATORS } from '../lib/constants';
-const AVAILABLE_ROBOTS: string[] = ['mock_robot'];
-const AVAILABLE_TELEOPERATORS: string[] = ['mock_teleop'];
-import RobotDevicesWizard from './RobotDevicesWizard';
+import { robotModelsResource, teleoperatorModelsResource, robotsResource } from '../db/resources';
 import CameraConfigurationWizard from './CameraConfigurationWizard';
-import useUIStore from '../lib/uiStore';
+
+import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 
 // Helper for Modal
 const Modal = ({ children, onClose, title }: { children: React.ReactNode, onClose: () => void, title: string }) => (
@@ -28,45 +26,103 @@ interface RobotConfigurationWizardProps {
 }
 
 export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> = ({ onCancel, onSaved }) => {
-  const [followerType, setFollowerType] = useState<'real' | 'simulation'>('real');
-  const [followerModel, setFollowerModel] = useState<string>('');
-  const [followerConfig, setFollowerConfig] = useState<any>(null);
+  const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
 
   const [leaderType, setLeaderType] = useState<'keyboard' | 'gamepad' | 'real' | 'phone'>('keyboard');
   const [leaderModel, setLeaderModel] = useState<string>('');
   const [leaderConfig, setLeaderConfig] = useState<any>(null);
 
-  const [cameras, setCameras] = useState<any[]>([]);
+  const [availableRobots, setAvailableRobots] = useState<{ label: string, value: string }[]>([]);
+  const [availableTeleoperators, setAvailableTeleoperators] = useState<{ label: string, value: string }[]>([]);
 
-  const [showRobotModal, setShowRobotModal] = useState(false);
+  const [knownRobots, setKnownRobots] = useState<any[]>([]);
+  const [serialPorts, setSerialPorts] = useState<any[]>([]);
+  const [scanning, setScanning] = useState(false);
+
+  const [cameras, setCameras] = useState<any[]>([]);
   const [showCameraModal, setShowCameraModal] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const robots = await robotModelsResource.list();
+      const rOpts = robots.map((r: any) => ({ label: r.name, value: r.name }));
+      setAvailableRobots(rOpts);
+
+      const teleops = await teleoperatorModelsResource.list();
+      const tOpts = teleops.map((t: any) => ({ label: t.data?.name || t.id, value: t.id }));
+      setAvailableTeleoperators(tOpts);
+
+      const kRobots = await robotsResource.list();
+      setKnownRobots(kRobots);
+
+      if (tOpts.length > 0 && !leaderModel) {
+        setLeaderModel(tOpts[0].value);
+      }
+
+      scanPorts();
+    } catch (e) {
+      console.error('Error initializing models:', e);
+    }
+  };
 
   // Initialize defaults
   useEffect(() => {
     console.log('RobotConfigurationWizard mounted');
-    try {
-      if (AVAILABLE_ROBOTS && AVAILABLE_ROBOTS.length > 0 && !followerModel) {
-        setFollowerModel(AVAILABLE_ROBOTS[0]);
-      }
-      if (AVAILABLE_TELEOPERATORS && AVAILABLE_TELEOPERATORS.length > 0 && !leaderModel) {
-        // Try to find a reasonable default or just the first one
-        setLeaderModel(AVAILABLE_TELEOPERATORS[0]);
-      }
-    } catch (e) {
-      console.error('Error initializing defaults:', e);
-    }
+    fetchData();
   }, []);
 
-  const handleRobotSelect = (config: { follower?: any, leader?: any }) => {
-    if (config.follower) {
-      setFollowerConfig(config.follower);
-      // If we selected a real robot, we might want to infer the model if possible, 
-      // but for now we just store the config (port info).
+  const scanPorts = async () => {
+    setScanning(true);
+    try {
+      const ports = await (window as any).electronAPI.scanSerialPorts();
+      setSerialPorts(ports || []);
+    } catch (e) {
+      console.error("Failed to scan ports", e);
+    } finally {
+      setScanning(false);
     }
-    if (config.leader) {
-      setLeaderConfig(config.leader);
+  };
+
+  const handleRobotChange = (id: number | null) => {
+    setSelectedRobotId(id);
+    const robot = knownRobots.find(r => r.id === id);
+    if (!robot) return;
+
+    if (robot.modality === 'simulated') {
+      setCameras([{
+        id: 'sim-cam',
+        name: 'Simulated Camera',
+        resolution: '1280x720',
+        fps: 30,
+        type: 'simulated'
+      }]);
+    } else {
+      // Real
+      scanPorts();
+      setCameras(prev => prev.filter(c => c.type !== 'simulated'));
     }
-    setShowRobotModal(false);
+  };
+
+  const getDeviceLabel = (port: any) => {
+    const known = knownRobots.find(r => r.serialNumber === port.serialNumber);
+    if (known) {
+      return `${known.name} - (SN: ${port.serialNumber})`;
+    }
+    return `${port.manufacturer || 'Device'} (${port.path})`;
+  };
+
+  // Used for Leader selection if needed
+  const getDeviceOptions = () => {
+    return serialPorts.map(p => ({
+      label: getDeviceLabel(p),
+      value: p.path,
+      original: p
+    }));
+  };
+
+  const handleLeaderPortSelect = (path: string) => {
+    const port = serialPorts.find(p => p.path === path);
+    setLeaderConfig(port);
   };
 
   const handleCameraSave = (newCameras: any[]) => {
@@ -75,23 +131,44 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
   };
 
   const saveConfiguration = async () => {
+    if (!selectedRobotId) {
+      alert("Please select a Follower Robot.");
+      return;
+    }
+    const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
+    if (!selectedRobot) {
+      alert("Invalid robot selection");
+      return;
+    }
+
+    if (selectedRobot.modality === 'real' && cameras.length === 0) {
+      alert("Please configure a camera.");
+      return;
+    }
+
+    // Try to find current port info if connected
+    let currentConfig = selectedRobot.data?.config;
+    if (selectedRobot.modality === 'real' && selectedRobot.serialNumber) {
+      const port = serialPorts.find(p => p.serialNumber === selectedRobot.serialNumber);
+      if (port) {
+        currentConfig = port;
+      }
+    }
+
     const config = {
-      followerType,
-      followerModel: followerType === 'simulation' ? followerModel : undefined,
-      followerConfig: followerType === 'real' ? followerConfig : undefined,
+      followerType: selectedRobot.modality || 'real',
+      followerModel: selectedRobot.model,
+      followerConfig: currentConfig,
       leaderType,
-      leaderModel: leaderType === 'real' ? leaderModel : undefined, // Or if leaderType is gamepad/keyboard, maybe we don't need model?
-      leaderConfig: leaderType === 'real' ? leaderConfig : undefined,
-      cameras: followerType === 'real' ? cameras : [], // Cameras only for real robot
+      leaderModel,
+      leaderConfig,
+      cameras,
       createdAt: new Date().toISOString(),
     };
 
-    console.log('Saving config:', config);
     try {
       const res = await (window as any).electronAPI.saveRobotConfig(config);
       if (res && res.ok) {
-        // Maybe advance step or show success
-        // alert('Configuration saved!');
         if (onSaved) onSaved(config);
       }
     } catch (e) {
@@ -99,6 +176,9 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       alert('Failed to save configuration');
     }
   };
+
+  const deviceOptions = getDeviceOptions();
+  const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
 
   return (
     <div className="max-w-4xl mx-auto pt-8">
@@ -117,43 +197,48 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       <Card className="p-8 space-y-8">
         {/* Follower Configuration */}
         <section>
-          <h3 className="text-lg font-medium mb-4">Follower Arm</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <Select
-                value={followerType}
-                onChange={(e) => setFollowerType(e.target.value as 'real' | 'simulation')}
-                options={[
-                  { label: 'Real Robot', value: 'real' },
-                  { label: 'Simulation', value: 'simulation' },
-                ]}
-              />
-            </div>
-
-            {followerType === 'simulation' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Robot Model</label>
-                <Select
-                  value={followerModel}
-                  onChange={(e) => setFollowerModel(e.target.value)}
-                  options={(AVAILABLE_ROBOTS || []).map(r => ({ label: r, value: r }))}
-                />
-              </div>
-            )}
-
-            {followerType === 'real' && (
-              <div className="flex items-end">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Configuration</label>
-                  <div className="p-2 border rounded bg-gray-50 text-sm h-10 flex items-center">
-                    {followerConfig ? `${followerConfig.manufacturer || 'Device'} (${followerConfig.path})` : 'No device selected'}
-                  </div>
-                </div>
-                <Button className="ml-2" onClick={() => setShowRobotModal(true)}>Configure</Button>
-              </div>
-            )}
+          <RobotSelectionDropdown
+            label="Follower Robot"
+            robots={knownRobots}
+            connectedDevices={serialPorts}
+            availableModels={availableRobots}
+            selectedRobotId={selectedRobotId}
+            onSelect={handleRobotChange}
+            onRobotsChanged={fetchData}
+          />
+          <div className="mt-1 flex justify-end">
+            <Button variant="ghost" className="text-xs text-gray-500" onClick={scanPorts} disabled={scanning}>
+              {scanning ? 'Scanning...' : 'Refresh Devices'}
+            </Button>
           </div>
+        </section>
+        <hr />
+        {/* Camera Configuration */}
+        <section>
+          <h3 className="text-lg font-medium mb-4">Camera(s)</h3>
+          {selectedRobot?.modality === 'simulated' ? (
+            <div className="p-4 bg-blue-50 text-blue-800 rounded-md text-sm">
+              Running in Simulation Mode. Using default camera configuration: <strong>720p @ 30fps</strong>.
+            </div>
+          ) : (
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  {cameras.length === 0 ? 'No cameras configured. Please configure a real camera.' : `${cameras.length} camera(s) configured.`}
+                </div>
+                <Button onClick={() => setShowCameraModal(true)}>Configure Cameras</Button>
+              </div>
+              {cameras.length > 0 && (
+                <div className="grid grid-cols-1 gap-2">
+                  {cameras.map((cam, idx) => (
+                    <div key={idx} className="p-2 border rounded bg-gray-50 text-sm">
+                      {cam.name} ({cam.resolution}, {cam.fps}fps)
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <hr />
@@ -183,19 +268,36 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
                   <Select
                     value={leaderModel}
                     onChange={(e) => setLeaderModel(e.target.value)}
-                    options={(AVAILABLE_TELEOPERATORS || []).map(t => ({ label: t, value: t }))}
+                    options={availableTeleoperators}
                   />
                 </div>
                 <div className="col-span-2">
-                   <div className="flex items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Device Configuration</label>
-                      <div className="p-2 border rounded bg-gray-50 text-sm h-10 flex items-center">
-                        {leaderConfig ? `${leaderConfig.manufacturer || 'Device'} (${leaderConfig.path})` : 'No device selected'}
-                      </div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Connected Device</label>
+                    <div className="flex items-center gap-2">
+                      {scanning && <span className="text-xs text-gray-500">Scanning...</span>}
+                      <Button
+                        onClick={scanPorts}
+                        variant="secondary"
+                        disabled={scanning}
+                        className="text-xs py-1 px-2 h-auto"
+                      >
+                        Refresh Ports
+                      </Button>
                     </div>
-                    <Button className="ml-2" onClick={() => setShowRobotModal(true)}>Configure</Button>
                   </div>
+                  {serialPorts.length === 0 ? (
+                    <div className="text-sm text-gray-500 italic p-2 border rounded bg-gray-50">No devices found. Connect via USB.</div>
+                  ) : (
+                    <Select
+                      value={leaderConfig?.path || ''}
+                      onChange={(e) => handleLeaderPortSelect(e.target.value)}
+                      options={[
+                        { label: 'Select a device...', value: '' },
+                        ...deviceOptions
+                      ]}
+                    />
+                  )}
                 </div>
               </>
             )}
@@ -204,49 +306,15 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
 
         <hr />
 
-        {/* Camera Configuration */}
-        <section>
-          <h3 className="text-lg font-medium mb-4">Cameras</h3>
-          {followerType === 'simulation' ? (
-            <div className="text-gray-500 italic">Cameras are disabled in simulation mode.</div>
-          ) : (
-            <div>
-              <div className="mb-4">
-                <div className="text-sm text-gray-600 mb-2">
-                  {cameras.length === 0 ? 'No cameras configured.' : `${cameras.length} camera(s) configured.`}
-                </div>
-                <Button onClick={() => setShowCameraModal(true)}>Configure Cameras</Button>
-              </div>
-              {cameras.length > 0 && (
-                <div className="grid grid-cols-1 gap-2">
-                  {cameras.map((cam, idx) => (
-                    <div key={idx} className="p-2 border rounded bg-gray-50 text-sm">
-                      {cam.name} ({cam.resolution}, {cam.fps}fps)
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
 
         <div className="flex justify-end pt-4">
           <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
         </div>
       </Card>
 
-      {showRobotModal && (
-        <Modal title="Configure Robot Devices" onClose={() => setShowRobotModal(false)}>
-          <RobotDevicesWizard 
-            onSelect={handleRobotSelect} 
-            onCancel={() => setShowRobotModal(false)} 
-          />
-        </Modal>
-      )}
-
       {showCameraModal && (
         <Modal title="Configure Cameras" onClose={() => setShowCameraModal(false)}>
-          <CameraConfigurationWizard 
+          <CameraConfigurationWizard
             initialCameras={cameras}
             onSave={handleCameraSave}
             onCancel={() => setShowCameraModal(false)}

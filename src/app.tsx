@@ -11,7 +11,7 @@ import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Home, Activity, Cpu, Robot, Zap, Layout, Settings, Loader } from './icons';
+import { Home, Activity, Cpu, Robot, Zap, Layout, RobotConfiguration, Settings, Loader, Camera } from './icons';
 import Button from './ui/Button';
 
 const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       // mark app as not idle while initial load is in progress
-      try { (window as any).__appIdle = false; } catch (e) {}
+      try { (window as any).__appIdle = false; } catch (e) { }
       try {
         const cfg = await configResource.getAll();
         (window as any).electronAPI.replyLoadSystemSettings(cfg);
@@ -85,7 +85,7 @@ const App: React.FC = () => {
           setIsCheckingEnv(true);
           const condaOk = await checkConda();
           setIsCheckingEnv(false);
-          
+
           if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
             setShowSetupWizard(true);
           }
@@ -129,8 +129,8 @@ const App: React.FC = () => {
       } catch (e) {
         (window as any).electronAPI.replyLoadSystemSettings({});
       };
-        // Indicate that initial app bootstrap is complete and app is idle
-        try { (window as any).__appIdle = true; } catch (e) {}
+      // Indicate that initial app bootstrap is complete and app is idle
+      try { (window as any).__appIdle = true; } catch (e) { }
     };
     load();
   }, [setConfigLocal]);
@@ -228,6 +228,17 @@ const App: React.FC = () => {
 
           <div className="mb-8">
             <NavItem
+              id="robot-configurations"
+              icon={RobotConfiguration}
+              label="Robot Configurations"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
               id="robots"
               icon={Robot}
               label="Robots"
@@ -238,20 +249,10 @@ const App: React.FC = () => {
                 setResourceManagerShowForm(false);
               }}
             />
-            <NavItem
-              id="robot-configurations"
-              icon={RobotConfigurations}
-              label="Robot Configurations"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
+
             <NavItem
               id="cameras"
-              icon={Cpu}
+              icon={Camera}
               label="Cameras"
               active={activeTab}
               onClick={(id) => {
@@ -264,17 +265,6 @@ const App: React.FC = () => {
               id="training"
               icon={Zap}
               label="Training Studio"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
-            <NavItem
-              id="lines"
-              icon={Layout}
-              label="Assembly Lines"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);

@@ -50,12 +50,7 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
   return (
     <div>
       <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-        <div>
-          <h3 className="text-lg font-medium">Select a device.</h3>
-          <p className="text-sm text-gray-500">
-            Which device below is your robot?
-          </p>
-        </div>
+        <h3 className="text-lg font-medium">Robots</h3>
         <div>
           <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
             {scanning ? "Scanning…" : "Scan ports"}
@@ -72,7 +67,7 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
       <div>
         {serialPorts.length === 0 ? (
           <div>
-            <p className="text-sm text-gray-500">No devices found.</p>
+            <p className="text-sm text-gray-500 mb-4">No devices found.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -93,44 +88,40 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
                     Serial: {p.serialNumber || "N/A"}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name={`follower-${p.path}`}
-                      checked={selectedFollowerPort === p.path}
-                      onChange={() => {
-                        if (selectedLeaderPort === p.path)
-                          setSelectedLeaderPort(null);
-                        setSelectedFollowerPort(p.path);
-                      }}
-                    />
-                    <span className="text-sm">Use as Follower</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name={`leader-${p.path}`}
-                      checked={selectedLeaderPort === p.path}
-                      onChange={() => {
-                        if (selectedFollowerPort === p.path)
-                          setSelectedFollowerPort(null);
-                        setSelectedLeaderPort(p.path);
-                      }}
-                    />
-                    <span className="text-sm">Use as Leader</span>
-                  </label>
-                </div>
               </div>
             ))}
           </div>
         )}
+        <div className="space-y-2">
+          <div
+            className="serial-port-card p-3 border rounded-md bg-gray-50 flex items-start gap-3"
+          >
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div className="font-medium text-sm">
+                  Simulated Device
+                </div>
+                <div className="text-xs text-gray-500">Port: Not applicable</div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Serial: Not Applicable
+              </div>
+            </div>
+          </div>
+        </div>{" "}
         <div>
           <p>
-            <Button className="inline-block mt-4 mr-2 mb-4" variant="secondary" onClick={scanPorts} disabled={scanning}>
+            <Button
+              className="inline-block mt-4 mr-2 mb-4"
+              variant="secondary"
+              onClick={scanPorts}
+              disabled={scanning}
+            >
               {scanning ? "Scanning…" : "Scan ports"}
             </Button>
-            <Button className="inline-block ml-2" variant="secondary">Create a simulated device</Button>
+            <Button className="inline-block ml-2" variant="secondary">
+              Create a simulated device
+            </Button>
           </p>
         </div>
       </div>
