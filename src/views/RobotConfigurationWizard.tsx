@@ -2,32 +2,23 @@ import React, { useState, useEffect } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
-import { robotModelsResource, teleoperatorModelsResource, robotsResource } from '../db/resources';
-import CameraConfigurationWizard from './CameraConfigurationWizard';
+import Input from '../ui/Input';
+import { db } from '../db/db';
+import { configRobotsTable, configCamerasTable, configTeleoperatorsTable } from '../db/schema';
+import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
-
-// Helper for Modal
-const Modal = ({ children, onClose, title }: { children: React.ReactNode, onClose: () => void, title: string }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold">{title}</h3>
-        <Button variant="ghost" onClick={onClose}>X</Button>
-      </div>
-      {children}
-    </div>
-  </div>
-);
+import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 
 interface RobotConfigurationWizardProps {
   onCancel?: () => void;
-  onSaved?: (config: any) => void;
+  onSaved?: (config: any) => Promise<any> | void;
 }
 
 export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> = ({ onCancel, onSaved }) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
 
+  const [configName, setConfigName] = useState('');
   const [leaderType, setLeaderType] = useState<'keyboard' | 'gamepad' | 'real' | 'phone'>('keyboard');
   const [leaderModel, setLeaderModel] = useState<string>('');
   const [leaderConfig, setLeaderConfig] = useState<any>(null);
@@ -39,8 +30,8 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
   const [serialPorts, setSerialPorts] = useState<any[]>([]);
   const [scanning, setScanning] = useState(false);
 
-  const [cameras, setCameras] = useState<any[]>([]);
-  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<any[]>([]);
+  const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
 
   const fetchData = async () => {
     try {
@@ -54,6 +45,9 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
 
       const kRobots = await robotsResource.list();
       setKnownRobots(kRobots);
+
+      const kCameras = await camerasResource.list();
+      setAvailableCameras(kCameras);
 
       if (tOpts.length > 0 && !leaderModel) {
         setLeaderModel(tOpts[0].value);
@@ -88,19 +82,34 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
     const robot = knownRobots.find(r => r.id === id);
     if (!robot) return;
 
-    if (robot.modality === 'simulated') {
-      setCameras([{
-        id: 'sim-cam',
-        name: 'Simulated Camera',
-        resolution: '1280x720',
-        fps: 30,
-        type: 'simulated'
-      }]);
-    } else {
-      // Real
+    if (robot.modality === 'real') {
       scanPorts();
-      setCameras(prev => prev.filter(c => c.type !== 'simulated'));
     }
+  };
+
+  const refreshCameras = async () => {
+    try {
+      const cams = await camerasResource.list();
+      setAvailableCameras(cams);
+    } catch (e) {
+      console.error("Failed to load cameras", e);
+    }
+  };
+
+  const addCameraSlot = () => {
+    setCameraSlots([...cameraSlots, { id: null, key: Date.now() }]);
+  };
+
+  const removeCameraSlot = (index: number) => {
+    const newSlots = [...cameraSlots];
+    newSlots.splice(index, 1);
+    setCameraSlots(newSlots);
+  };
+
+  const updateCameraSlot = (index: number, cameraId: number) => {
+    const newSlots = [...cameraSlots];
+    newSlots[index].id = cameraId;
+    setCameraSlots(newSlots);
   };
 
   const getDeviceLabel = (port: any) => {
@@ -125,12 +134,11 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
     setLeaderConfig(port);
   };
 
-  const handleCameraSave = (newCameras: any[]) => {
-    setCameras(newCameras);
-    setShowCameraModal(false);
-  };
-
   const saveConfiguration = async () => {
+    if (!configName) {
+      alert("Please enter a configuration name.");
+      return;
+    }
     if (!selectedRobotId) {
       alert("Please select a Follower Robot.");
       return;
@@ -141,7 +149,9 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       return;
     }
 
-    if (selectedRobot.modality === 'real' && cameras.length === 0) {
+    const selectedCameraIds = cameraSlots.map(s => s.id).filter((id): id is number => id !== null);
+
+    if (selectedRobot.modality === 'real' && selectedCameraIds.length === 0) {
       alert("Please configure a camera.");
       return;
     }
@@ -155,25 +165,69 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       }
     }
 
-    const config = {
-      followerType: selectedRobot.modality || 'real',
-      followerModel: selectedRobot.model,
-      followerConfig: currentConfig,
-      leaderType,
-      leaderModel,
-      leaderConfig,
-      cameras,
-      createdAt: new Date().toISOString(),
-    };
+    // 1. Create Parent via ResourceManager's onSaved
+    if (!onSaved) {
+      alert("No save handler provided.");
+      return;
+    }
 
     try {
-      const res = await (window as any).electronAPI.saveRobotConfig(config);
-      if (res && res.ok) {
-        if (onSaved) onSaved(config);
+      const parentResult: any = await onSaved({
+        name: configName,
+      });
+
+      if (!parentResult || !parentResult.id) {
+        // If onSaved failed or didn't return ID (should handle void case just in case, but we patched it)
+        // If we really can't get ID, we can't save children.
+        // Assuming my patch works.
+        console.error("No ID returned from save");
+        return;
       }
+
+      const configurationId = parentResult.id;
+
+      // 2. Save Follower
+      await db.insert(configRobotsTable).values({
+        configurationId,
+        robotId: selectedRobot.id,
+        snapshot: {
+          ...selectedRobot,
+          targetConfig: currentConfig,
+          leaderType,
+          leaderConfig
+        }
+      });
+
+      // 3. Save Cameras (only if real/have IDs)
+      for (const camId of selectedCameraIds) {
+        const cam = availableCameras.find(c => c.id === camId);
+        if (cam) {
+          await db.insert(configCamerasTable).values({
+            configurationId,
+            cameraId: cam.id,
+            snapshot: cam
+          });
+        }
+      }
+
+      // 4. Save Teleoperator (only if real)
+      if (leaderType === 'real' && leaderModel) {
+        const teleopId = parseInt(leaderModel, 10);
+        if (!isNaN(teleopId)) {
+          await db.insert(configTeleoperatorsTable).values({
+            configurationId,
+            teleoperatorId: teleopId,
+            snapshot: {
+              config: leaderConfig,
+              type: leaderType
+            }
+          });
+        }
+      }
+
     } catch (e) {
       console.error(e);
-      alert('Failed to save configuration');
+      alert('Failed to save configuration details');
     }
   };
 
@@ -181,7 +235,7 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
   const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
 
   return (
-    <div className="max-w-4xl mx-auto pt-8">
+    <div className="max-w-4xl mx-auto">
       <div className="mb-8 text-center relative">
         {onCancel && (
           <Button variant="ghost" className="absolute left-0 top-0" onClick={onCancel}>
@@ -195,6 +249,15 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       </div>
 
       <Card className="p-8 space-y-8">
+        <section>
+          <Input
+            label="Configuration Name"
+            value={configName}
+            onChange={(e) => setConfigName(e.target.value)}
+            placeholder="e.g. Training Station 1"
+          />
+        </section>
+        <hr />
         {/* Follower Configuration */}
         <section>
           <RobotSelectionDropdown
@@ -216,29 +279,25 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
         {/* Camera Configuration */}
         <section>
           <h3 className="text-lg font-medium mb-4">Camera(s)</h3>
-          {selectedRobot?.modality === 'simulated' ? (
-            <div className="p-4 bg-blue-50 text-blue-800 rounded-md text-sm">
-              Running in Simulation Mode. Using default camera configuration: <strong>720p @ 30fps</strong>.
+          <div className="space-y-4">
+            {cameraSlots.map((slot, idx) => (
+              <CameraSelectionDropdown
+                key={slot.key}
+                label={`Camera ${idx + 1}`}
+                cameras={availableCameras}
+                selectedCameraId={slot.id}
+                onSelect={(id) => updateCameraSlot(idx, id)}
+                onCamerasChanged={refreshCameras}
+                onRemove={cameraSlots.length > 1 ? () => removeCameraSlot(idx) : undefined}
+              />
+            ))}
+
+            <div className="pt-2">
+              <Button variant="outline" onClick={addCameraSlot} className="text-sm">
+                + Add Another Camera
+              </Button>
             </div>
-          ) : (
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  {cameras.length === 0 ? 'No cameras configured. Please configure a real camera.' : `${cameras.length} camera(s) configured.`}
-                </div>
-                <Button onClick={() => setShowCameraModal(true)}>Configure Cameras</Button>
-              </div>
-              {cameras.length > 0 && (
-                <div className="grid grid-cols-1 gap-2">
-                  {cameras.map((cam, idx) => (
-                    <div key={idx} className="p-2 border rounded bg-gray-50 text-sm">
-                      {cam.name} ({cam.resolution}, {cam.fps}fps)
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </section>
 
         <hr />
@@ -311,16 +370,6 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
           <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
         </div>
       </Card>
-
-      {showCameraModal && (
-        <Modal title="Configure Cameras" onClose={() => setShowCameraModal(false)}>
-          <CameraConfigurationWizard
-            initialCameras={cameras}
-            onSave={handleCameraSave}
-            onCancel={() => setShowCameraModal(false)}
-          />
-        </Modal>
-      )}
     </div>
   );
 };

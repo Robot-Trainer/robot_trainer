@@ -222,20 +222,22 @@ export const ResourceManager: React.FC<Props> = ({
 
     try {
       if (!activeResource) return;
+      let result;
       if (editing) {
-        await activeResource.update(editing.id, { ...editing, ...dataToSave });
+        result = await activeResource.update(editing.id, { ...editing, ...dataToSave });
         setEditing(null);
       } else {
-        await activeResource.create({ ...dataToSave });
+        result = await activeResource.create({ ...dataToSave });
       }
       await load();
+      setForm(emptyFromFields(fields));
+      setShowForm(false);
+      return result;
     } catch (e) {
       console.error(e);
       setSaveError("Failed to save. Please check your data and try again.");
-      return; 
+      return;
     }
-    setForm(emptyFromFields(fields));
-    setShowForm(false);
   };
 
   const onDelete = async (id: string) => {
@@ -312,7 +314,7 @@ export const ResourceManager: React.FC<Props> = ({
                 setEditing(null);
               },
               onSaved: async (item: any) => {
-                await onSave(item);
+                return await onSave(item);
               },
             })
           ) : (
@@ -325,9 +327,8 @@ export const ResourceManager: React.FC<Props> = ({
                 {inferredFields.map((f) => (
                   <label
                     key={f.name}
-                    className={`flex flex-col text-sm border hover:border-gray-200 rounded px-2 py-1 transition-colors ${
-                      errors[f.name] ? "border-red-500" : "border-transparent"
-                    }`}
+                    className={`flex flex-col text-sm border hover:border-gray-200 rounded px-2 py-1 transition-colors ${errors[f.name] ? "border-red-500" : "border-transparent"
+                      }`}
                   >
                     <span className="text-gray-600 mb-1">
                       {f.label} {f.required && "*"}
