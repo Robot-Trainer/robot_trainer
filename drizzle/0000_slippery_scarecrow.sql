@@ -6,6 +6,12 @@ CREATE TABLE "cameras" (
 	"name" varchar DEFAULT '',
 	"resolution" varchar DEFAULT '',
 	"fps" integer DEFAULT 0,
+	"position_x" real DEFAULT 0,
+	"position_y" real DEFAULT 0,
+	"position_z" real DEFAULT 0,
+	"rotation_x" real DEFAULT 0,
+	"rotation_y" real DEFAULT 0,
+	"rotation_z" real DEFAULT 0,
 	"data" json DEFAULT '{}'::json,
 	"modality" "cameraModality" DEFAULT 'real',
 	"created_at" timestamp with time zone DEFAULT now()
@@ -20,6 +26,7 @@ CREATE TABLE "config_cameras" (
 --> statement-breakpoint
 CREATE TABLE "config_robots" (
 	"configuration_id" integer NOT NULL,
+	"name" varchar NOT NULL,
 	"robot_id" integer NOT NULL,
 	"snapshot" jsonb NOT NULL,
 	CONSTRAINT "config_robots_configuration_id_robot_id_pk" PRIMARY KEY("configuration_id","robot_id")

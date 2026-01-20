@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { MigrationConfig } from "drizzle-orm/migrator";
 import { db, client } from "./db";
-import migrations from './migrations.json';
+// import migrations from './migrations.json';
 
 
 export async function migrate() {
@@ -14,26 +14,20 @@ export async function migrate() {
             migrationsSchema: "public",
         } satisfies Omit<MigrationConfig, "migrationsFolder">);
     } else {
-        if (!client.ready) await client.waitReady;
-        console.log("Running migrations...");
-        await await db.dialect.migrate(migrations, db.session, {
-            migrationsTable: "__drizzle_migrations",
-            migrationsSchema: "public",
-        } satisfies Omit<MigrationConfig, "migrationsFolder">);
-
+        console.error("Cannot run migrations in non-electron environment without file access via IPC");
 
     };
 }
 
 export type MigrationStatus =
     | { type: 'synced' }
-    | { type: 'pending', pending: typeof migrations, fresh?: boolean }
+    | { type: 'pending', pending: any[], fresh?: boolean }
     | { type: 'corrupted', error: any };
 
 export async function checkMigrationStatus(): Promise<MigrationStatus> {
     if (!client.ready) await client.waitReady;
 
-    let migrationList = migrations;
+    let migrationList: any[] = [];
     if (typeof window !== 'undefined' && (window as any).electronAPI && (window as any).electronAPI.getMigrations) {
         migrationList = await window.electronAPI.getMigrations();
     }
@@ -47,9 +41,10 @@ export async function checkMigrationStatus(): Promise<MigrationStatus> {
             const result = await db.execute(sql`SELECT hash FROM public.__drizzle_migrations ORDER BY created_at ASC`);
             appliedHashes = new Set(result.rows.map((r: any) => r.hash));
         } catch (e: any) {
+            const msg = e?.message || String(e);
             // Check for "relation does not exist" error (Postgres code 42P01)
             // This means the migration table hasn't been created yet -> fresh DB.
-            if (e?.code === '42P01' || (e?.message && /relation.*does not exist/i.test(e.message))) {
+            if (e?.code === '42P01' || e?.cause?.code === '42P01' || /relation.*does not exist/i.test(msg) || /relation.*does not exist/i.test(JSON.stringify(e))) {
                 if (migrationList.length > 0) {
                     return { type: 'pending', pending: migrationList, fresh: true };
                 }

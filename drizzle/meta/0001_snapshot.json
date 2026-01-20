@@ -1,6 +1,6 @@
 {
-  "id": "76ca5fbf-6067-420d-bd77-ef2baf00fdbb",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "63c60dde-3a5b-46af-a8ba-29c346c23592",
+  "prevId": "76ca5fbf-6067-420d-bd77-ef2baf00fdbb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -101,6 +101,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'::json"
+        },
+        "tempo": {
+          "name": "tempo",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
         },
         "modality": {
           "name": "modality",

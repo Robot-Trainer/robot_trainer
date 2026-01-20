@@ -5,7 +5,7 @@ import os from 'node:os';
 import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
-import migrations from './db/migrations.json';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
 
 import { VideoManager } from './lib/VideoManager';
 
@@ -45,7 +45,7 @@ const loadSystemSettings = async () => {
 
     systemSettings = data || {};
   } catch (e) {
-    throw("Could not load the system data from the renderer's IndexedDb.")
+    throw ("Could not load the system data from the renderer's IndexedDb.")
   }
 };
 
@@ -110,6 +110,13 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
 const setupIpcHandlers = () => {
 
   ipcMain.handle('get-migrations', async () => {
+    let migrationsFolder: string;
+    if (app.isPackaged) {
+      migrationsFolder = path.join(process.resourcesPath, 'drizzle');
+    } else {
+      migrationsFolder = path.join(app.getAppPath(), 'drizzle');
+    }
+    const migrations = readMigrationFiles({ migrationsFolder });
     return migrations;
   });
 
@@ -235,10 +242,10 @@ const setupIpcHandlers = () => {
     try {
       // Prefer using `conda run -n robot_trainer` if we have a conda root saved
       const { spawn } = await import('node:child_process');
-      
+
       // Determine conda executable using shared helper
       const condaExec: string | null = await resolveCondaExecutable();
-      
+
       if (condaExec) {
         console.log('244: installing in conda');
         // Use conda run to ensure the environment is activated for the install
@@ -262,7 +269,7 @@ const setupIpcHandlers = () => {
               resolve({ success: code === 0, output: out + err });
             });
             child_lerobot_install.on('error', (e) => {
- 
+
               resolve({ success: false, output: String(e) });
             });
           });

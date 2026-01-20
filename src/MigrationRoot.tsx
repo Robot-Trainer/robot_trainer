@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { checkMigrationStatus, migrate, resetDatabase, MigrationStatus } from './db/migrate';
 import { seedRobotModels } from './db/seed_robot_models';
 import { seedTeleoperators } from './db/seed_teleoperators';
 import App from './app';
 import { MigrationModal } from './ui/MigrationModal';
 
+let hasChecked = false;
+
 export const MigrationRoot = () => {
   const [status, setStatus] = useState<MigrationStatus | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const isApplying = useRef(false);
 
   const performCheck = async () => {
     // Check if we just reset the DB
@@ -29,15 +32,20 @@ export const MigrationRoot = () => {
     } catch (e) {
       setStatus({ type: 'corrupted', error: e });
     } finally {
+      if (typeof window !== 'undefined') (window as any).__appIdle = true; // Unblock loading
       setInitializing(false);
     }
   };
 
   useEffect(() => {
+    if (hasChecked) return;
+    hasChecked = true;
     performCheck();
   }, []);
 
   const handleApply = async () => {
+    if (isApplying.current) return;
+    isApplying.current = true;
     setInitializing(true);
     try {
       await migrate();
@@ -53,6 +61,7 @@ export const MigrationRoot = () => {
       setStatus({ type: 'corrupted', error: e });
     } finally {
       setInitializing(false);
+      isApplying.current = false;
     }
   };
 
