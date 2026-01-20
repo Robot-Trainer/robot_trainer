@@ -3,6 +3,7 @@ import { ChevronRight, Pencil, Plus, CheckCircle, Zap } from '../icons';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import Badge from '../ui/Badge';
 import { robotsResource } from '../db/resources';
 
 const Badge = ({ children, color, tooltip }: { children: React.ReactNode, color: 'green' | 'blue' | 'red' | 'yellow', tooltip?: string }) => {
