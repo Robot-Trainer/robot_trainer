@@ -293,13 +293,13 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-scroll">
         <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center text-sm text-gray-500"></div>
           <div className="flex items-center gap-3"></div>
         </div>
 
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 relative">
           {renderContent()}
           {showSetupWizard && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
