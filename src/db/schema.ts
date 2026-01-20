@@ -76,7 +76,6 @@ export const teleoperatorModelsTable = pgTable("teleoperator_models", {
 
 export const configRobotsTable = pgTable("config_robots", {
   configurationId: integer("configuration_id").references(() => robotConfigurationsTable.id).notNull(),
-  name: varchar("name").notNull(),
   robotId: integer("robot_id").references(() => robotsTable.id, { onDelete: "set null" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [

@@ -307,7 +307,7 @@ export const ResourceManager: React.FC<Props> = ({
       {showForm && (
         <div className="mt-4">
           {/* custom form overrides default */}
-          {typeof renderForm === "function" && !editing ? (
+          {typeof renderForm === "function" ? (
             renderForm({
               onCancel: () => {
                 setShowForm(false);
