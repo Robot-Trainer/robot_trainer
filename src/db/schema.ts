@@ -1,4 +1,4 @@
-import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum, real } from "drizzle-orm/pg-core";
 
 export const robotModalityEnum = pgEnum("robotModality", ["real", "simulated"]);
 export const cameraModalityEnum = pgEnum("cameraModality", ["real", "simulated"]);
@@ -45,6 +45,12 @@ export const camerasTable = pgTable("cameras", {
   name: varchar('name').default(''),
   resolution: varchar('resolution').default(''),
   fps: integer('fps').default(0),
+  positionX: real('position_x').default(0),
+  positionY: real('position_y').default(0),
+  positionZ: real('position_z').default(0),
+  rotationX: real('rotation_x').default(0),
+  rotationY: real('rotation_y').default(0),
+  rotationZ: real('rotation_z').default(0),
   data: json('data').default({}),
   modality: cameraModalityEnum('modality').default('real'),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -70,6 +76,7 @@ export const teleoperatorModelsTable = pgTable("teleoperator_models", {
 
 export const configRobotsTable = pgTable("config_robots", {
   configurationId: integer("configuration_id").references(() => robotConfigurationsTable.id).notNull(),
+  name: varchar("name").notNull(),
   robotId: integer("robot_id").references(() => robotsTable.id, { onDelete: "set null" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
