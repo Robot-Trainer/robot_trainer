@@ -5,7 +5,7 @@ import Card from "./Card";
 import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
 
-type Field = { name: string; label: string; type?: "text" | "number"; required?: boolean };
+type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: any };
 
 type ResourceAPI = {
   list: () => Promise<any[]>;
@@ -30,7 +30,7 @@ type Props = {
 
 const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
-  for (const f of (fields || [])) o[f.name] = "";
+  for (const f of (fields || [])) o[f.name] = f.defaultValue !== undefined ? f.defaultValue : "";
   return o;
 };
 
@@ -63,64 +63,73 @@ export const ResourceManager: React.FC<Props> = ({
 
   // infer fields from table columns if not provided
   const inferredFields = useMemo<Field[]>(() => {
-    if (fields && fields.length) {
-      // If table is present, enrich fields with type/required info
-      if (table) {
-        try {
-          const cols = getTableColumns(table);
-          return fields.map((f) => {
-            const col = cols[f.name];
+    let computedFields: Field[] = [];
+    const runInference = () => {
+      if (fields && fields.length) {
+        // If table is present, enrich fields with type/required info
+        if (table) {
+          try {
+            const cols = getTableColumns(table);
+            return fields.map((f) => {
+              const col = cols[f.name];
+              const isEnum = (col as any).enumValues && Array.isArray((col as any).enumValues);
+              return {
+                ...f,
+                type:
+                  f.type ||
+                  (isEnum ? "select" :
+                    (col && (col.dataType === "integer" || col.dataType === "number")
+                      ? "number"
+                      : "text")),
+                required:
+                  f.required !== undefined
+                    ? f.required
+                    : col?.notNull && !col?.hasDefault,
+                options: isEnum ? (col as any).enumValues : undefined,
+                defaultValue: (col as any).default,
+              };
+            });
+          } catch (e) { /* ignore */ }
+        }
+        return fields;
+      }
+      if (!table) {
+        console.error(`Could not find columns for table ${table?.name}`);
+        return [];
+      }
+
+      // Try to use getTableColumns
+      try {
+        const cols = getTableColumns(table);
+        return Object.keys(cols)
+          .filter((k) => k !== "id")
+          .map((k) => {
+            const col = cols[k];
+            const isNumber =
+              col.dataType === "number" || col.dataType === "integer";
+            const isEnum = (col as any).enumValues && Array.isArray((col as any).enumValues);
             return {
-              ...f,
-              type:
-                f.type ||
-                (col && (col.dataType === "integer" || col.dataType === "number")
-                  ? "number"
-                  : "text"),
-              required:
-                f.required !== undefined
-                  ? f.required
-                  : col?.notNull && !col?.hasDefault,
+              name: k,
+              label: k
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (s) => s.toUpperCase()),
+              type: isEnum ? "select" : (isNumber ? "number" : "text"),
+              required: col.notNull && !col.hasDefault,
+              options: isEnum ? (col as any).enumValues : undefined,
+              defaultValue: (col as any).default,
             };
           });
-        } catch (e) { /* ignore */ }
-      }
-      return fields;
-    }
-    if (!table) {
-      console.error(`Could not find columns for table ${table?.name}`);
-      return [];
-    }
-
-    // Try to use getTableColumns
-    try {
-      const cols = getTableColumns(table);
-      return Object.keys(cols)
-        .filter((k) => k !== "id")
-        .map((k) => {
-          const col = cols[k];
-          const isNumber =
-            col.dataType === "number" || col.dataType === "integer";
-          return {
+      } catch (e) {
+        // Fallback
+        return Object.keys(table)
+          .filter((k) => k !== "id" && k !== "enableRLS")
+          .map((k) => ({
             name: k,
             label: k
               .replace(/([A-Z])/g, " $1")
               .replace(/^./, (s) => s.toUpperCase()),
-            type: isNumber ? "number" : "text",
-            required: col.notNull && !col.hasDefault,
-          };
-        });
-    } catch (e) {
-      // Fallback
-      return Object.keys(table)
-        .filter((k) => k !== "id" && k !== "enableRLS")
-        .map((k) => ({
-          name: k,
-          label: k
-            .replace(/([A-Z])/g, " $1")
-            .replace(/^./, (s) => s.toUpperCase()),
-        }));
-    }
+          }));
+      }
     };
     computedFields = runInference();
     return computedFields.filter((f) => !["createdAt", "created_at", "updatedAt", "updated_at"].includes(f.name));
@@ -349,16 +358,36 @@ export const ResourceManager: React.FC<Props> = ({
                     <span className="text-gray-600 mb-1">
                       {f.label} {f.required && "*"}
                     </span>
-                    <input
-                      value={form[f.name] ?? ""}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          [f.name]: e.target.value,
-                        })
-                      }
-                      className="w-full outline-none"
-                    />
+                    {f.type === "select" ? (
+                      <select
+                        value={form[f.name] ?? ""}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            [f.name]: e.target.value,
+                          })
+                        }
+                        className="w-full outline-none bg-white h-6"
+                      >
+                        {!f.required && <option value="">Select...</option>}
+                        {f.options?.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={form[f.name] ?? ""}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            [f.name]: e.target.value,
+                          })
+                        }
+                        className="w-full outline-none"
+                      />
+                    )}
                     {errors[f.name] && (
                       <span className="text-red-500 text-xs mt-1">
                         {errors[f.name]}
