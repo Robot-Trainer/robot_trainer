@@ -101,7 +101,6 @@ export const configTeleoperatorsTable = pgTable("config_teleoperators", {
 export const skillsTable = pgTable("skills", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
-  tags: json("tags").$type<string[]>().default([]),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
