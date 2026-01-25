@@ -121,6 +121,9 @@ export const ResourceManager: React.FC<Props> = ({
             .replace(/^./, (s) => s.toUpperCase()),
         }));
     }
+    };
+    computedFields = runInference();
+    return computedFields.filter((f) => !["createdAt", "created_at", "updatedAt", "updated_at"].includes(f.name));
   }, [fields, table]);
 
   const [form, setForm] = useState<any>(emptyFromFields(inferredFields));
@@ -324,6 +327,17 @@ export const ResourceManager: React.FC<Props> = ({
               <h3 className="font-medium">
                 {editing ? "Edit" : "Create"} {title.replace(/s$/, "")}
               </h3>
+
+              {editing && (
+                <div className="mb-4 text-xs text-gray-400 flex flex-wrap gap-4">
+                  {['createdAt', 'created_at'].map(k => editing[k] && (
+                    <div key={k}>Created: {new Date(editing[k]).toLocaleString()}</div>
+                  ))}
+                  {['updatedAt', 'updated_at'].map(k => editing[k] && (
+                    <div key={k}>Updated: {new Date(editing[k]).toLocaleString()}</div>
+                  ))}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 {inferredFields.map((f) => (
