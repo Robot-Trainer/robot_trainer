@@ -18,13 +18,6 @@ test.describe('Robot Configuration Wizard Input', () => {
     // 4. Verify Wizard appears
     await expect(window.locator('text=Robot Setup')).toBeVisible();
 
-    // 5. Select "Create New Simulated Robot" from the dropdown
-    // The dropdown trigger shows "Select or create follower..." initially
-    await window.click('text=Select or create follower...');
-
-    // Click the option
-    await window.click('text=Create New Simulated Robot');
-
     // 6. Type a name in the configuration name field
     const nameInput = window.getByLabel('Configuration Name');
     await expect(nameInput).toBeVisible();
