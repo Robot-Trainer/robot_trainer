@@ -97,3 +97,30 @@ export const configTeleoperatorsTable = pgTable("config_teleoperators", {
 }, (t) => [
   primaryKey({ columns: [t.configurationId, t.teleoperatorId] }),
 ]);
+
+export const skillsTable = pgTable("skills", {
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: varchar("name").notNull(),
+  tags: json("tags").$type<string[]>().default([]),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const sessionsTable = pgTable("sessions", {
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: varchar("name").notNull(),
+  skillId: integer("skill_id").references(() => skillsTable.id).notNull(),
+  robotConfigurationId: integer("robot_configuration_id").references(() => robotConfigurationsTable.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const episodesTable = pgTable("episodes", {
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: varchar("name").notNull(),
+  sessionId: integer("session_id").references(() => sessionsTable.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
