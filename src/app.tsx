@@ -5,12 +5,13 @@ import TrainingStudio from './views/TrainingStudio';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
+import Skills from './views/Skills';
 import RobotConfigurations from './views/RobotConfigurations';
 import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Activity, Robot, Zap, RobotConfiguration, Settings, Loader, Camera } from './icons';
+import { Activity, Robot, Zap, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import Button from './ui/Button';
 
 const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
@@ -174,6 +175,8 @@ const App: React.FC = () => {
         return <RobotConfigurations />;
       case "robots":
         return <Robots />;
+      case "skills":
+        return <Skills />;
       case "cameras":
         return <Cameras />;
       case "setup":
@@ -237,6 +240,18 @@ const App: React.FC = () => {
             />
 
             <NavItem
+              id="skills"
+              icon={Layout}
+              label="Skills"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+
+            <NavItem
               id="cameras"
               icon={Camera}
               label="Cameras"
@@ -247,17 +262,7 @@ const App: React.FC = () => {
                 setResourceManagerShowForm(false);
               }}
             />
-            <NavItem
-              id="training"
-              icon={Zap}
-              label="Training Studio"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
+
             <NavItem
               id="system-settings"
               icon={Settings}
