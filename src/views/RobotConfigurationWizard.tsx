@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
 import { db } from '../db/db';
+import { eq, and } from 'drizzle-orm';
 import { configRobotsTable, configCamerasTable, configTeleoperatorsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 
@@ -13,9 +14,10 @@ import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 interface RobotConfigurationWizardProps {
   onCancel?: () => void;
   onSaved?: (config: any) => Promise<any> | void;
+  initialData?: any;
 }
 
-export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> = ({ onCancel, onSaved }) => {
+export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> = ({ onCancel, onSaved, initialData }) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
 
   const [configName, setConfigName] = useState('');
@@ -64,6 +66,48 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
     console.log('RobotConfigurationWizard mounted');
     fetchData();
   }, []);
+
+  // If opened for editing, populate simple top-level fields from the initial data
+  useEffect(() => {
+    if (!initialData) return;
+    
+    const hydrate = async () => {
+      try {
+        setConfigName(initialData.name || '');
+
+        if (!initialData.id) return;
+
+        // Fetch Config Robots
+        const robotRows = await db.select().from(configRobotsTable).where(eq(configRobotsTable.configurationId, initialData.id));
+        if (robotRows.length > 0) {
+          const r = robotRows[0];
+          setSelectedRobotId(r.robotId);
+          const snap = r.snapshot as any;
+          if (snap) {
+            if (snap.leaderType) setLeaderType(snap.leaderType);
+            if (snap.leaderConfig) setLeaderConfig(snap.leaderConfig);
+          }
+        }
+
+        // Fetch Config Cameras
+        const cameraRows = await db.select().from(configCamerasTable).where(eq(configCamerasTable.configurationId, initialData.id));
+        if (cameraRows.length > 0) {
+          setCameraSlots(cameraRows.map((c, i) => ({ id: c.cameraId, key: Date.now() + i })));
+        }
+
+        // Fetch Config Teleoperators
+        const teleopRows = await db.select().from(configTeleoperatorsTable).where(eq(configTeleoperatorsTable.configurationId, initialData.id));
+        if (teleopRows.length > 0) {
+          setLeaderModel(teleopRows[0].teleoperatorId.toString());
+        }
+
+      } catch (e) {
+        console.warn('Failed to hydrate initialData into RobotConfigurationWizard', e);
+      }
+    };
+
+    hydrate();
+  }, [initialData]);
 
   const scanPorts = async () => {
     setScanning(true);
@@ -186,41 +230,127 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
 
       const configurationId = parentResult.id;
 
-      // 2. Save Follower
-      await db.insert(configRobotsTable).values({
-        configurationId,
-        robotId: selectedRobot.id,
-        snapshot: {
-          ...selectedRobot,
-          targetConfig: currentConfig,
-          leaderType,
-          leaderConfig
-        }
-      });
+      // 2. Save Follower (Upsert / Replace)
+      const existingRobots = await db.select().from(configRobotsTable).where(eq(configRobotsTable.configurationId, configurationId));
+      const existingRobot = existingRobots[0]; // Assuming 1 to 1 for this wizard
 
-      // 3. Save Cameras (only if real/have IDs)
-      for (const camId of selectedCameraIds) {
-        const cam = availableCameras.find(c => c.id === camId);
-        if (cam) {
+      const newRobotSnapshot = {
+        ...selectedRobot,
+        targetConfig: currentConfig,
+        leaderType,
+        leaderConfig
+      };
+
+      if (existingRobot) {
+        if (existingRobot.robotId !== selectedRobot.id) {
+          // ID changed: Remove old, add new
+          await db.delete(configRobotsTable).where(and(
+            eq(configRobotsTable.configurationId, configurationId),
+            eq(configRobotsTable.robotId, existingRobot.robotId)
+          ));
+          await db.insert(configRobotsTable).values({
+            configurationId,
+            robotId: selectedRobot.id,
+            snapshot: newRobotSnapshot
+          });
+        } else {
+          // ID same: Update snapshot
+          await db.update(configRobotsTable).set({
+            snapshot: newRobotSnapshot
+          }).where(and(
+            eq(configRobotsTable.configurationId, configurationId),
+            eq(configRobotsTable.robotId, selectedRobot.id)
+          ));
+        }
+      } else {
+        // No existing: Insert
+        await db.insert(configRobotsTable).values({
+          configurationId,
+          robotId: selectedRobot.id,
+          snapshot: newRobotSnapshot
+        });
+      }
+
+      // 3. Save Cameras (Diff & Upsert)
+      const existingCameras = await db.select().from(configCamerasTable).where(eq(configCamerasTable.configurationId, configurationId));
+      const existingCamIds = new Set(existingCameras.map(c => c.cameraId));
+      const newCamIds = new Set(selectedCameraIds);
+
+      // Remove deleted cameras
+      for (const oldId of existingCamIds) {
+        if (!newCamIds.has(oldId)) {
+          await db.delete(configCamerasTable).where(and(
+            eq(configCamerasTable.configurationId, configurationId),
+            eq(configCamerasTable.cameraId, oldId)
+          ));
+        }
+      }
+
+      // Insert or Update active cameras
+      for (const newId of newCamIds) {
+        const cam = availableCameras.find(c => c.id === newId);
+        if (!cam) continue;
+
+        if (existingCamIds.has(newId)) {
+          await db.update(configCamerasTable).set({
+            snapshot: cam
+          }).where(and(
+            eq(configCamerasTable.configurationId, configurationId),
+            eq(configCamerasTable.cameraId, newId)
+          ));
+        } else {
           await db.insert(configCamerasTable).values({
             configurationId,
-            cameraId: cam.id,
+            cameraId: newId,
             snapshot: cam
           });
         }
       }
 
-      // 4. Save Teleoperator (only if real)
+      // 4. Save Teleoperator (Diff & Upsert)
+      const existingTeleops = await db.select().from(configTeleoperatorsTable).where(eq(configTeleoperatorsTable.configurationId, configurationId));
+      const existingTeleop = existingTeleops[0];
+      
+      let desiredTeleopId: number | null = null;
       if (leaderType === 'real' && leaderModel) {
-        const teleopId = parseInt(leaderModel, 10);
-        if (!isNaN(teleopId)) {
+        const parsed = parseInt(leaderModel, 10);
+        if (!isNaN(parsed)) desiredTeleopId = parsed;
+      }
+
+      if (existingTeleop) {
+        if (desiredTeleopId === null) {
+          // Was present, now removed
+          await db.delete(configTeleoperatorsTable).where(and(
+             eq(configTeleoperatorsTable.configurationId, configurationId),
+             eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+          ));
+        } else if (existingTeleop.teleoperatorId !== desiredTeleopId) {
+          // Changed model: Delete old, Insert new
+           await db.delete(configTeleoperatorsTable).where(and(
+             eq(configTeleoperatorsTable.configurationId, configurationId),
+             eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+          ));
           await db.insert(configTeleoperatorsTable).values({
             configurationId,
-            teleoperatorId: teleopId,
-            snapshot: {
-              config: leaderConfig,
-              type: leaderType
-            }
+            teleoperatorId: desiredTeleopId,
+            snapshot: { config: leaderConfig, type: leaderType }
+          });
+        } else {
+          // Same model: Update snapshot
+          await db.update(configTeleoperatorsTable).set({
+            snapshot: { config: leaderConfig, type: leaderType }
+          }).where(and(
+             eq(configTeleoperatorsTable.configurationId, configurationId),
+             eq(configTeleoperatorsTable.teleoperatorId, desiredTeleopId)
+          ));
+        }
+      } else {
+        // No existing, but have desired
+        if (desiredTeleopId !== null) {
+          await db.insert(configTeleoperatorsTable).values({
+            configurationId,
+            teleoperatorId: desiredTeleopId,
+            snapshot: { config: leaderConfig, type: leaderType }
           });
         }
       }
