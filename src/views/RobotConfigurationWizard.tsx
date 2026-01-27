@@ -183,22 +183,11 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
       alert("Please enter a configuration name.");
       return;
     }
-    if (!selectedRobotId) {
-      alert("Please select a Follower Robot.");
-      return;
-    }
-    const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
-    if (!selectedRobot) {
-      alert("Invalid robot selection");
-      return;
-    }
 
-    const selectedCameraIds = cameraSlots.map(s => s.id).filter((id): id is number => id !== null);
+        const selectedCameraIds = cameraSlots
+          .map((s) => s.id)
+          .filter((id): id is number => id !== null);
 
-    if (selectedRobot.modality === 'real' && selectedCameraIds.length === 0) {
-      alert("Please configure a camera.");
-      return;
-    }
 
     // Try to find current port info if connected
     let currentConfig = selectedRobot.data?.config;
@@ -423,7 +412,7 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
             ))}
 
             <div className="pt-2">
-              <Button variant="outline" onClick={addCameraSlot} className="text-sm">
+              <Button variant="secondary" onClick={addCameraSlot} className="text-sm">
                 + Add Another Camera
               </Button>
             </div>

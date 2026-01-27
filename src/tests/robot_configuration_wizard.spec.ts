@@ -20,11 +20,14 @@ test.describe('Robot Configuration Wizard', () => {
     await expect(window.locator('text=Robot Setup')).toBeVisible(); 
 
     // 5. Select Simulation Type for Follower to see Robot Models
-    const followerTypeSelect = window.locator('section:has-text("Follower Arm") >> label:has-text("Type") >> .. >> select');
-    await followerTypeSelect.selectOption({ label: 'Simulation' });
+    await window.click('text=Select or create follower');
+    await window.click('text=Create New Simulated Robot');
 
-    // Verify Robot Model dropdown appears
-    const followerModelSelect = window.locator('section:has-text("Follower Arm") >> label:has-text("Robot Model") >> .. >> select');
+    // Verify Robot Editor appears and the Model dropdown is visible
+    const followerEditor = window.locator('div').filter({ has: window.locator('h4', { hasText: 'Edit Simulated Robot' }) }).first();
+    await expect(followerEditor).toBeVisible();
+
+    const followerModelSelect = followerEditor.locator('label:has-text("Model") >> .. >> select');
     await expect(followerModelSelect).toBeVisible();
 
     // Verify content (seeded data)

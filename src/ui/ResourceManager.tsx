@@ -293,9 +293,6 @@ export const ResourceManager: React.FC<Props> = ({
                 >
                   <div>
                     <div className="font-medium">{it.name || "(unnamed)"}</div>
-                    <div className="text-sm text-gray-500">
-                      {it.serialNumber || ""}
-                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
