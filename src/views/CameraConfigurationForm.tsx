@@ -3,13 +3,13 @@ import Button from '../ui/Button';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 import { camerasResource } from '../db/resources';
 
-interface CameraConfigurationWizardProps {
+interface CameraConfigurationFormProps {
   initialCameras?: any[];
   onSave?: (cameras: any[]) => void;
   onCancel?: () => void;
 }
 
-const CameraConfigurationWizard: React.FC<CameraConfigurationWizardProps> = ({ initialCameras = [], onSave, onCancel }) => {
+const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initialCameras = [], onSave, onCancel }) => {
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([]);
   const [availableCameras, setAvailableCameras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +99,7 @@ const CameraConfigurationWizard: React.FC<CameraConfigurationWizardProps> = ({ i
         ))}
 
         <div className="pt-2">
-          <Button variant="outline" onClick={addSlot} className="text-sm">
+          <Button variant="secondary" onClick={addSlot} className="text-sm">
             + Add Another Camera
           </Button>
         </div>
@@ -115,4 +115,4 @@ const CameraConfigurationWizard: React.FC<CameraConfigurationWizardProps> = ({ i
   );
 };
 
-export default CameraConfigurationWizard;
+export default CameraConfigurationForm;

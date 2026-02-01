@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import CameraConfigurationWizard from '../CameraConfigurationWizard';
+import CameraConfigurationForm from '../CameraConfigurationForm';
 
-describe('CameraConfigurationWizard', () => {
+describe('CameraConfigurationForm', () => {
   it('adds and removes a camera and toggles calibration', async () => {
-    const { container, unmount } = render(<CameraConfigurationWizard />);
+    const { container, unmount } = render(<CameraConfigurationForm />);
 
     const nameInput = container.querySelector('[aria-label="camera-name"]') as HTMLInputElement;
     const fpsInput = container.querySelector('[aria-label="camera-fps"]') as HTMLInputElement;

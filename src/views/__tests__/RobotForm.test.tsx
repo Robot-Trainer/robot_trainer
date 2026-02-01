@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, it, expect, vi } from 'vitest';
-import RobotDevicesWizard from '../RobotDevicesWizard';
+import RobotForm from '../RobotForm';
 
 async function waitForText(container: HTMLElement, text: string, timeout = 500) {
   const start = Date.now();
@@ -14,7 +14,7 @@ async function waitForText(container: HTMLElement, text: string, timeout = 500) 
   throw new Error(`timeout waiting for text: ${text}`);
 }
 
-describe('RobotDevicesWizard', () => {
+describe('RobotForm', () => {
   it('scans serial ports and selects follower/leader and scans python plugins', async () => {
     // mock electronAPI
     const mockAPI = {
@@ -30,7 +30,7 @@ describe('RobotDevicesWizard', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    root.render(<RobotDevicesWizard />);
+    root.render(<RobotForm />);
     // allow React to flush initial render
     await new Promise((r) => setTimeout(r, 0));
 

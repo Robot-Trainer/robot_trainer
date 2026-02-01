@@ -1,7 +1,7 @@
 import React from "react";
 import ResourceManager from "../ui/ResourceManager";
 import { robotConfigurationsTable } from "../db/schema";
-import RobotConfigurationWizard from "./RobotConfigurationWizard";
+import RobotConfigurationForm from "./RobotConfigurationForm";
 
 const RobotsView: React.FC = () => {
   return (
@@ -9,7 +9,7 @@ const RobotsView: React.FC = () => {
       <ResourceManager
         title="Robot Configurations"
         table={robotConfigurationsTable}
-        renderForm={(props) => <RobotConfigurationWizard {...props} />}
+        renderForm={(props) => <RobotConfigurationForm {...props} />}
       />
     </div>
   );

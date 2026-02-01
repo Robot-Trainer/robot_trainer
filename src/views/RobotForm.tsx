@@ -3,12 +3,12 @@ import Button from '../ui/Button';
 
 interface SerialPort { path: string; manufacturer: string; serialNumber: string; productId?: string; vendorId?: string; pnpId?: string; }
 
-interface RobotDevicesWizardProps {
+interface RobotFormProps {
   onSelect?: (config: { follower?: SerialPort | null, leader?: SerialPort | null }) => void;
   onCancel?: () => void;
 }
 
-const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCancel }) => {
+const RobotForm: React.FC<RobotFormProps> = ({ onSelect, onCancel }) => {
   const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -140,4 +140,4 @@ const RobotDevicesWizard: React.FC<RobotDevicesWizardProps> = ({ onSelect, onCan
   );
 };
 
-export default RobotDevicesWizard;
+export default RobotForm;

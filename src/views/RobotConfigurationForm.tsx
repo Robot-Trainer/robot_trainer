@@ -11,13 +11,13 @@ import { robotModelsResource, teleoperatorModelsResource, robotsResource, camera
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 
-interface RobotConfigurationWizardProps {
+interface RobotConfigurationFormProps {
   onCancel?: () => void;
   onSaved?: (config: any) => Promise<any> | void;
   initialData?: any;
 }
 
-export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> = ({ onCancel, onSaved, initialData }) => {
+export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ onCancel, onSaved, initialData }) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
 
   const [configName, setConfigName] = useState('');
@@ -63,7 +63,7 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
 
   // Initialize defaults
   useEffect(() => {
-    console.log('RobotConfigurationWizard mounted');
+    console.log('RobotConfigurationForm mounted');
     fetchData();
   }, []);
 
@@ -102,7 +102,7 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
         }
 
       } catch (e) {
-        console.warn('Failed to hydrate initialData into RobotConfigurationWizard', e);
+        console.warn('Failed to hydrate initialData into RobotConfigurationForm', e);
       }
     };
 
@@ -493,4 +493,4 @@ export const RobotConfigurationWizard: React.FC<RobotConfigurationWizardProps> =
   );
 };
 
-export default RobotConfigurationWizard;
+export default RobotConfigurationForm;
