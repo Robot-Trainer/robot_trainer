@@ -1,1 +1,0 @@
-ALTER TABLE "cameras" DROP COLUMN "tempo";

@@ -1,1 +1,0 @@
-ALTER TABLE "cameras" ADD COLUMN "tempo" varchar DEFAULT '';

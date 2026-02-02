@@ -38,7 +38,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
   const fetchData = async () => {
     try {
       const robots = await robotModelsResource.list();
-      const rOpts = robots.map((r: any) => ({ label: r.name, value: r.name }));
+      const rOpts = robots.map((r: any) => ({ label: r.name, value: String(r.id) }));
       setAvailableRobots(rOpts);
 
       const teleops = await teleoperatorModelsResource.list();

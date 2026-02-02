@@ -1,13 +1,13 @@
 export default class Robot {
   serialNumber: string;
   name: string;
-  model?: string | null;
+  robotModelId?: number | null;
   notes?: string | null;
 
-  constructor(opts: { serialNumber: string; name: string; model?: string | null; notes?: string | null }) {
+  constructor(opts: { serialNumber: string; name: string; robotModelId?: number | null; notes?: string | null }) {
     this.serialNumber = opts.serialNumber;
     this.name = opts.name;
-    this.model = opts.model ?? null;
+    this.robotModelId = opts.robotModelId ?? null;
     this.notes = opts.notes ?? null;
   }
 
@@ -15,7 +15,7 @@ export default class Robot {
     return {
       serialNumber: this.serialNumber,
       name: this.name,
-      model: this.model,
+      robotModelId: this.robotModelId,
       notes: this.notes,
     };
   }
@@ -24,7 +24,7 @@ export default class Robot {
     return new Robot({
       serialNumber: obj.serialNumber || '',
       name: obj.name || '',
-      model: obj.model ?? null,
+      robotModelId: obj.robotModelId ?? null,
       notes: obj.notes ?? null,
     });
   }

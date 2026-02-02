@@ -1,1 +1,0 @@
-ALTER TABLE "config_robots" DROP COLUMN "name";

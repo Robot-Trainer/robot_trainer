@@ -16,7 +16,7 @@ interface RobotEditorProps {
 
 const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, connectedDevices, onSave, onCancel }) => {
   const [name, setName] = useState(robot.name || '');
-  const [model, setModel] = useState(robot.model || '');
+  const [model, setModel] = useState(robot.robotModelId ? String(robot.robotModelId) : '');
   const [serialNumber, setSerialNumber] = useState(robot.serialNumber || '');
   const isReal = robot.modality === 'real';
 
@@ -30,11 +30,12 @@ const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, conne
 
   const handleSave = async () => {
     try {
+      const parsedModelId = model ? parseInt(model, 10) : null;
       await robotsResource.update(robot.id, {
         name,
-        model,
         serialNumber: isReal ? serialNumber : '',
         modality: isReal ? 'real' : 'simulated',
+        robotModelId: parsedModelId,
         data: { ...robot.data, type: isReal ? 'real' : 'simulation' }
       });
       onSave();
@@ -276,6 +277,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
                 serialNumber: d.serialNumber,
                 modality: 'real',
                 data: { type: 'real' },
+                robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
                 notes: `Detected device: ${d.manufacturer}`
               })}
             >
@@ -315,6 +317,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
               name: `Real Robot ${new Date().toLocaleString()}`,
               data: { type: 'real' },
               modality: 'real',
+              robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
               serialNumber: ''
             })}
           >
@@ -327,6 +330,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
               name: `Simulated Robot ${new Date().toLocaleString()}`,
               data: { type: 'simulation' },
               modality: 'simulated',
+              robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
               serialNumber: 'sim-' + Date.now()
             })}
           >

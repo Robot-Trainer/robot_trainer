@@ -9,13 +9,23 @@ export const userConfigTable = pgTable("user_config", {
   config: json().default({})
 });
 
+export const robotModelsTable = pgTable("robot_models", {
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: varchar('name').notNull(),
+  dirName: varchar('dir_name').notNull(),
+  className: varchar('class_name').notNull(),
+  configClassName: varchar('config_class_name').notNull(),
+  properties: json('properties').default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export const robotsTable = pgTable("robots", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   serialNumber: varchar('serial_number').default(''),
   name: varchar('name').default(''),
-  model: varchar('model').default(''),
   notes: text('notes').default(''),
   data: json('data').default({}),
+  robotModelId: integer('robot_model_id').references(() => robotModelsTable.id, { onDelete: 'set null' }),
   modality: robotModalityEnum('modality').default('real'),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -56,15 +66,6 @@ export const camerasTable = pgTable("cameras", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const robotModelsTable = pgTable("robot_models", {
-  id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  name: varchar('name').notNull(),
-  dirName: varchar('dir_name').notNull(),
-  className: varchar('class_name').notNull(),
-  configClassName: varchar('config_class_name').notNull(),
-  properties: json('properties').default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
 
 export const teleoperatorModelsTable = pgTable("teleoperator_models", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),

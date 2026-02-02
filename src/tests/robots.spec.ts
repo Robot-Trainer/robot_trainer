@@ -24,9 +24,15 @@ test.describe('Robots CRUD', () => {
 
     // Create a new robot
     await window.click('text=Add Robot');
+
+    // Select a robot model (index 1 to skip the placeholder)
+    const modelSelect = window.locator('label:has-text("Robot Model") >> .. >> select');
+    await modelSelect.waitFor();
+    await modelSelect.selectOption({ index: 1 });
+
     // We can't really select ports in CI environment easily unless mocked, 
-    // but we can assume confirming empty selection works or creates a robot with no devices.
-    await window.click('text=Confirm Selection');
+    // but we can assume saving with no device works.
+    await window.click('text=Save Robot');
 
     // ensure the robot appears (might be unnamed)
     // The default name is usually empty string, displayed as "(unnamed)"
@@ -34,9 +40,9 @@ test.describe('Robots CRUD', () => {
 
     // edit the robot (editing uses the built-in form)
     await window.locator('text=(unnamed)').locator('..').locator('text=Edit').click();
-    const nameInput = await window.locator('input').nth(1);
+    const nameInput = window.locator('label:has-text("Robot Name") >> .. >> input');
     await nameInput.fill('Test Robot v2');
-    await window.click('text=Save');
+    await window.click('text=Save Robot');
     await window.waitForSelector('text=Test Robot v2');
 
     // delete

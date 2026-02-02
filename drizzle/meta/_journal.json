@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1768867228725,
-      "tag": "0000_slippery_scarecrow",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768867932357,
-      "tag": "0001_typical_psylocke",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768868109802,
-      "tag": "0002_panoramic_the_phantom",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1768868775932,
-      "tag": "0003_past_the_professor",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1769302486563,
-      "tag": "0004_slimy_grim_reaper",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1769378460237,
-      "tag": "0005_bored_squadron_sinister",
+      "when": 1769993318415,
+      "tag": "0000_naive_red_ghost",
       "breakpoints": true
     }
   ]
