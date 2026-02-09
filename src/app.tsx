@@ -11,7 +11,7 @@ import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Activity, Robot, Zap, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
+import { Activity, Robot, Training, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import Button from './ui/Button';
 
 const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
@@ -179,7 +179,7 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
 
   const renderContent = () => {
     switch (activeTab) {
-      case "training":
+      case "training-studio":
         return <TrainingStudio />;
       case "robot-configurations":
         return <RobotConfigurations />;
@@ -230,6 +230,19 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
               id="robot-configurations"
               icon={RobotConfiguration}
               label="Robot Configurations"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+          </div>
+          <div className="mb-8">
+            <NavItem
+              id="training-studio"
+              icon={Training}
+              label="Training Studio"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);

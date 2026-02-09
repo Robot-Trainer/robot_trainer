@@ -4,7 +4,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { Play, Zap } from '../icons';
+import { Play, Training } from '../icons';
 import { VideoPlayer } from '../ui/VideoPlayer';
 
 export const TrainingStudio: React.FC = () => {
@@ -31,9 +31,9 @@ export const TrainingStudio: React.FC = () => {
   useEffect(() => {
     const offStopped = (window as any).electronAPI?.onSimulationStopped
       ? (window as any).electronAPI.onSimulationStopped(() => {
-          setSimRunning(false);
-          setSimUrl(null);
-        })
+        setSimRunning(false);
+        setSimUrl(null);
+      })
       : null;
 
     return () => {
@@ -70,7 +70,7 @@ export const TrainingStudio: React.FC = () => {
       <header className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" />
+            <Training className="h-5 w-5 text-yellow-500" />
             Training Studio
           </h1>
           <p className="text-sm text-gray-500 mt-1">Record demonstrations and train policies</p>
@@ -103,16 +103,16 @@ export const TrainingStudio: React.FC = () => {
 
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 mt-8">Training Config</h3>
           <div className="space-y-1">
-            <Input label="Repo ID" value={config.repo_id} onChange={(e) => setConfig({...config, repo_id: e.target.value})} />
+            <Input label="Repo ID" value={config.repo_id} onChange={(e) => setConfig({ ...config, repo_id: e.target.value })} />
             <Select
               label="Policy Type"
               value={config.policy_type}
-              options={[{label: 'ACT (Action Chunking)', value: 'act'}, {label: 'Diffusion', value: 'diffusion'}]}
-              onChange={(e) => setConfig({...config, policy_type: e.target.value})}
+              options={[{ label: 'ACT (Action Chunking)', value: 'act' }, { label: 'Diffusion', value: 'diffusion' }]}
+              onChange={(e) => setConfig({ ...config, policy_type: e.target.value })}
             />
             <div className="grid grid-cols-2 gap-2">
-              <Input label="Episodes" value={config.num_episodes} type="number" onChange={(e) => setConfig({...config, num_episodes: e.target.value})} />
-              <Input label="FPS" value={config.fps} type="number" onChange={(e) => setConfig({...config, fps: e.target.value})} />
+              <Input label="Episodes" value={config.num_episodes} type="number" onChange={(e) => setConfig({ ...config, num_episodes: e.target.value })} />
+              <Input label="FPS" value={config.fps} type="number" onChange={(e) => setConfig({ ...config, fps: e.target.value })} />
             </div>
           </div>
         </div>

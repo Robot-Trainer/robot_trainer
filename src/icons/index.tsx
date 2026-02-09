@@ -45,27 +45,27 @@ export const Cpu = (props: any) => (
 export const Robot = (props: any) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-         d="M 11,6 V 5 c 0,0 0,-1 1,-1 v 0 c 0,0 1,0 1,1 v 1" id="path17" />
+      d="M 11,6 V 5 c 0,0 0,-1 1,-1 v 0 c 0,0 1,0 1,1 v 1" id="path17" />
     <path stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="round" fill="none"
-         d="M 17,20 H 7 C 5,20 3,19 3,17 V 9 C 3,7 5,6 7,6 h 10 c 2,0 4,1 4,3 v 8 c 0,2 -2,3 -4,3 z"
+      d="M 17,20 H 7 C 5,20 3,19 3,17 V 9 C 3,7 5,6 7,6 h 10 c 2,0 4,1 4,3 v 8 c 0,2 -2,3 -4,3 z"
       id="path8" />
     <circle stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
-         cx="15"
-         cy="12"
-         id="ellipse8"
+      cx="15"
+      cy="12"
+      id="ellipse8"
       r="1.5" />
     <circle transform="rotate(-73.440702)"
-         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
-         cx="-9"
-         cy="12"
-         id="ellipse9"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
+      cx="-9"
+      cy="12"
+      id="ellipse9"
       r="1.5" />
     <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
-         d="m 2,16 v 0 C 1,16 1,16 1,15 v -4 c 0,-1 0,-1 1,-1 v 0 c 1,0 1,0 1,1 v 4 c 0,1 0,1 -1,1 z"
+      d="m 2,16 v 0 C 1,16 1,16 1,15 v -4 c 0,-1 0,-1 1,-1 v 0 c 1,0 1,0 1,1 v 4 c 0,1 0,1 -1,1 z"
       id="path11" />
     <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeMiterlimit="round"
-         d="m 22,16 v 0 c 1,0 1,0 1,-1 v -4 c 0,-1 0,-1 -1,-1 v 0 c -1,0 -1,0 -1,1 v 4 c 0,1 0,1 1,1 z"
-         id="path12" />
+      d="m 22,16 v 0 c 1,0 1,0 1,-1 v -4 c 0,-1 0,-1 -1,-1 v 0 c -1,0 -1,0 -1,1 v 4 c 0,1 0,1 1,1 z"
+      id="path12" />
   </svg>
 );
 
@@ -124,6 +124,22 @@ export const Camera = (props: any) => (
     <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
   </svg>
 );
+export const Training = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    {/* Solid central square representing the model/compute unit.
+        Uses fill="currentColor" inherited from the svg tag. */}
+    <rect x="8" y="8" width="8" height="8" rx="1.5" />
+
+    {/* Cyclical arrow representing the training process/iterations.
+        Uses stroke="currentColor" and fill="none" to create contrast
+        with the solid center, ensuring legibility at small sizes.
+        This mixed style is similar to the 'RobotConfiguration' example. */}
+    <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36L21 3" />
+      <path d="M21 3v4h-4" />
+    </g>
+  </svg>
+);
 
 export default {
   Loader,
@@ -139,5 +155,6 @@ export default {
   Plus,
   Settings,
   Robot,
-  Camera
+  Camera,
+  Training
 };
