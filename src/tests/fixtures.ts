@@ -13,7 +13,7 @@ export type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
-  electronApp: async (_, use) => {
+  electronApp: async ({}, use) => {
     // Need separate tmp directories for each playwright test so that running multiple
     // playwright workers doesn't cause IndexedDB migration conflicts.
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'robot-trainer-test-'));
