@@ -8,12 +8,14 @@ export type Fixtures = {
   electronApp: ElectronApplication;
   window: Page;
   setIpcHandlers: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handlers: Record<string, (...args: any[]) => any>
   ) => Promise<void>;
 };
 
 export const test = base.extend<Fixtures>({
-  electronApp: async ({}, use) => {
+  // eslint-disable-next-line no-empty-pattern
+  electronApp: async ({ }, use) => {
     // Need separate tmp directories for each playwright test so that running multiple
     // playwright workers doesn't cause IndexedDB migration conflicts.
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'robot-trainer-test-'));

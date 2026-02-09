@@ -39,7 +39,7 @@ describe('SessionsView', () => {
     fireEvent.click(addButtons[0]);
 
     // Check if SessionForm appears (it renders "Session Studio")
-    expect(await screen.findByText('Session Studio')).toBeDefined();
+    expect(await screen.findByText('Session Name')).toBeDefined();
 
     // Check for Back button and click it
     const backButton = screen.getByText('← Back');

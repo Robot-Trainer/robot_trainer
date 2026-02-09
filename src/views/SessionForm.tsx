@@ -4,15 +4,18 @@ import { eq } from 'drizzle-orm';
 import {
   robotConfigurationsTable,
   skillsTable,
+  configRobotsTable,
   configCamerasTable,
+  configTeleoperatorsTable,
   camerasTable,
-  episodesTable,
-  sessionsTable
+  robotsTable,
+  episodesTable
 } from '../db/schema';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { Play, Session, CheckCircle } from '../icons';
+import Badge from '../ui/Badge';
+import { Play, CheckCircle, ChevronRight } from '../icons';
 import { VideoPlayer } from '../ui/VideoPlayer';
 
 // Additional Icons
@@ -36,6 +39,100 @@ const Circle = (props: any) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}><circle cx="12" cy="12" r="8" /></svg>
 );
 
+type ConfigStatus = {
+  ready: boolean;
+  issues: string[];
+  mode: 'sim' | 'real' | 'mixed' | 'unknown';
+  cameraCount: number;
+  robotCount: number;
+  teleopCount: number;
+};
+
+interface ConfigDropdownProps {
+  configs: any[];
+  selectedConfigId: number | null;
+  statusMap: Record<number, ConfigStatus>;
+  onSelect: (id: number) => void;
+}
+
+const RobotConfigurationDropdown: React.FC<ConfigDropdownProps> = ({ configs, selectedConfigId, statusMap, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedConfig = configs.find(c => c.id === selectedConfigId);
+  const selectedStatus = selectedConfig ? statusMap[selectedConfig.id] : undefined;
+
+  const renderBadges = (status?: ConfigStatus) => {
+    if (!status) return null;
+    const issueText = status.issues.length > 0 ? status.issues.join(', ') : undefined;
+    return (
+      <>
+        {status.mode === 'sim' && <Badge color="blue">sim</Badge>}
+        {status.mode === 'real' && <Badge color="green">real</Badge>}
+        {status.mode === 'mixed' && <Badge color="yellow">mixed</Badge>}
+        {status.ready
+          ? <Badge color="green">ready</Badge>
+          : <Badge color="red" tooltip={issueText || 'Not ready'}>not ready</Badge>}
+      </>
+    );
+  };
+
+  return (
+    <div className="mb-4 relative" ref={dropdownRef}>
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Robot Configuration</label>
+      <div className="relative cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+        <div className="w-full pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-h-[38px]">
+          {selectedConfig ? (
+            <div className="flex items-center flex-wrap gap-1">
+              <span className="font-medium">{selectedConfig.name}</span>
+              {renderBadges(selectedStatus)}
+            </div>
+          ) : (
+            <span className="text-gray-500">Select configuration...</span>
+          )}
+        </div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+          <ChevronRight className="h-4 w-4 rotate-90" />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-96 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+          {configs.length === 0 && (
+            <div className="px-3 py-2 text-sm text-gray-500">No configurations found</div>
+          )}
+          {configs.map(cfg => {
+            const status = statusMap[cfg.id];
+            return (
+              <div
+                key={cfg.id}
+                className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
+                onClick={() => { onSelect(cfg.id); setIsOpen(false); }}
+              >
+                <div className="flex items-center flex-wrap gap-1">
+                  <span className="font-normal block truncate">{cfg.name}</span>
+                  {renderBadges(status)}
+                </div>
+                {selectedConfigId === cfg.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Props {
   onCancel: () => void;
   onSaved: (item: any) => void;
@@ -47,6 +144,8 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [sessionName, setSessionName] = useState('');
   const [configs, setConfigs] = useState<any[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+  const [configStatusMap, setConfigStatusMap] = useState<Record<number, ConfigStatus>>({});
+  const [, setSerialPorts] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
 
@@ -64,6 +163,126 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const recordingStartTime = useRef<number | null>(null);
   const [recordingDuration, setRecordingDuration] = useState('00:00');
   const timerRef = useRef<any>(null);
+
+  const scanSerialPorts = async () => {
+    try {
+      const ports = await (window as any).electronAPI?.scanSerialPorts?.();
+      const list = ports || [];
+      setSerialPorts(list);
+      return list;
+    } catch (e) {
+      console.error('Failed to scan serial ports', e);
+      setSerialPorts([]);
+      return [];
+    }
+  };
+
+  const isCameraConnected = (cam: any) => {
+    const data = cam?.data || {};
+    return Boolean(data.path || data.devicePath || data.rtspUrl || data.url);
+  };
+
+  const refreshConfigStatuses = async (configList: any[]) => {
+    if (!configList || configList.length === 0) {
+      setConfigStatusMap({});
+      return;
+    }
+
+    const ports = await scanSerialPorts();
+    const nextMap: Record<number, ConfigStatus> = {};
+
+    for (const cfg of configList) {
+      try {
+        const [robotRows, cameraRows, teleopRows] = await Promise.all([
+          db.select({ robot: robotsTable })
+            .from(configRobotsTable)
+            .innerJoin(robotsTable, eq(configRobotsTable.robotId, robotsTable.id))
+            .where(eq(configRobotsTable.configurationId, cfg.id)),
+          db.select({ camera: camerasTable })
+            .from(configCamerasTable)
+            .innerJoin(camerasTable, eq(configCamerasTable.cameraId, camerasTable.id))
+            .where(eq(configCamerasTable.configurationId, cfg.id)),
+          db.select().from(configTeleoperatorsTable)
+            .where(eq(configTeleoperatorsTable.configurationId, cfg.id))
+        ]);
+
+        const robots = robotRows.map(r => r.robot);
+        const cameras = cameraRows.map(r => r.camera);
+        const teleops = teleopRows;
+
+        const hasRobot = robots.length > 0;
+        const hasCameras = cameras.length > 0;
+        const hasTeleop = teleops.length > 0;
+
+        const hasRealItems = robots.some(r => r.modality === 'real') || cameras.some(c => c.modality === 'real');
+        const hasSimItems = robots.some(r => r.modality === 'simulated') || cameras.some(c => c.modality === 'simulated');
+        const mode: ConfigStatus['mode'] = hasRealItems && hasSimItems ? 'mixed' : hasRealItems ? 'real' : hasSimItems ? 'sim' : 'unknown';
+
+        const allRobotsSim = hasRobot && robots.every(r => r.modality === 'simulated');
+        const allCamerasSim = hasCameras && cameras.every(c => c.modality === 'simulated');
+        const isSimConfigReady = hasRobot && hasCameras && hasTeleop && allRobotsSim && allCamerasSim;
+
+        const issues: string[] = [];
+        let ready = false;
+
+        if (isSimConfigReady) {
+          ready = true;
+        } else {
+          if (!hasRobot) issues.push('missing robot');
+          if (!hasCameras) issues.push('missing cameras');
+          if (!hasTeleop) issues.push('missing teleoperator');
+
+          const realRobotDisconnected = robots
+            .filter(r => r.modality === 'real')
+            .some(r => !r.serialNumber || !ports.some((p: any) => p.serialNumber && r.serialNumber === p.serialNumber));
+          if (realRobotDisconnected) issues.push('real robot not connected');
+
+          const realCameraDisconnected = cameras
+            .filter(c => c.modality === 'real')
+            .some(c => !isCameraConnected(c));
+          if (realCameraDisconnected) issues.push('real camera not connected');
+
+          const teleopDisconnected = teleops.some((t: any) => {
+            const snap = t.snapshot || {};
+            if (snap.type !== 'real') return false;
+            const cfg = snap.config || {};
+            const serial = cfg.serialNumber;
+            const path = cfg.path;
+            if (!serial && !path) return true;
+            if (serial && ports.some((p: any) => p.serialNumber === serial)) return false;
+            if (path && ports.some((p: any) => p.path === path)) return false;
+            return true;
+          });
+          if (teleopDisconnected) issues.push('teleoperator not connected');
+
+          if (hasRobot && hasCameras && !realRobotDisconnected && !realCameraDisconnected && !teleopDisconnected) {
+            ready = true;
+          }
+        }
+
+        nextMap[cfg.id] = {
+          ready,
+          issues,
+          mode,
+          cameraCount: cameras.length,
+          robotCount: robots.length,
+          teleopCount: teleops.length
+        };
+      } catch (e) {
+        console.error('Failed to compute configuration status', e);
+        nextMap[cfg.id] = {
+          ready: false,
+          issues: ['status unavailable'],
+          mode: 'unknown',
+          cameraCount: 0,
+          robotCount: 0,
+          teleopCount: 0
+        };
+      }
+    }
+
+    setConfigStatusMap(nextMap);
+  };
 
   // Initial Load
   useEffect(() => {
@@ -114,6 +333,11 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       clearInterval(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (configs.length === 0) return;
+    refreshConfigStatuses(configs);
+  }, [configs]);
 
   // Fetch Cameras when Config changes
   useEffect(() => {
@@ -290,11 +514,11 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         <div className="flex items-center gap-4">
           <div className="w-64">
-            <Select
-              label="Robot Configuration"
-              value={selectedConfigId ? String(selectedConfigId) : ''}
-              onChange={(e) => setSelectedConfigId(Number(e.target.value))}
-              options={configs.map(c => ({ label: c.name, value: String(c.id) }))}
+            <RobotConfigurationDropdown
+              configs={configs}
+              selectedConfigId={selectedConfigId}
+              statusMap={configStatusMap}
+              onSelect={(id) => setSelectedConfigId(id)}
             />
           </div>
           <div className="w-64">
@@ -394,25 +618,37 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           )}
 
           <div className={`grid gap-4 h-full ${cameras.length <= 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {/* 1. Simulation Stream (if active and running) */}
-            {simStreamUrl && (
-              <div className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
-                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">Simulation</div>
-                <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" />
-              </div>
-            )}
+            {cameras.map(cam => {
+              const isSim = cam.modality === 'simulated';
+              const camLabel = cam.name || `Camera ${cam.id}`;
+              const camPath = (cam.data as any)?.path || (cam.data as any)?.devicePath || (cam.data as any)?.rtspUrl || (cam.data as any)?.url;
 
-            {/* 2. Real Camera Streams */}
-            {activeCameras.map(cam => (
-              <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
-                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{cam.name}</div>
-                {cameraStreams[cam.id] ? (
-                  <VideoPlayer url={cameraStreams[cam.id]} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-white/50 text-sm">Connecting...</div>
-                )}
-              </div>
-            ))}
+              if (isSim) {
+                return (
+                  <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
+                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
+                    {simStreamUrl ? (
+                      <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-white/50 text-sm">Simulation not running</div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
+                  <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
+                  {cameraStreams[cam.id] ? (
+                    <VideoPlayer url={cameraStreams[cam.id]} className="w-full h-full object-contain" />
+                  ) : camPath ? (
+                    <div className="text-white/50 text-sm">Connecting...</div>
+                  ) : (
+                    <div className="text-white/50 text-sm">No device path</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -440,9 +676,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ep.duration}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ep.status === 'success' ? 'bg-green-100 text-green-800' :
-                      ep.status === 'failure' ? 'bg-red-100 text-red-800' :
-                        ep.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
+                    ep.status === 'failure' ? 'bg-red-100 text-red-800' :
+                      ep.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
                     }`}>
                     {ep.status || 'Unknown'}
                   </span>
