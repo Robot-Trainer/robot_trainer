@@ -13,7 +13,7 @@ export type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
-  electronApp: async ({ }, use) => {
+  electronApp: async (_, use) => {
     // Need separate tmp directories for each playwright test so that running multiple
     // playwright workers doesn't cause IndexedDB migration conflicts.
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'robot-trainer-test-'));
@@ -24,7 +24,9 @@ export const test = base.extend<Fixtures>({
     await app.close();
     try {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   },
 
   setIpcHandlers: async ({ electronApp }, use) => {
@@ -40,7 +42,7 @@ export const test = base.extend<Fixtures>({
           for (const channel of Object.keys(handlerMap)) {
             try {
               ipcMain.removeHandler(channel);
-            } catch (e) {}
+            } catch (e) { /* ignore */ }
             const fn = eval(`(${handlerMap[channel]})`);
             ipcMain.handle(channel, fn);
           }
@@ -59,7 +61,7 @@ export const test = base.extend<Fixtures>({
     await win.waitForLoadState("domcontentloaded");
     try {
       await win.setViewportSize({ width: 1200, height: 800 });
-    } catch {}
+    } catch { /* ignore */ }
     await use(win);
   },
 });

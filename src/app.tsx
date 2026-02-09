@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import SetupWizard from './views/SetupWizard';
+import { SetupWizard } from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
-import TrainingStudio from './views/TrainingStudio';
+import Sessions from './views/Sessions';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
@@ -11,10 +11,9 @@ import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Activity, Robot, Training, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
-import Button from './ui/Button';
+import { Activity, Robot, Session, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 
-const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
+const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: string }>; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
     onClick={() => onClick(id)}
     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${active === id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
@@ -57,14 +56,15 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
   React.useEffect(() => {
     const handler = (ev: Event) => {
       try {
-        // @ts-ignore
         const detail = (ev as CustomEvent).detail;
         if (typeof detail === 'string') {
           setActiveTab(detail);
           setCurrentPage(detail);
           setResourceManagerShowForm(false);
         }
-      } catch (e) { }
+      } catch (e) {
+        console.error(e);
+      }
     };
     window.addEventListener('robottrainer:navigate', handler as EventListener);
     return () => window.removeEventListener('robottrainer:navigate', handler as EventListener);
@@ -75,7 +75,7 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
     if (externalLoading) return;
     const load = async () => {
       // mark app as not idle while initial load is in progress
-      try { (window as any).__appIdle = false; } catch (e) { }
+      try { (window as any).__appIdle = false; } catch (e) { console.error(e); }
       try {
         const cfg = await configResource.getAll();
         (window as any).electronAPI.replyLoadSystemSettings(cfg);
@@ -87,7 +87,7 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
           let condaOk = false;
           try {
             condaOk = await checkConda();
-          } catch (e) { }
+          } catch (e) { console.error(e); }
 
           if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
             setShowSetupWizard(true);
@@ -96,7 +96,6 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
           setIsCheckingEnv(false);
           // The main process may request the renderer to load/save settings via
           // the drizzle-backed users table. Register handlers to respond.
-          // @ts-ignore - exposed in preload
           if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestLoadSystemSettings) {
             // listen for main asking to load settings; reply using drizzle
             (window as any).electronAPI.onRequestLoadSystemSettings(async () => {
@@ -109,7 +108,7 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
                 let condaOk = false;
                 try {
                   condaOk = await checkConda();
-                } catch (e) { }
+                } catch (e) { console.error(e); }
 
                 // If config missing python/conductor settings, show the setup wizard
                 if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
@@ -140,14 +139,13 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
         (window as any).electronAPI.replyLoadSystemSettings({});
       }
       // Indicate that initial app bootstrap is complete and app is idle
-      try { (window as any).__appIdle = true; } catch (e) { }
+      try { (window as any).__appIdle = true; } catch (e) { console.error(e); }
     };
     load();
   }, [setConfigLocal, externalLoading]);
 
   // subscribe to runtime updates broadcast from main when settings change externally
   useEffect(() => {
-    // @ts-ignore
     if (window && (window as any).electronAPI && (window as any).electronAPI.onSystemSettingsChanged) {
       // register listener exposed by preload
       const off = (window as any).electronAPI.onSystemSettingsChanged((data: any) => {
@@ -160,7 +158,6 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
 
   // listen for main menu -> open setup wizard
   useEffect(() => {
-    // @ts-ignore
     if (window && (window as any).electronAPI && (window as any).electronAPI.onOpenSetupWizard) {
       const off = (window as any).electronAPI.onOpenSetupWizard(() => {
         // mark as forced-open so background checks won't auto-close
@@ -179,8 +176,8 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
 
   const renderContent = () => {
     switch (activeTab) {
-      case "training-studio":
-        return <TrainingStudio />;
+      case "sessions":
+        return <Sessions />;
       case "robot-configurations":
         return <RobotConfigurations />;
       case "robots":
@@ -213,20 +210,6 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
             <NavItem
-              id="monitoring"
-              icon={Activity}
-              label="Monitoring"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
-          </div>
-
-          <div className="mb-8">
-            <NavItem
               id="robot-configurations"
               icon={RobotConfiguration}
               label="Robot Configurations"
@@ -237,12 +220,10 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
                 setResourceManagerShowForm(false);
               }}
             />
-          </div>
-          <div className="mb-8">
             <NavItem
-              id="training-studio"
-              icon={Training}
-              label="Training Studio"
+              id="sessions"
+              icon={Session}
+              label="Sessions"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);

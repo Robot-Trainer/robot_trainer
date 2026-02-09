@@ -9,12 +9,10 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
   test.beforeEach(async ({ window }) => {
     // Provide basic renderer reply handlers used in other tests
     await window.evaluate(() => {
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.onRequestSaveSystemSettings) {
-        // @ts-ignore
-        window.electronAPI.onRequestSaveSystemSettings((settings: any) => {
-          // @ts-ignore
-          window.electronAPI.replySaveSystemSettings({ success: true, settings });
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestSaveSystemSettings) {
+        win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+          win.electronAPI.replySaveSystemSettings({ success: true, settings });
         });
       }
     });
@@ -33,12 +31,10 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
 
     // Reply to main process load request with config containing condaRoot and pythonPath
     await window.evaluate(() => {
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
-        // @ts-ignore
-        window.electronAPI.onRequestLoadSystemSettings(() => {
-          // @ts-ignore
-          window.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
+        win.electronAPI.onRequestLoadSystemSettings(() => {
+          win.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
         });
       }
     });
@@ -69,12 +65,10 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
 
     // Reply with empty config
     await window.evaluate(() => {
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
-        // @ts-ignore
-        window.electronAPI.onRequestLoadSystemSettings(() => {
-          // @ts-ignore
-          window.electronAPI.replyLoadSystemSettings({});
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
+        win.electronAPI.onRequestLoadSystemSettings(() => {
+          win.electronAPI.replyLoadSystemSettings({});
         });
       }
     });
@@ -98,12 +92,10 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     });
 
     await window.evaluate(() => {
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
-        // @ts-ignore
-        window.electronAPI.onRequestLoadSystemSettings(() => {
-          // @ts-ignore
-          window.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: null });
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
+        win.electronAPI.onRequestLoadSystemSettings(() => {
+          win.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: null });
         });
       }
     });
@@ -126,12 +118,10 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     });
 
     await window.evaluate(() => {
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
-        // @ts-ignore
-        window.electronAPI.onRequestLoadSystemSettings(() => {
-          // @ts-ignore
-          window.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
+        win.electronAPI.onRequestLoadSystemSettings(() => {
+          win.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
         });
       }
     });

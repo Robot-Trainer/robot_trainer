@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 // import the asset URL so Vite replaces it with the correct dev/prod path
-// @ts-ignore
+// eslint-disable-next-line import/no-unresolved
 import jsmpegUrl from '../lib/jsmpeg.min.js?url';
 
 interface VideoPlayerProps {
@@ -55,7 +55,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className }) => {
 
     // Destroy previous player if exists
     if (playerRef.current) {
-      try { playerRef.current.destroy(); } catch (_) { }
+      try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
       playerRef.current = null;
     }
 
@@ -85,7 +85,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className }) => {
     return () => {
       mounted = false;
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) { }
+        try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
         playerRef.current = null;
       }
     };

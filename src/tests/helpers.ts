@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 
 export async function dismissSetupWizard(window: Page) {
   // Wait for app to be idle. Catch timeout to proceed even if flag is flaky.
-  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 15000 }).catch(() => {});
+  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 15000 }).catch(() => { /* ignore */ });
 
   const wizard = window.locator('text=Welcome!');
   const closeButton = window.locator('button:has-text("Close")');
@@ -16,7 +16,7 @@ export async function dismissSetupWizard(window: Page) {
       await closeButton.waitFor();
       await closeButton.click();
       // Wait for hidden, ignore error to allow retry in loop
-      await wizard.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+      await wizard.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => { /* ignore */ });
     }
 
     // Short wait to ensure it doesn't reappear (race condition mitigation)

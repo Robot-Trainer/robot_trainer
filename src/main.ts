@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -733,7 +733,7 @@ const createWindow = () => {
     },
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    require('electron').shell.openExternal(url);
+    shell.openExternal(url);
     return { action: 'deny' };
   });
   // and load the index.html of the app.

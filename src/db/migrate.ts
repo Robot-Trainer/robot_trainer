@@ -12,11 +12,11 @@ export async function migrate() {
         await db.dialect.migrate(migrations, db.session, {
             migrationsTable: "__drizzle_migrations",
             migrationsSchema: "public",
-        } satisfies Omit<MigrationConfig, "migrationsFolder">);
+        } as Omit<MigrationConfig, "migrationsFolder">);
     } else {
         console.error("Cannot run migrations in non-electron environment without file access via IPC");
 
-    };
+    }
 }
 
 export type MigrationStatus =

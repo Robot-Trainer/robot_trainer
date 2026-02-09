@@ -17,12 +17,10 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
 
   // Ensure renderer replies with a config that will NOT auto-open the wizard
   await window.evaluate(() => {
-    // @ts-ignore
-    if (window.electronAPI && window.electronAPI.onRequestLoadSystemSettings) {
-      // @ts-ignore
-      window.electronAPI.onRequestLoadSystemSettings(() => {
-        // @ts-ignore
-        window.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
+    const win = window as any;
+    if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
+      win.electronAPI.onRequestLoadSystemSettings(() => {
+        win.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
       });
     }
   });
@@ -56,8 +54,7 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
   await setIpcHandlers({
     'check-anaconda': async () => ({ found: false, path: null, envs: [], platform: 'linux' }),
     'install-miniconda': async () => {
-      // @ts-ignore
-      const { BrowserWindow } = globalThis;
+      const { BrowserWindow } = globalThis as any;
       const wins = BrowserWindow.getAllWindows();
       wins.forEach((w: any) => {
         w.webContents.send('install-miniconda-output', 'Miniconda installed successfully\n');

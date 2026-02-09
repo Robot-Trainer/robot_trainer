@@ -103,7 +103,7 @@ export const SetupWizard: React.FC = () => {
       try {
         // if the wizard was explicitly opened (menu), don't auto-close
         if (!showSetupWizardForced) setShowSetupWizard(false);
-      } catch (e) { }
+      } catch (e) { console.error(e); }
     }
   }, [condaStatus, envStatus, lerobotStatus, setShowSetupWizard, showSetupWizardForced]);
 
@@ -318,7 +318,7 @@ export const SetupWizard: React.FC = () => {
               setResourceManagerShowForm(false);
               setCurrentPage('robots');
               setShowSetupWizard(false);
-              try { setShowSetupWizardForced(false); } catch (e) {}
+              try { setShowSetupWizardForced(false); } catch (e) { console.error(e); }
             } else {
               setStep((s) => Math.max(1, s - 1));
             }

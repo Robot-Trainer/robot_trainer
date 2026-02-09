@@ -4,10 +4,16 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { Play, Training } from '../icons';
+import { Play, Session } from '../icons';
 import { VideoPlayer } from '../ui/VideoPlayer';
 
-export const TrainingStudio: React.FC = () => {
+interface Props {
+  onCancel: () => void;
+  onSaved: (item: any) => void;
+  initialData?: any;
+}
+
+export const SessionForm: React.FC<Props> = ({ onCancel }) => {
   const [recording, setRecording] = useState(false);
   const [config, setConfig] = useState<any>(DEFAULT_CONFIG);
   const [episodes, setEpisodes] = useState<Array<any>>([
@@ -43,7 +49,6 @@ export const TrainingStudio: React.FC = () => {
 
   const startSimulation = async () => {
     try {
-      // @ts-ignore
       const res = await (window as any).electronAPI?.startSimulation(config);
       if (res && res.ok !== false) {
         setSimRunning(true);
@@ -56,7 +61,6 @@ export const TrainingStudio: React.FC = () => {
 
   const stopSimulation = async () => {
     try {
-      // @ts-ignore
       await (window as any).electronAPI?.stopSimulation();
     } catch (e) {
       // ignore
@@ -68,12 +72,15 @@ export const TrainingStudio: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       <header className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Training className="h-5 w-5 text-yellow-500" />
-            Training Studio
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Record demonstrations and train policies</p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onCancel}>← Back</Button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Session className="h-5 w-5 text-yellow-500" />
+              Session Studio
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Record demonstrations and train policies</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-500">Library:</span>
@@ -147,4 +154,4 @@ export const TrainingStudio: React.FC = () => {
   );
 };
 
-export default TrainingStudio;
+export default SessionForm;
