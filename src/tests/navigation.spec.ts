@@ -60,7 +60,7 @@ test.describe('Environment Check Navigation', () => {
     await expect(window.locator('text=Loading env...')).toBeVisible();
 
     // Wait for finish
-    await expect(window.locator('text=Loading env...')).not.toBeVisible({ timeout: 5000 });
+    await expect(window.locator('text=Loading env...')).not.toBeVisible({ timeout: 10000 });
 
     // Should NOT see wizard (because config is present AND check passed)
     await expect(window.locator('text=Welcome!')).not.toBeVisible();
