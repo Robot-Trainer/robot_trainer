@@ -138,7 +138,7 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
         }
       } catch (e) {
         (window as any).electronAPI.replyLoadSystemSettings({});
-      };
+      }
       // Indicate that initial app bootstrap is complete and app is idle
       try { (window as any).__appIdle = true; } catch (e) { }
     };

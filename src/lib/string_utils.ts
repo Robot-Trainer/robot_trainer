@@ -1,6 +1,6 @@
 
 
-function toDashCase(str: string, randomSuffix: boolean = false): string {
+function toDashCase(str: string, randomSuffix = false): string {
     return (
         str
             // Replace an uppercase letter that follows a lowercase letter or digit with a dash and the letter
