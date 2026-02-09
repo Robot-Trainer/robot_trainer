@@ -47,3 +47,6 @@ This file gives focused, actionable guidance for AI coding agents working in thi
 - **Quick examples**
   - Read system settings from renderer (renderer should call): `const cfg = await configResource.getAll(); window.electronAPI.replyLoadSystemSettings(cfg);`
   - Main asks renderer to save settings: `mainWindow.webContents.send('request-save-system-settings', settings)` and listens for `reply-save-system-settings`.
+
+- **Testing**:
+  - `vitest` files should always reside in the same directory as the implementation file (e.g. `src/views/MyComponent.tsx` and `src/views/MyComponent.test.tsx`).
