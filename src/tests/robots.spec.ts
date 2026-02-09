@@ -39,14 +39,14 @@ test.describe('Robots CRUD', () => {
     await window.waitForSelector('text=(unnamed)');
 
     // edit the robot (editing uses the built-in form)
-    await window.locator('text=(unnamed)').locator('..').locator('text=Edit').click();
+    await window.locator('text=(unnamed)').locator('../..').locator('text=Edit').click();
     const nameInput = window.locator('label:has-text("Robot Name") >> .. >> input');
     await nameInput.fill('Test Robot v2');
     await window.click('text=Save Robot');
     await window.waitForSelector('text=Test Robot v2');
 
     // delete
-    await window.locator('text=Test Robot v2').locator('..').locator('text=Delete').click();
+    await window.locator('text=Test Robot v2').locator('../..').locator('text=Delete').click();
     // ensure gone
     await expect(window.locator('text=Test Robot v2')).toHaveCount(0);
   });
