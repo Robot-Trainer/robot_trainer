@@ -44,6 +44,7 @@ jobs:
       - name: Build and E2E Tests
         # Force 1 worker for stability and compatibility with limited CI runners
         run: |
+          # npm run download-ffmpeg
           npm run db:generate
           npm run package
-          npx playwright test --workers=1
+          xvfb-run --auto-servernum -- npx playwright test --workers=1

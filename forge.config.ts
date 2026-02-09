@@ -11,7 +11,8 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     extraResource: [
-      "./drizzle"
+      "./drizzle",
+      // "./src/bin"
     ],
   },
   rebuildConfig: {},
