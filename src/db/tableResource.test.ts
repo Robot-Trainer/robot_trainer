@@ -4,12 +4,14 @@ import { camerasTable, teleoperatorModelsTable } from './schema';
 import { migrate } from './migrate';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
+import path from 'node:path';
 
 // Mock the db module to use an in-memory PGlite instance
 vi.mock('./db', async () => {
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
-  
+
   // Create an in-memory PGlite instance
   const client = new PGlite();
   const db = drizzle(client);
@@ -29,6 +31,13 @@ describe('tableResource', () => {
   const resource = tableResource(camerasTable);
 
   beforeAll(async () => {
+    // Mock the electronAPI for migrations
+    (window as any).electronAPI = {
+      getMigrations: async () => {
+        return readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') });
+      }
+    };
+
     // Run migrations to set up the schema in the in-memory DB
     await migrate();
   });
@@ -64,16 +73,16 @@ describe('tableResource', () => {
   });
 
   it('create() should handle provided id (using teleoperatorModelsTable)', async () => {
-    // camerasTable is identity, so we test provided ID with teleoperatorModelsTable (varchar PK)
+    // teleoperatorModelsTable uses integer identity
     const resourceT = tableResource(teleoperatorModelsTable);
     await db.delete(teleoperatorModelsTable);
 
-    const id = 'custom-id-123';
+    const id = 999;
     // configClassName is required
     const newItem = {
       id,
       className: 'Fixed ID Teleop',
-      configClassName: 'FixedConfig' 
+      configClassName: 'FixedConfig'
     };
 
     const created = await resourceT.create(newItem);
@@ -104,7 +113,7 @@ describe('tableResource', () => {
   it('delete() should remove an item', async () => {
     // Create first
     const created = await resource.create({ name: 'To Be Deleted' });
-    
+
     // Verify existence
     let list = await resource.list();
     expect(list).toHaveLength(1);
@@ -122,7 +131,7 @@ describe('tableResource', () => {
     // Note: tableResource.ts implementation filters columns based on table.columns
     // We want to ensure passed-in extra props don't crash the insert or end up in DB (if strict)
     // Drizzle usually ignores extras but tableResource does explicit filtering.
-    
+
     const cameraWithExtras = {
       name: 'Extra Field Cam',
       extraProperty: 'Should be ignored'
@@ -134,11 +143,11 @@ describe('tableResource', () => {
     // We should check the DB list result.
 
     const created = await resource.create(cameraWithExtras);
-    expect(created.extraProperty).toBeUndefined(); 
+    expect(created.extraProperty).toBeUndefined();
 
     const list = await resource.list();
     const fetchedItem = list[0];
-    
+
     // The fetched item should NOT have extraProperty
     expect(fetchedItem).not.toHaveProperty('extraProperty');
     expect(fetchedItem.name).toBe('Extra Field Cam');
