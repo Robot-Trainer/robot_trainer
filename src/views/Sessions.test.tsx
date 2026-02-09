@@ -18,7 +18,7 @@ Object.defineProperty(window, 'electronAPI', {
   value: {
     startSimulation: vi.fn(),
     stopSimulation: vi.fn(),
-    onSimulationStopped: vi.fn(() => () => { }),
+    onSimulationStopped: vi.fn(() => () => { /* no-op */ }),
   },
   writable: true
 });

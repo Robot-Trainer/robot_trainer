@@ -2,7 +2,7 @@ import ConfigManager from "./config_manager";
 
 interface ResourceType {
     id: number;
-    toJSON(): Object;
+    toJSON(): object;
 }
 
 export default class Resource<Type extends ResourceType> {
@@ -11,13 +11,13 @@ export default class Resource<Type extends ResourceType> {
         this.store = store;
     }
     private instances: Map<number, Type>;
-    find(id: number): Type|null {
+    find(id: number): Type | null {
         return this.instances.get(id);
     }
     findAll(): Type[] {
         return [...this.instances.values()];
     }
-    insert(newObj: Type): Type|Error {
+    insert(newObj: Type): Type | Error {
         if (this.instances.has(newObj.id)) {
             return Error(`ID ${newObj.id} already exists.`)
         }
@@ -26,7 +26,7 @@ export default class Resource<Type extends ResourceType> {
         if (!this.instances.has(newObj.id)) {
             return Error(`Could not find resource with ID ${newObj.id}`);
         }
-            this.instances.set(newObj.id, newObj);
+        this.instances.set(newObj.id, newObj);
     }
     upsert(newObj: Type): Type {
         this.instances.set(newObj.id, newObj);
@@ -44,7 +44,7 @@ export default class Resource<Type extends ResourceType> {
         return this.instances.values().map(i => i.toJSON());
     }
 
-        
+
 
 }
 
