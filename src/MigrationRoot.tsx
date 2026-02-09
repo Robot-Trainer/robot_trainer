@@ -9,7 +9,7 @@ let hasChecked = false;
 
 export const MigrationRoot = () => {
   const [status, setStatus] = useState<MigrationStatus | null>(null);
-  const [initializing, setInitializing] = useState(true);
+  const [checking, setChecking] = useState(true);
   const isApplying = useRef(false);
 
   const performCheck = async () => {
@@ -21,6 +21,7 @@ export const MigrationRoot = () => {
       return;
     }
 
+    setChecking(true);
     try {
       const s = await checkMigrationStatus();
       if (s.type === 'pending' && s.fresh) {
@@ -33,7 +34,7 @@ export const MigrationRoot = () => {
       setStatus({ type: 'corrupted', error: e });
     } finally {
       if (typeof window !== 'undefined') (window as any).__appIdle = true; // Unblock loading
-      setInitializing(false);
+      setChecking(false);
     }
   };
 
@@ -46,7 +47,7 @@ export const MigrationRoot = () => {
   const handleApply = async () => {
     if (isApplying.current) return;
     isApplying.current = true;
-    setInitializing(true);
+    setChecking(true);
     try {
       await migrate();
       try {
@@ -60,7 +61,7 @@ export const MigrationRoot = () => {
       console.error("Migration failed", e);
       setStatus({ type: 'corrupted', error: e });
     } finally {
-      setInitializing(false);
+      setChecking(false);
       isApplying.current = false;
     }
   };
@@ -68,7 +69,7 @@ export const MigrationRoot = () => {
   const handleReset = async () => {
     if (!confirm("Are you sure? This will delete all data.")) return;
 
-    setInitializing(true);
+    setChecking(true);
     try {
       await resetDatabase();
       // Flag to auto-migrate after reload
@@ -78,7 +79,7 @@ export const MigrationRoot = () => {
     } catch (e) {
       console.error("Reset failed", e);
       setStatus({ type: 'corrupted', error: e });
-      setInitializing(false);
+      setChecking(false);
     }
   };
 
@@ -86,29 +87,17 @@ export const MigrationRoot = () => {
     setStatus({ type: 'synced' });
   };
 
-  if (initializing) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gray-50 flex-col gap-4">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-gray-600 font-medium">Checking database status...</div>
-      </div>
-    );
-  }
-
-  if (status?.type === 'synced') {
-    return <App />;
-  }
-
-  if (status) {
-    return (
-      <MigrationModal
-        status={status}
-        onApply={handleApply}
-        onReset={handleReset}
-        onIgnore={handleIgnore}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <>
+      <App externalLoading={checking} />
+      {status && status.type !== 'synced' && (
+        <MigrationModal
+          status={status}
+          onApply={handleApply}
+          onReset={handleReset}
+          onIgnore={handleIgnore}
+        />
+      )}
+    </>
+  );
 };

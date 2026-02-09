@@ -23,7 +23,7 @@ const NavItem: React.FC<{ id: string; icon: any; label: string; active: string; 
   </button>
 );
 
-const App: React.FC = () => {
+const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false }) => {
   const [activeTab, setActiveTab] = useState('robot-configurations');
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
   const currentPage = useUIStore((s: any) => s.currentPage);
@@ -72,6 +72,7 @@ const App: React.FC = () => {
 
   // load system config into the UI store on app init
   useEffect(() => {
+    if (externalLoading) return;
     const load = async () => {
       // mark app as not idle while initial load is in progress
       try { (window as any).__appIdle = false; } catch (e) { }
@@ -83,12 +84,16 @@ const App: React.FC = () => {
         try {
           // Check env while showing "Loading env..." in nav
           setIsCheckingEnv(true);
-          const condaOk = await checkConda();
-          setIsCheckingEnv(false);
+          let condaOk = false;
+          try {
+            condaOk = await checkConda();
+          } catch (e) { }
 
           if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
             setShowSetupWizard(true);
           }
+
+          setIsCheckingEnv(false);
           // The main process may request the renderer to load/save settings via
           // the drizzle-backed users table. Register handlers to respond.
           // @ts-ignore - exposed in preload
@@ -99,14 +104,19 @@ const App: React.FC = () => {
                 const cfg = await configResource.getAll();
                 (window as any).electronAPI.replyLoadSystemSettings(cfg);
                 setConfigLocal(cfg);
+                // Check env while showing "Loading env..." in nav
+                setIsCheckingEnv(true);
+                let condaOk = false;
+                try {
+                  condaOk = await checkConda();
+                } catch (e) { }
+
                 // If config missing python/conductor settings, show the setup wizard
-                if (!cfg || !cfg.condaRoot || !cfg.pythonPath) {
+                if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
                   setShowSetupWizard(true);
                 }
-                const condaOk = await checkConda();
-                if (!condaOk) {
-                  setShowSetupWizard(true);
-                }
+
+                setIsCheckingEnv(false);
               } catch (e) {
                 (window as any).electronAPI.replyLoadSystemSettings({});
               }
@@ -133,7 +143,7 @@ const App: React.FC = () => {
       try { (window as any).__appIdle = true; } catch (e) { }
     };
     load();
-  }, [setConfigLocal]);
+  }, [setConfigLocal, externalLoading]);
 
   // subscribe to runtime updates broadcast from main when settings change externally
   useEffect(() => {
@@ -274,7 +284,7 @@ const App: React.FC = () => {
                 setResourceManagerShowForm(false);
               }}
             />
-            {isCheckingEnv && (
+            {(isCheckingEnv || externalLoading) && (
               <NavItem
                 id="loading-env"
                 icon={Loader}
