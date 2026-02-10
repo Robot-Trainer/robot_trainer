@@ -42,6 +42,8 @@ jobs:
         run: npm run test
 
       - name: Build and E2E Tests
+        env:
+          DEBUG: pw:browser*
         # Force 1 worker for stability and compatibility with limited CI runners
         run: |
           # npm run download-ffmpeg

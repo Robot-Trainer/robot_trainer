@@ -4,7 +4,6 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 export default async function globalSetup(_config: FullConfig) {
-  process.env.DISPLAY = ':0';
   console.log('Global Setup: Starting...');
   console.log('DISPLAY env var:', process.env.DISPLAY);
   console.log('HOME env var:', process.env.HOME);
