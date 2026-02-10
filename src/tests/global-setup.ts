@@ -5,6 +5,14 @@ import fs from 'node:fs';
 
 export default async function globalSetup(_config: FullConfig) {
   console.log('Global Setup: Starting...');
+
+  // Fallback to :0 if DISPLAY is not set (e.g. local run without X11 or specific remote usage).
+  // In CI with xvfb-run, DISPLAY will be set (e.g. :99), so we preserve it.
+  if (!process.env.DISPLAY) {
+    process.env.DISPLAY = ':0';
+    console.log('Global Setup: DISPLAY not set, falling back to :0');
+  }
+
   console.log('DISPLAY env var:', process.env.DISPLAY);
   console.log('HOME env var:', process.env.HOME);
 

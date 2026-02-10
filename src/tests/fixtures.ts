@@ -20,7 +20,7 @@ export const test = base.extend<Fixtures>({
     // playwright workers doesn't cause IndexedDB migration conflicts.
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'robot-trainer-test-'));
     const app = await electron.launch({
-      args: [".vite/build/main.js", "--enable-logging", "--logging-level=0", `--user-data-dir=${tempDir}`],
+      args: [".vite/build/main.js", "--no-sandbox", "--enable-logging", "--logging-level=0", `--user-data-dir=${tempDir}`],
     });
     await use(app);
     await app.close();
