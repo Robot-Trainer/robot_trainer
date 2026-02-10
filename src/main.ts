@@ -177,15 +177,15 @@ const setupIpcHandlers = () => {
       let installerName = '';
 
       if (platform === 'linux') {
-        url = 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh';
+        url = 'https://repo.anaconda.com/miniconda/Miniconda3-py312_25.11.1-1-Linux-x86_64.sh';
         installerName = 'miniconda.sh';
       } else if (platform === 'darwin') {
         url = arch === 'arm64'
-          ? 'https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh'
-          : 'https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh';
+          ? 'https://repo.anaconda.com/miniconda/Miniconda3-py312_25.11.1-1-MacOSX-arm64.sh'
+          : 'https://repo.anaconda.com/miniconda/Miniconda3-py312_25.11.1-1-MacOSX-x86_64.sh';
         installerName = 'miniconda.sh';
       } else if (platform === 'win32') {
-        url = 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe';
+        url = 'https://repo.anaconda.com/miniconda/Miniconda3-py312_25.11.1-1-Windows-x86_64.exe';
         installerName = 'miniconda.exe';
       } else {
         throw new Error(`Unsupported platform: ${platform}`);
@@ -247,7 +247,6 @@ const setupIpcHandlers = () => {
       const condaExec: string | null = await resolveCondaExecutable();
 
       if (condaExec) {
-        console.log('244: installing in conda');
         // Use conda run to ensure the environment is activated for the install
         return await new Promise((resolve) => {
           const child_pip_install = spawn(condaExec, ['install', '-n', 'robot_trainer', 'pip'], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -265,8 +264,32 @@ const setupIpcHandlers = () => {
             child_lerobot_install.stdout.on('data', (d: any) => out += d);
             child_lerobot_install.stderr.on('data', (d: any) => err += d);
             child_lerobot_install.on('close', (code) => {
+              if (code !== 0) {
+                resolve({ success: false, output: out + err });
+                return;
+              }
 
-              resolve({ success: code === 0, output: out + err });
+              // Resolve python path to safely install lerobot[hilserl] avoiding conda run shell issues
+              const child_get_python = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', 'import sys; print(sys.executable)'], { stdio: ['ignore', 'pipe', 'pipe'] });
+              let pythonExecutable = '';
+              child_get_python.stdout.on('data', (d: any) => pythonExecutable += d.toString());
+              child_get_python.on('close', (code) => {
+                // If we got a python path, use it directly. Otherwise fallback to conda run (which might fail on brackets).
+                const targetExec = (code === 0 && pythonExecutable.trim()) ? pythonExecutable.trim() : condaExec;
+                const targetArgs = (code === 0 && pythonExecutable.trim())
+                  ? ['-m', 'pip', 'install', 'lerobot[hilserl]']
+                  : ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[hilserl]'];
+
+                const child_hil_install = spawn(targetExec, targetArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+                child_hil_install.stdout.on('data', (d: any) => out += d);
+                child_hil_install.stderr.on('data', (d: any) => err += d);
+                child_hil_install.on('close', (code) => {
+                  resolve({ success: code === 0, output: out + err });
+                });
+                child_hil_install.on('error', (e) => {
+                  resolve({ success: false, output: String(e) });
+                });
+              });
             });
             child_lerobot_install.on('error', (e) => {
 
@@ -294,8 +317,20 @@ const setupIpcHandlers = () => {
         child.stdout.on('data', (d: any) => out += d);
         child.stderr.on('data', (d: any) => err += d);
         child.on('close', (code) => {
+          if (code !== 0) {
+            resolve({ success: false, output: out + err });
+            return;
+          }
 
-          resolve({ success: code === 0, output: out + err });
+          const child_hil = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot[hilserl]'], { stdio: ['ignore', 'pipe', 'pipe'] });
+          child_hil.stdout.on('data', (d: any) => out += d);
+          child_hil.stderr.on('data', (d: any) => err += d);
+          child_hil.on('close', (code) => {
+            resolve({ success: code === 0, output: out + err });
+          });
+          child_hil.on('error', (e) => {
+            resolve({ success: false, output: String(e) });
+          });
         });
         child.on('error', (e) => {
           resolve({ success: false, output: String(e) });
@@ -503,7 +538,8 @@ const setupIpcHandlers = () => {
       }
 
       // Explicitly request python to ensure the env contains binaries
-      const args = ['create', '-n', name, 'python', '--yes'];
+      // Using python=3.12 for best compatibility with LeRobot/MuJoCo wheels
+      const args = ['create', '-n', name, 'python=3.12', '--yes'];
 
       return await new Promise((resolve) => {
         const child = spawn(chosen!, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
@@ -607,6 +643,8 @@ const setupIpcHandlers = () => {
         if (config.policy_type) { moduleArgs.push('--policy-type', String(config.policy_type)); }
         if (config.num_episodes) { moduleArgs.push('--episodes', String(config.num_episodes)); }
         if (config.fps) { moduleArgs.push('--fps', String(config.fps)); }
+        if (config.env) { moduleArgs.push('--env', String(config.env)); }
+        if (config.dataset) { moduleArgs.push('--dataset', String(config.dataset)); }
       }
 
       let command = 'python3';
