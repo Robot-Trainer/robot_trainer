@@ -23,12 +23,6 @@ jobs:
       - name: Pin npm version
         run: npm install -g npm@11.4.1
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
       - name: Install Node Dependencies
         run: npm ci
 
@@ -42,8 +36,8 @@ jobs:
         run: npm run test
 
       - name: Build and E2E Tests
-        env:
-          DEBUG: pw:browser*
+        # env:
+        #  DEBUG: pw:browser*
         # Force 1 worker for stability and compatibility with limited CI runners
         run: |
           # npm run download-ffmpeg
