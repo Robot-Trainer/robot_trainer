@@ -1,0 +1,45 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+export DATABASE_URL="postgres://dummy:dummy@localhost:5432/dummy"
+LOG_FILE="$(pwd)/pre-commit.log"
+
+echo "Running pre-commit checks..."
+
+# Helper function to run command and handle failure
+run_check() {
+    NAME="$1"
+    CMD="$2"
+    
+    echo "Running $NAME..."
+    # Capture output to log file
+    if ! eval "$CMD" > "$LOG_FILE" 2>&1; then
+        echo "❌ $NAME failed!"
+        
+        # Print the last few lines to the git output for context
+        echo "Last 20 lines of output:"
+        tail -n 20 "$LOG_FILE"
+        echo ""
+        echo "Full log available at: $LOG_FILE"
+        
+        # Try to open the log file in VS Code if available
+        if command -v code >/dev/null 2>&1; then
+            echo "Opening log in VS Code..."
+            code "$LOG_FILE"
+        fi
+        
+        exit 1
+    else
+        echo "✅ $NAME passed"
+    fi
+}
+
+# 1. Lint
+run_check "Lint" "npm run lint"
+
+# 2. Unit Tests
+run_check "Unit Tests" "npm run test"
+
+# Clean up log on success
+rm -f "$LOG_FILE"
+exit 0
