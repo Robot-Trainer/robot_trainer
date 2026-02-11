@@ -18,6 +18,15 @@ export default defineConfig({
     rollupOptions: {
       external: ["serialport", "drizzle-orm"],
     },
+    watch: {
+      // Exclude the Python venv from file watching to avoid ENOSPC errors
+      exclude: ['src/python/.venv/**'],
+    },
+  },
+  server: {
+    watch: {
+      ignored: ['**/src/python/.venv/**'],
+    },
   },
   define: {
     'import.meta.env.mode': JSON.stringify('production'),
