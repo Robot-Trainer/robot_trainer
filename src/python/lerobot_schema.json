@@ -634,6 +634,131 @@
       "title": "Cv2Rotation",
       "type": "integer"
     },
+    "DatasetRecordConfig": {
+      "properties": {
+        "repo_id": {
+          "title": "Repo Id",
+          "type": "string"
+        },
+        "single_task": {
+          "title": "Single Task",
+          "type": "string"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root"
+        },
+        "fps": {
+          "default": 30,
+          "title": "Fps",
+          "type": "integer"
+        },
+        "episode_time_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "default": 60,
+          "title": "Episode Time S"
+        },
+        "reset_time_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "default": 60,
+          "title": "Reset Time S"
+        },
+        "num_episodes": {
+          "default": 50,
+          "title": "Num Episodes",
+          "type": "integer"
+        },
+        "video": {
+          "default": true,
+          "title": "Video",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "private": {
+          "default": false,
+          "title": "Private",
+          "type": "boolean"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "num_image_writer_processes": {
+          "default": 0,
+          "title": "Num Image Writer Processes",
+          "type": "integer"
+        },
+        "num_image_writer_threads_per_camera": {
+          "default": 4,
+          "title": "Num Image Writer Threads Per Camera",
+          "type": "integer"
+        },
+        "video_encoding_batch_size": {
+          "default": 1,
+          "title": "Video Encoding Batch Size",
+          "type": "integer"
+        },
+        "vcodec": {
+          "default": "libsvtav1",
+          "title": "Vcodec",
+          "type": "string"
+        },
+        "rename_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Rename Map",
+          "type": "object"
+        }
+      },
+      "required": [
+        "repo_id",
+        "single_task"
+      ],
+      "title": "DatasetRecordConfig",
+      "type": "object"
+    },
     "DiffuserSchedulerConfig": {
       "properties": {
         "num_warmup_steps": {
@@ -4816,6 +4941,197 @@
       "title": "RealSenseCameraConfig",
       "type": "object"
     },
+    "RecordConfig": {
+      "properties": {
+        "robot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BiSOFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/EarthRoverMiniPlusConfig"
+            },
+            {
+              "$ref": "#/$defs/HopeJrArmConfig"
+            },
+            {
+              "$ref": "#/$defs/HopeJrHandConfig"
+            },
+            {
+              "$ref": "#/$defs/KochFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/LeKiwiConfig"
+            },
+            {
+              "$ref": "#/$defs/LeKiwiClientConfig"
+            },
+            {
+              "$ref": "#/$defs/OmxFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/Reachy2RobotConfig"
+            },
+            {
+              "$ref": "#/$defs/SOFollowerRobotConfig"
+            },
+            {
+              "$ref": "#/$defs/UnitreeG1Config"
+            }
+          ],
+          "title": "Robot"
+        },
+        "dataset": {
+          "$ref": "#/$defs/DatasetRecordConfig"
+        },
+        "teleop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BiSOLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/GamepadTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/HomunculusArmConfig"
+            },
+            {
+              "$ref": "#/$defs/HomunculusGloveConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardEndEffectorTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardRoverTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KochLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/OmxLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/PhoneConfig"
+            },
+            {
+              "$ref": "#/$defs/Reachy2TeleoperatorConfig"
+            },
+            {
+              "$ref": "#/$defs/SOLeaderTeleopConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Teleop"
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACTConfig"
+            },
+            {
+              "$ref": "#/$defs/DiffusionConfig"
+            },
+            {
+              "$ref": "#/$defs/GrootConfig"
+            },
+            {
+              "$ref": "#/$defs/PI0Config"
+            },
+            {
+              "$ref": "#/$defs/PI05Config"
+            },
+            {
+              "$ref": "#/$defs/PI0FastConfig"
+            },
+            {
+              "$ref": "#/$defs/lerobot__policies__sac__reward_model__configuration_classifier__RewardClassifierConfig"
+            },
+            {
+              "$ref": "#/$defs/SACConfig"
+            },
+            {
+              "$ref": "#/$defs/SARMConfig"
+            },
+            {
+              "$ref": "#/$defs/SmolVLAConfig"
+            },
+            {
+              "$ref": "#/$defs/TDMPCConfig"
+            },
+            {
+              "$ref": "#/$defs/VQBeTConfig"
+            },
+            {
+              "$ref": "#/$defs/WallXConfig"
+            },
+            {
+              "$ref": "#/$defs/XVLAConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy"
+        },
+        "display_data": {
+          "default": false,
+          "title": "Display Data",
+          "type": "boolean"
+        },
+        "display_ip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Ip"
+        },
+        "display_port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Port"
+        },
+        "display_compressed_images": {
+          "default": false,
+          "title": "Display Compressed Images",
+          "type": "boolean"
+        },
+        "play_sounds": {
+          "default": true,
+          "title": "Play Sounds",
+          "type": "boolean"
+        },
+        "resume": {
+          "default": false,
+          "title": "Resume",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "robot",
+        "dataset"
+      ],
+      "title": "RecordConfig",
+      "type": "object"
+    },
     "ResetConfig": {
       "properties": {
         "fixed_reset_joint_positions": {
@@ -8243,6 +8559,12 @@
     },
     {
       "$ref": "#/$defs/EvalConfig"
+    },
+    {
+      "$ref": "#/$defs/RecordConfig"
+    },
+    {
+      "$ref": "#/$defs/DatasetRecordConfig"
     }
   ]
 }

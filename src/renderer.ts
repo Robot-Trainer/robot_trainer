@@ -29,7 +29,8 @@ import { StrictMode, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import { MigrationRoot } from './MigrationRoot';
+import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
 
 createRoot(document.getElementById("root")!).render(
-  createElement(StrictMode, null, createElement(MigrationRoot))
+  createElement(StrictMode, null, createElement(ThemeProvider, { theme: createTheme({ palette: { primary: { main: '#2563eb' } } }) }, createElement(CssBaseline), createElement(MigrationRoot)))
 );

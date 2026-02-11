@@ -1,0 +1,6625 @@
+{
+  "$defs": {
+    "ACTConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "chunk_size": {
+          "default": 100,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 100,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "vision_backbone": {
+          "default": "resnet18",
+          "title": "Vision Backbone",
+          "type": "string"
+        },
+        "pretrained_backbone_weights": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "ResNet18_Weights.IMAGENET1K_V1",
+          "title": "Pretrained Backbone Weights"
+        },
+        "replace_final_stride_with_dilation": {
+          "default": false,
+          "title": "Replace Final Stride With Dilation",
+          "type": "integer"
+        },
+        "pre_norm": {
+          "default": false,
+          "title": "Pre Norm",
+          "type": "boolean"
+        },
+        "dim_model": {
+          "default": 512,
+          "title": "Dim Model",
+          "type": "integer"
+        },
+        "n_heads": {
+          "default": 8,
+          "title": "N Heads",
+          "type": "integer"
+        },
+        "dim_feedforward": {
+          "default": 3200,
+          "title": "Dim Feedforward",
+          "type": "integer"
+        },
+        "feedforward_activation": {
+          "default": "relu",
+          "title": "Feedforward Activation",
+          "type": "string"
+        },
+        "n_encoder_layers": {
+          "default": 4,
+          "title": "N Encoder Layers",
+          "type": "integer"
+        },
+        "n_decoder_layers": {
+          "default": 1,
+          "title": "N Decoder Layers",
+          "type": "integer"
+        },
+        "use_vae": {
+          "default": true,
+          "title": "Use Vae",
+          "type": "boolean"
+        },
+        "latent_dim": {
+          "default": 32,
+          "title": "Latent Dim",
+          "type": "integer"
+        },
+        "n_vae_encoder_layers": {
+          "default": 4,
+          "title": "N Vae Encoder Layers",
+          "type": "integer"
+        },
+        "temporal_ensemble_coeff": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temporal Ensemble Coeff"
+        },
+        "dropout": {
+          "default": 0.1,
+          "title": "Dropout",
+          "type": "number"
+        },
+        "kl_weight": {
+          "default": 10.0,
+          "title": "Kl Weight",
+          "type": "number"
+        },
+        "optimizer_lr": {
+          "default": 1e-05,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.0001,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_lr_backbone": {
+          "default": 1e-05,
+          "title": "Optimizer Lr Backbone",
+          "type": "number"
+        }
+      },
+      "title": "ACTConfig",
+      "type": "object"
+    },
+    "ActorLearnerConfig": {
+      "properties": {
+        "learner_host": {
+          "default": "127.0.0.1",
+          "title": "Learner Host",
+          "type": "string"
+        },
+        "learner_port": {
+          "default": 50051,
+          "title": "Learner Port",
+          "type": "integer"
+        },
+        "policy_parameters_push_frequency": {
+          "default": 4,
+          "title": "Policy Parameters Push Frequency",
+          "type": "integer"
+        },
+        "queue_get_timeout": {
+          "default": 2,
+          "title": "Queue Get Timeout",
+          "type": "number"
+        }
+      },
+      "title": "ActorLearnerConfig",
+      "type": "object"
+    },
+    "ActorNetworkConfig": {
+      "properties": {
+        "hidden_dims": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Hidden Dims",
+          "type": "array"
+        },
+        "activate_final": {
+          "default": true,
+          "title": "Activate Final",
+          "type": "boolean"
+        }
+      },
+      "title": "ActorNetworkConfig",
+      "type": "object"
+    },
+    "BiSOFollowerConfig": {
+      "properties": {
+        "left_arm_config": {
+          "$ref": "#/$defs/SOFollowerConfig"
+        },
+        "right_arm_config": {
+          "$ref": "#/$defs/SOFollowerConfig"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "left_arm_config",
+        "right_arm_config"
+      ],
+      "title": "BiSOFollowerConfig",
+      "type": "object"
+    },
+    "BiSOLeaderConfig": {
+      "properties": {
+        "left_arm_config": {
+          "$ref": "#/$defs/SOLeaderConfig"
+        },
+        "right_arm_config": {
+          "$ref": "#/$defs/SOLeaderConfig"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "left_arm_config",
+        "right_arm_config"
+      ],
+      "title": "BiSOLeaderConfig",
+      "type": "object"
+    },
+    "ColorMode": {
+      "enum": [
+        "rgb",
+        "bgr"
+      ],
+      "title": "ColorMode",
+      "type": "string"
+    },
+    "ConcurrencyConfig": {
+      "properties": {
+        "actor": {
+          "default": "threads",
+          "title": "Actor",
+          "type": "string"
+        },
+        "learner": {
+          "default": "threads",
+          "title": "Learner",
+          "type": "string"
+        }
+      },
+      "title": "ConcurrencyConfig",
+      "type": "object"
+    },
+    "CriticNetworkConfig": {
+      "properties": {
+        "hidden_dims": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Hidden Dims",
+          "type": "array"
+        },
+        "activate_final": {
+          "default": true,
+          "title": "Activate Final",
+          "type": "boolean"
+        },
+        "final_activation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Activation"
+        }
+      },
+      "title": "CriticNetworkConfig",
+      "type": "object"
+    },
+    "Cv2Rotation": {
+      "enum": [
+        0,
+        90,
+        180,
+        -90
+      ],
+      "title": "Cv2Rotation",
+      "type": "integer"
+    },
+    "DatasetRecordConfig": {
+      "properties": {
+        "repo_id": {
+          "title": "Repo Id",
+          "type": "string"
+        },
+        "single_task": {
+          "title": "Single Task",
+          "type": "string"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root"
+        },
+        "fps": {
+          "default": 30,
+          "title": "Fps",
+          "type": "integer"
+        },
+        "episode_time_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "default": 60,
+          "title": "Episode Time S"
+        },
+        "reset_time_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "default": 60,
+          "title": "Reset Time S"
+        },
+        "num_episodes": {
+          "default": 50,
+          "title": "Num Episodes",
+          "type": "integer"
+        },
+        "video": {
+          "default": true,
+          "title": "Video",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "private": {
+          "default": false,
+          "title": "Private",
+          "type": "boolean"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "num_image_writer_processes": {
+          "default": 0,
+          "title": "Num Image Writer Processes",
+          "type": "integer"
+        },
+        "num_image_writer_threads_per_camera": {
+          "default": 4,
+          "title": "Num Image Writer Threads Per Camera",
+          "type": "integer"
+        },
+        "video_encoding_batch_size": {
+          "default": 1,
+          "title": "Video Encoding Batch Size",
+          "type": "integer"
+        },
+        "vcodec": {
+          "default": "libsvtav1",
+          "title": "Vcodec",
+          "type": "string"
+        },
+        "rename_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Rename Map",
+          "type": "object"
+        }
+      },
+      "required": [
+        "repo_id",
+        "single_task"
+      ],
+      "title": "DatasetRecordConfig",
+      "type": "object"
+    },
+    "DiffusionConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 2,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "horizon": {
+          "default": 16,
+          "title": "Horizon",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 8,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "drop_n_last_frames": {
+          "default": 7,
+          "title": "Drop N Last Frames",
+          "type": "integer"
+        },
+        "vision_backbone": {
+          "default": "resnet18",
+          "title": "Vision Backbone",
+          "type": "string"
+        },
+        "crop_shape": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [
+            84,
+            84
+          ],
+          "title": "Crop Shape"
+        },
+        "crop_is_random": {
+          "default": true,
+          "title": "Crop Is Random",
+          "type": "boolean"
+        },
+        "pretrained_backbone_weights": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Backbone Weights"
+        },
+        "use_group_norm": {
+          "default": true,
+          "title": "Use Group Norm",
+          "type": "boolean"
+        },
+        "spatial_softmax_num_keypoints": {
+          "default": 32,
+          "title": "Spatial Softmax Num Keypoints",
+          "type": "integer"
+        },
+        "use_separate_rgb_encoder_per_camera": {
+          "default": false,
+          "title": "Use Separate Rgb Encoder Per Camera",
+          "type": "boolean"
+        },
+        "down_dims": {
+          "default": [
+            512,
+            1024,
+            2048
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Down Dims",
+          "type": "array"
+        },
+        "kernel_size": {
+          "default": 5,
+          "title": "Kernel Size",
+          "type": "integer"
+        },
+        "n_groups": {
+          "default": 8,
+          "title": "N Groups",
+          "type": "integer"
+        },
+        "diffusion_step_embed_dim": {
+          "default": 128,
+          "title": "Diffusion Step Embed Dim",
+          "type": "integer"
+        },
+        "use_film_scale_modulation": {
+          "default": true,
+          "title": "Use Film Scale Modulation",
+          "type": "boolean"
+        },
+        "noise_scheduler_type": {
+          "default": "DDPM",
+          "title": "Noise Scheduler Type",
+          "type": "string"
+        },
+        "num_train_timesteps": {
+          "default": 100,
+          "title": "Num Train Timesteps",
+          "type": "integer"
+        },
+        "beta_schedule": {
+          "default": "squaredcos_cap_v2",
+          "title": "Beta Schedule",
+          "type": "string"
+        },
+        "beta_start": {
+          "default": 0.0001,
+          "title": "Beta Start",
+          "type": "number"
+        },
+        "beta_end": {
+          "default": 0.02,
+          "title": "Beta End",
+          "type": "number"
+        },
+        "prediction_type": {
+          "default": "epsilon",
+          "title": "Prediction Type",
+          "type": "string"
+        },
+        "clip_sample": {
+          "default": true,
+          "title": "Clip Sample",
+          "type": "boolean"
+        },
+        "clip_sample_range": {
+          "default": 1.0,
+          "title": "Clip Sample Range",
+          "type": "number"
+        },
+        "num_inference_steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Inference Steps"
+        },
+        "do_mask_loss_for_padding": {
+          "default": false,
+          "title": "Do Mask Loss For Padding",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 0.0001,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.95,
+            0.999
+          ],
+          "items": {},
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 1e-06,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "scheduler_name": {
+          "default": "cosine",
+          "title": "Scheduler Name",
+          "type": "string"
+        },
+        "scheduler_warmup_steps": {
+          "default": 500,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        }
+      },
+      "title": "DiffusionConfig",
+      "type": "object"
+    },
+    "EarthRoverMiniPlusConfig": {
+      "properties": {
+        "sdk_url": {
+          "default": "http://localhost:8000",
+          "title": "Sdk Url",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "EarthRoverMiniPlusConfig",
+      "type": "object"
+    },
+    "FeatureType": {
+      "enum": [
+        "STATE",
+        "VISUAL",
+        "ENV",
+        "ACTION",
+        "REWARD",
+        "LANGUAGE"
+      ],
+      "title": "FeatureType",
+      "type": "string"
+    },
+    "GamepadTeleopConfig": {
+      "properties": {
+        "use_gripper": {
+          "default": true,
+          "title": "Use Gripper",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "GamepadTeleopConfig",
+      "type": "object"
+    },
+    "GrootConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "chunk_size": {
+          "default": 50,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 50,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 64,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 32,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "image_size": {
+          "default": [
+            224,
+            224
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Image Size",
+          "type": "array"
+        },
+        "base_model_path": {
+          "default": "nvidia/GR00T-N1.5-3B",
+          "title": "Base Model Path",
+          "type": "string"
+        },
+        "tokenizer_assets_repo": {
+          "default": "lerobot/eagle2hg-processor-groot-n1p5",
+          "title": "Tokenizer Assets Repo",
+          "type": "string"
+        },
+        "embodiment_tag": {
+          "default": "new_embodiment",
+          "title": "Embodiment Tag",
+          "type": "string"
+        },
+        "tune_llm": {
+          "default": false,
+          "title": "Tune Llm",
+          "type": "boolean"
+        },
+        "tune_visual": {
+          "default": false,
+          "title": "Tune Visual",
+          "type": "boolean"
+        },
+        "tune_projector": {
+          "default": true,
+          "title": "Tune Projector",
+          "type": "boolean"
+        },
+        "tune_diffusion_model": {
+          "default": true,
+          "title": "Tune Diffusion Model",
+          "type": "boolean"
+        },
+        "lora_rank": {
+          "default": 0,
+          "title": "Lora Rank",
+          "type": "integer"
+        },
+        "lora_alpha": {
+          "default": 16,
+          "title": "Lora Alpha",
+          "type": "integer"
+        },
+        "lora_dropout": {
+          "default": 0.1,
+          "title": "Lora Dropout",
+          "type": "number"
+        },
+        "lora_full_model": {
+          "default": false,
+          "title": "Lora Full Model",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 0.0001,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.95,
+            0.999
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 1e-05,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "warmup_ratio": {
+          "default": 0.05,
+          "title": "Warmup Ratio",
+          "type": "number"
+        },
+        "use_bf16": {
+          "default": true,
+          "title": "Use Bf16",
+          "type": "boolean"
+        },
+        "video_backend": {
+          "default": "decord",
+          "title": "Video Backend",
+          "type": "string"
+        },
+        "balance_dataset_weights": {
+          "default": true,
+          "title": "Balance Dataset Weights",
+          "type": "boolean"
+        },
+        "balance_trajectory_weights": {
+          "default": true,
+          "title": "Balance Trajectory Weights",
+          "type": "boolean"
+        },
+        "dataset_paths": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Paths"
+        },
+        "output_dir": {
+          "default": "./tmp/gr00t",
+          "title": "Output Dir",
+          "type": "string"
+        },
+        "save_steps": {
+          "default": 1000,
+          "title": "Save Steps",
+          "type": "integer"
+        },
+        "max_steps": {
+          "default": 10000,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "batch_size": {
+          "default": 32,
+          "title": "Batch Size",
+          "type": "integer"
+        },
+        "dataloader_num_workers": {
+          "default": 8,
+          "title": "Dataloader Num Workers",
+          "type": "integer"
+        },
+        "report_to": {
+          "default": "wandb",
+          "title": "Report To",
+          "type": "string"
+        },
+        "resume": {
+          "default": false,
+          "title": "Resume",
+          "type": "boolean"
+        }
+      },
+      "title": "GrootConfig",
+      "type": "object"
+    },
+    "HomunculusArmConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "baud_rate": {
+          "default": 115200,
+          "title": "Baud Rate",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "HomunculusArmConfig",
+      "type": "object"
+    },
+    "HomunculusGloveConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "side": {
+          "title": "Side",
+          "type": "string"
+        },
+        "baud_rate": {
+          "default": 115200,
+          "title": "Baud Rate",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port",
+        "side"
+      ],
+      "title": "HomunculusGloveConfig",
+      "type": "object"
+    },
+    "HopeJrArmConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "HopeJrArmConfig",
+      "type": "object"
+    },
+    "HopeJrHandConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "side": {
+          "title": "Side",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port",
+        "side"
+      ],
+      "title": "HopeJrHandConfig",
+      "type": "object"
+    },
+    "KeyboardEndEffectorTeleopConfig": {
+      "properties": {
+        "use_gripper": {
+          "default": true,
+          "title": "Use Gripper",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardEndEffectorTeleopConfig",
+      "type": "object"
+    },
+    "KeyboardRoverTeleopConfig": {
+      "properties": {
+        "linear_speed": {
+          "default": 1.0,
+          "title": "Linear Speed",
+          "type": "number"
+        },
+        "angular_speed": {
+          "default": 1.0,
+          "title": "Angular Speed",
+          "type": "number"
+        },
+        "speed_increment": {
+          "default": 0.1,
+          "title": "Speed Increment",
+          "type": "number"
+        },
+        "turn_assist_ratio": {
+          "default": 0.3,
+          "title": "Turn Assist Ratio",
+          "type": "number"
+        },
+        "angular_speed_ratio": {
+          "default": 0.6,
+          "title": "Angular Speed Ratio",
+          "type": "number"
+        },
+        "min_linear_speed": {
+          "default": 0.1,
+          "title": "Min Linear Speed",
+          "type": "number"
+        },
+        "min_angular_speed": {
+          "default": 0.05,
+          "title": "Min Angular Speed",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardRoverTeleopConfig",
+      "type": "object"
+    },
+    "KeyboardTeleopConfig": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardTeleopConfig",
+      "type": "object"
+    },
+    "KochFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "KochFollowerConfig",
+      "type": "object"
+    },
+    "KochLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "gripper_open_pos": {
+          "default": 50.0,
+          "title": "Gripper Open Pos",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "KochLeaderConfig",
+      "type": "object"
+    },
+    "LeKiwiClientConfig": {
+      "properties": {
+        "remote_ip": {
+          "title": "Remote Ip",
+          "type": "string"
+        },
+        "port_zmq_cmd": {
+          "default": 5555,
+          "title": "Port Zmq Cmd",
+          "type": "integer"
+        },
+        "port_zmq_observations": {
+          "default": 5556,
+          "title": "Port Zmq Observations",
+          "type": "integer"
+        },
+        "teleop_keys": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Teleop Keys",
+          "type": "object"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "polling_timeout_ms": {
+          "default": 15,
+          "title": "Polling Timeout Ms",
+          "type": "integer"
+        },
+        "connect_timeout_s": {
+          "default": 5,
+          "title": "Connect Timeout S",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "remote_ip"
+      ],
+      "title": "LeKiwiClientConfig",
+      "type": "object"
+    },
+    "LeKiwiConfig": {
+      "properties": {
+        "port": {
+          "default": "/dev/ttyACM0",
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "LeKiwiConfig",
+      "type": "object"
+    },
+    "NormalizationMode": {
+      "enum": [
+        "MIN_MAX",
+        "MEAN_STD",
+        "IDENTITY",
+        "QUANTILES",
+        "QUANTILE10"
+      ],
+      "title": "NormalizationMode",
+      "type": "string"
+    },
+    "OmxFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "OmxFollowerConfig",
+      "type": "object"
+    },
+    "OmxLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "gripper_open_pos": {
+          "default": 37.0,
+          "title": "Gripper Open Pos",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "OmxLeaderConfig",
+      "type": "object"
+    },
+    "OpenCVCameraConfig": {
+      "properties": {
+        "index_or_path": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "title": "Index Or Path"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "rotation": {
+          "$ref": "#/$defs/Cv2Rotation",
+          "default": 0
+        },
+        "warmup_s": {
+          "default": 1,
+          "title": "Warmup S",
+          "type": "integer"
+        },
+        "fourcc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fourcc"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "index_or_path"
+      ],
+      "title": "OpenCVCameraConfig",
+      "type": "object"
+    },
+    "PI05Config": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "paligemma_variant": {
+          "default": "gemma_2b",
+          "title": "Paligemma Variant",
+          "type": "string"
+        },
+        "action_expert_variant": {
+          "default": "gemma_300m",
+          "title": "Action Expert Variant",
+          "type": "string"
+        },
+        "dtype": {
+          "default": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "chunk_size": {
+          "default": 50,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 50,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 32,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "num_inference_steps": {
+          "default": 10,
+          "title": "Num Inference Steps",
+          "type": "integer"
+        },
+        "time_sampling_beta_alpha": {
+          "default": 1.5,
+          "title": "Time Sampling Beta Alpha",
+          "type": "number"
+        },
+        "time_sampling_beta_beta": {
+          "default": 1.0,
+          "title": "Time Sampling Beta Beta",
+          "type": "number"
+        },
+        "time_sampling_scale": {
+          "default": 0.999,
+          "title": "Time Sampling Scale",
+          "type": "number"
+        },
+        "time_sampling_offset": {
+          "default": 0.001,
+          "title": "Time Sampling Offset",
+          "type": "number"
+        },
+        "min_period": {
+          "default": 0.004,
+          "title": "Min Period",
+          "type": "number"
+        },
+        "max_period": {
+          "default": 4.0,
+          "title": "Max Period",
+          "type": "number"
+        },
+        "rtc_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RTCConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "image_resolution": {
+          "default": [
+            224,
+            224
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Image Resolution",
+          "type": "array"
+        },
+        "empty_cameras": {
+          "default": 0,
+          "title": "Empty Cameras",
+          "type": "integer"
+        },
+        "tokenizer_max_length": {
+          "default": 200,
+          "title": "Tokenizer Max Length",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "gradient_checkpointing": {
+          "default": false,
+          "title": "Gradient Checkpointing",
+          "type": "boolean"
+        },
+        "compile_model": {
+          "default": false,
+          "title": "Compile Model",
+          "type": "boolean"
+        },
+        "compile_mode": {
+          "default": "max-autotune",
+          "title": "Compile Mode",
+          "type": "string"
+        },
+        "freeze_vision_encoder": {
+          "default": false,
+          "title": "Freeze Vision Encoder",
+          "type": "boolean"
+        },
+        "train_expert_only": {
+          "default": false,
+          "title": "Train Expert Only",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 2.5e-05,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.95
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.01,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 1.0,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 30000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 2.5e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        }
+      },
+      "title": "PI05Config",
+      "type": "object"
+    },
+    "PI0Config": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "paligemma_variant": {
+          "default": "gemma_2b",
+          "title": "Paligemma Variant",
+          "type": "string"
+        },
+        "action_expert_variant": {
+          "default": "gemma_300m",
+          "title": "Action Expert Variant",
+          "type": "string"
+        },
+        "dtype": {
+          "default": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "chunk_size": {
+          "default": 50,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 50,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 32,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "num_inference_steps": {
+          "default": 10,
+          "title": "Num Inference Steps",
+          "type": "integer"
+        },
+        "time_sampling_beta_alpha": {
+          "default": 1.5,
+          "title": "Time Sampling Beta Alpha",
+          "type": "number"
+        },
+        "time_sampling_beta_beta": {
+          "default": 1.0,
+          "title": "Time Sampling Beta Beta",
+          "type": "number"
+        },
+        "time_sampling_scale": {
+          "default": 0.999,
+          "title": "Time Sampling Scale",
+          "type": "number"
+        },
+        "time_sampling_offset": {
+          "default": 0.001,
+          "title": "Time Sampling Offset",
+          "type": "number"
+        },
+        "min_period": {
+          "default": 0.004,
+          "title": "Min Period",
+          "type": "number"
+        },
+        "max_period": {
+          "default": 4.0,
+          "title": "Max Period",
+          "type": "number"
+        },
+        "rtc_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RTCConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "image_resolution": {
+          "default": [
+            224,
+            224
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Image Resolution",
+          "type": "array"
+        },
+        "empty_cameras": {
+          "default": 0,
+          "title": "Empty Cameras",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "gradient_checkpointing": {
+          "default": false,
+          "title": "Gradient Checkpointing",
+          "type": "boolean"
+        },
+        "compile_model": {
+          "default": false,
+          "title": "Compile Model",
+          "type": "boolean"
+        },
+        "compile_mode": {
+          "default": "max-autotune",
+          "title": "Compile Mode",
+          "type": "string"
+        },
+        "freeze_vision_encoder": {
+          "default": false,
+          "title": "Freeze Vision Encoder",
+          "type": "boolean"
+        },
+        "train_expert_only": {
+          "default": false,
+          "title": "Train Expert Only",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 2.5e-05,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.95
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.01,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 1.0,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 30000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 2.5e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        },
+        "tokenizer_max_length": {
+          "default": 48,
+          "title": "Tokenizer Max Length",
+          "type": "integer"
+        }
+      },
+      "title": "PI0Config",
+      "type": "object"
+    },
+    "PI0FastConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "paligemma_variant": {
+          "default": "gemma_2b",
+          "title": "Paligemma Variant",
+          "type": "string"
+        },
+        "action_expert_variant": {
+          "default": "gemma_300m",
+          "title": "Action Expert Variant",
+          "type": "string"
+        },
+        "dtype": {
+          "default": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "chunk_size": {
+          "default": 50,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 50,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 32,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "max_action_tokens": {
+          "default": 256,
+          "title": "Max Action Tokens",
+          "type": "integer"
+        },
+        "rtc_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RTCConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "image_resolution": {
+          "default": [
+            224,
+            224
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Image Resolution",
+          "type": "array"
+        },
+        "empty_cameras": {
+          "default": 0,
+          "title": "Empty Cameras",
+          "type": "integer"
+        },
+        "tokenizer_max_length": {
+          "default": 200,
+          "title": "Tokenizer Max Length",
+          "type": "integer"
+        },
+        "text_tokenizer_name": {
+          "default": "google/paligemma-3b-pt-224",
+          "title": "Text Tokenizer Name",
+          "type": "string"
+        },
+        "action_tokenizer_name": {
+          "default": "physical-intelligence/fast",
+          "title": "Action Tokenizer Name",
+          "type": "string"
+        },
+        "temperature": {
+          "default": 0.0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "max_decoding_steps": {
+          "default": 256,
+          "title": "Max Decoding Steps",
+          "type": "integer"
+        },
+        "fast_skip_tokens": {
+          "default": 128,
+          "title": "Fast Skip Tokens",
+          "type": "integer"
+        },
+        "validate_action_token_prefix": {
+          "default": true,
+          "title": "Validate Action Token Prefix",
+          "type": "boolean"
+        },
+        "use_kv_cache": {
+          "default": true,
+          "title": "Use Kv Cache",
+          "type": "boolean"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "gradient_checkpointing": {
+          "default": false,
+          "title": "Gradient Checkpointing",
+          "type": "boolean"
+        },
+        "compile_model": {
+          "default": false,
+          "title": "Compile Model",
+          "type": "boolean"
+        },
+        "compile_mode": {
+          "default": "max-autotune",
+          "title": "Compile Mode",
+          "type": "string"
+        },
+        "optimizer_lr": {
+          "default": 2.5e-05,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.95
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.01,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 1.0,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 30000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 2.5e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        }
+      },
+      "title": "PI0FastConfig",
+      "type": "object"
+    },
+    "PhoneConfig": {
+      "properties": {
+        "phone_os": {
+          "$ref": "#/$defs/PhoneOS",
+          "default": "ios"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "PhoneConfig",
+      "type": "object"
+    },
+    "PhoneOS": {
+      "enum": [
+        "android",
+        "ios"
+      ],
+      "title": "PhoneOS",
+      "type": "string"
+    },
+    "PolicyConfig": {
+      "properties": {
+        "use_tanh_squash": {
+          "default": true,
+          "title": "Use Tanh Squash",
+          "type": "boolean"
+        },
+        "std_min": {
+          "default": 1e-05,
+          "title": "Std Min",
+          "type": "number"
+        },
+        "std_max": {
+          "default": 10.0,
+          "title": "Std Max",
+          "type": "number"
+        },
+        "init_final": {
+          "default": 0.05,
+          "title": "Init Final",
+          "type": "number"
+        }
+      },
+      "title": "PolicyConfig",
+      "type": "object"
+    },
+    "PolicyFeature": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/FeatureType"
+        },
+        "shape": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "shape"
+      ],
+      "title": "PolicyFeature",
+      "type": "object"
+    },
+    "RTCAttentionSchedule": {
+      "enum": [
+        "ZEROS",
+        "ONES",
+        "LINEAR",
+        "EXP"
+      ],
+      "title": "RTCAttentionSchedule",
+      "type": "string"
+    },
+    "RTCConfig": {
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "prefix_attention_schedule": {
+          "$ref": "#/$defs/RTCAttentionSchedule",
+          "default": "LINEAR"
+        },
+        "max_guidance_weight": {
+          "default": 10.0,
+          "title": "Max Guidance Weight",
+          "type": "number"
+        },
+        "execution_horizon": {
+          "default": 10,
+          "title": "Execution Horizon",
+          "type": "integer"
+        },
+        "debug": {
+          "default": false,
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "debug_maxlen": {
+          "default": 100,
+          "title": "Debug Maxlen",
+          "type": "integer"
+        }
+      },
+      "title": "RTCConfig",
+      "type": "object"
+    },
+    "Reachy2CameraConfig": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "image_type": {
+          "title": "Image Type",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "port": {
+          "default": 50065,
+          "title": "Port",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "name",
+        "image_type"
+      ],
+      "title": "Reachy2CameraConfig",
+      "type": "object"
+    },
+    "Reachy2RobotConfig": {
+      "properties": {
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "port": {
+          "default": 50065,
+          "title": "Port",
+          "type": "integer"
+        },
+        "disable_torque_on_disconnect": {
+          "default": false,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "use_external_commands": {
+          "default": false,
+          "title": "Use External Commands",
+          "type": "boolean"
+        },
+        "with_mobile_base": {
+          "default": true,
+          "title": "With Mobile Base",
+          "type": "boolean"
+        },
+        "with_l_arm": {
+          "default": true,
+          "title": "With L Arm",
+          "type": "boolean"
+        },
+        "with_r_arm": {
+          "default": true,
+          "title": "With R Arm",
+          "type": "boolean"
+        },
+        "with_neck": {
+          "default": true,
+          "title": "With Neck",
+          "type": "boolean"
+        },
+        "with_antennas": {
+          "default": true,
+          "title": "With Antennas",
+          "type": "boolean"
+        },
+        "with_left_teleop_camera": {
+          "default": false,
+          "title": "With Left Teleop Camera",
+          "type": "boolean"
+        },
+        "with_right_teleop_camera": {
+          "default": false,
+          "title": "With Right Teleop Camera",
+          "type": "boolean"
+        },
+        "with_torso_camera": {
+          "default": false,
+          "title": "With Torso Camera",
+          "type": "boolean"
+        },
+        "camera_width": {
+          "default": 640,
+          "title": "Camera Width",
+          "type": "integer"
+        },
+        "camera_height": {
+          "default": 480,
+          "title": "Camera Height",
+          "type": "integer"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "Reachy2RobotConfig",
+      "type": "object"
+    },
+    "Reachy2TeleoperatorConfig": {
+      "properties": {
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "use_present_position": {
+          "default": false,
+          "title": "Use Present Position",
+          "type": "boolean"
+        },
+        "with_mobile_base": {
+          "default": true,
+          "title": "With Mobile Base",
+          "type": "boolean"
+        },
+        "with_l_arm": {
+          "default": true,
+          "title": "With L Arm",
+          "type": "boolean"
+        },
+        "with_r_arm": {
+          "default": true,
+          "title": "With R Arm",
+          "type": "boolean"
+        },
+        "with_neck": {
+          "default": true,
+          "title": "With Neck",
+          "type": "boolean"
+        },
+        "with_antennas": {
+          "default": true,
+          "title": "With Antennas",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "Reachy2TeleoperatorConfig",
+      "type": "object"
+    },
+    "RealSenseCameraConfig": {
+      "properties": {
+        "serial_number_or_name": {
+          "title": "Serial Number Or Name",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "use_depth": {
+          "default": false,
+          "title": "Use Depth",
+          "type": "boolean"
+        },
+        "rotation": {
+          "$ref": "#/$defs/Cv2Rotation",
+          "default": 0
+        },
+        "warmup_s": {
+          "default": 1,
+          "title": "Warmup S",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "serial_number_or_name"
+      ],
+      "title": "RealSenseCameraConfig",
+      "type": "object"
+    },
+    "RewardClassifierConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "default": "cpu",
+          "title": "Device",
+          "type": "string"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "name": {
+          "default": "reward_classifier",
+          "title": "Name",
+          "type": "string"
+        },
+        "num_classes": {
+          "default": 2,
+          "title": "Num Classes",
+          "type": "integer"
+        },
+        "hidden_dim": {
+          "default": 256,
+          "title": "Hidden Dim",
+          "type": "integer"
+        },
+        "latent_dim": {
+          "default": 256,
+          "title": "Latent Dim",
+          "type": "integer"
+        },
+        "image_embedding_pooling_dim": {
+          "default": 8,
+          "title": "Image Embedding Pooling Dim",
+          "type": "integer"
+        },
+        "dropout_rate": {
+          "default": 0.1,
+          "title": "Dropout Rate",
+          "type": "number"
+        },
+        "model_name": {
+          "default": "helper2424/resnet10",
+          "title": "Model Name",
+          "type": "string"
+        },
+        "model_type": {
+          "default": "cnn",
+          "title": "Model Type",
+          "type": "string"
+        },
+        "num_cameras": {
+          "default": 2,
+          "title": "Num Cameras",
+          "type": "integer"
+        },
+        "learning_rate": {
+          "default": 0.0001,
+          "title": "Learning Rate",
+          "type": "number"
+        },
+        "weight_decay": {
+          "default": 0.01,
+          "title": "Weight Decay",
+          "type": "number"
+        },
+        "grad_clip_norm": {
+          "default": 1.0,
+          "title": "Grad Clip Norm",
+          "type": "number"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        }
+      },
+      "title": "RewardClassifierConfig",
+      "type": "object"
+    },
+    "SACConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "default": "cpu",
+          "title": "Device",
+          "type": "string"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "dataset_stats": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dataset Stats"
+        },
+        "storage_device": {
+          "default": "cpu",
+          "title": "Storage Device",
+          "type": "string"
+        },
+        "vision_encoder_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vision Encoder Name"
+        },
+        "freeze_vision_encoder": {
+          "default": true,
+          "title": "Freeze Vision Encoder",
+          "type": "boolean"
+        },
+        "image_encoder_hidden_dim": {
+          "default": 32,
+          "title": "Image Encoder Hidden Dim",
+          "type": "integer"
+        },
+        "shared_encoder": {
+          "default": true,
+          "title": "Shared Encoder",
+          "type": "boolean"
+        },
+        "num_discrete_actions": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Discrete Actions"
+        },
+        "image_embedding_pooling_dim": {
+          "default": 8,
+          "title": "Image Embedding Pooling Dim",
+          "type": "integer"
+        },
+        "online_steps": {
+          "default": 1000000,
+          "title": "Online Steps",
+          "type": "integer"
+        },
+        "online_buffer_capacity": {
+          "default": 100000,
+          "title": "Online Buffer Capacity",
+          "type": "integer"
+        },
+        "offline_buffer_capacity": {
+          "default": 100000,
+          "title": "Offline Buffer Capacity",
+          "type": "integer"
+        },
+        "async_prefetch": {
+          "default": false,
+          "title": "Async Prefetch",
+          "type": "boolean"
+        },
+        "online_step_before_learning": {
+          "default": 100,
+          "title": "Online Step Before Learning",
+          "type": "integer"
+        },
+        "policy_update_freq": {
+          "default": 1,
+          "title": "Policy Update Freq",
+          "type": "integer"
+        },
+        "discount": {
+          "default": 0.99,
+          "title": "Discount",
+          "type": "number"
+        },
+        "temperature_init": {
+          "default": 1.0,
+          "title": "Temperature Init",
+          "type": "number"
+        },
+        "num_critics": {
+          "default": 2,
+          "title": "Num Critics",
+          "type": "integer"
+        },
+        "num_subsample_critics": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Subsample Critics"
+        },
+        "critic_lr": {
+          "default": 0.0003,
+          "title": "Critic Lr",
+          "type": "number"
+        },
+        "actor_lr": {
+          "default": 0.0003,
+          "title": "Actor Lr",
+          "type": "number"
+        },
+        "temperature_lr": {
+          "default": 0.0003,
+          "title": "Temperature Lr",
+          "type": "number"
+        },
+        "critic_target_update_weight": {
+          "default": 0.005,
+          "title": "Critic Target Update Weight",
+          "type": "number"
+        },
+        "utd_ratio": {
+          "default": 1,
+          "title": "Utd Ratio",
+          "type": "integer"
+        },
+        "state_encoder_hidden_dim": {
+          "default": 256,
+          "title": "State Encoder Hidden Dim",
+          "type": "integer"
+        },
+        "latent_dim": {
+          "default": 256,
+          "title": "Latent Dim",
+          "type": "integer"
+        },
+        "target_entropy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Entropy"
+        },
+        "use_backup_entropy": {
+          "default": true,
+          "title": "Use Backup Entropy",
+          "type": "boolean"
+        },
+        "grad_clip_norm": {
+          "default": 40.0,
+          "title": "Grad Clip Norm",
+          "type": "number"
+        },
+        "critic_network_kwargs": {
+          "$ref": "#/$defs/CriticNetworkConfig"
+        },
+        "actor_network_kwargs": {
+          "$ref": "#/$defs/ActorNetworkConfig"
+        },
+        "policy_kwargs": {
+          "$ref": "#/$defs/PolicyConfig"
+        },
+        "discrete_critic_network_kwargs": {
+          "$ref": "#/$defs/CriticNetworkConfig"
+        },
+        "actor_learner_config": {
+          "$ref": "#/$defs/ActorLearnerConfig"
+        },
+        "concurrency": {
+          "$ref": "#/$defs/ConcurrencyConfig"
+        },
+        "use_torch_compile": {
+          "default": true,
+          "title": "Use Torch Compile",
+          "type": "boolean"
+        }
+      },
+      "title": "SACConfig",
+      "type": "object"
+    },
+    "SARMConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 8,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "additionalProperties": true,
+          "title": "Input Features",
+          "type": "object"
+        },
+        "output_features": {
+          "additionalProperties": true,
+          "title": "Output Features",
+          "type": "object"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "annotation_mode": {
+          "default": "single_stage",
+          "title": "Annotation Mode",
+          "type": "string"
+        },
+        "frame_gap": {
+          "default": 30,
+          "title": "Frame Gap",
+          "type": "integer"
+        },
+        "max_rewind_steps": {
+          "default": 4,
+          "title": "Max Rewind Steps",
+          "type": "integer"
+        },
+        "image_dim": {
+          "default": 512,
+          "title": "Image Dim",
+          "type": "integer"
+        },
+        "text_dim": {
+          "default": 512,
+          "title": "Text Dim",
+          "type": "integer"
+        },
+        "hidden_dim": {
+          "default": 768,
+          "title": "Hidden Dim",
+          "type": "integer"
+        },
+        "num_heads": {
+          "default": 12,
+          "title": "Num Heads",
+          "type": "integer"
+        },
+        "num_layers": {
+          "default": 8,
+          "title": "Num Layers",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "drop_n_last_frames": {
+          "default": 1,
+          "title": "Drop N Last Frames",
+          "type": "integer"
+        },
+        "batch_size": {
+          "default": 64,
+          "title": "Batch Size",
+          "type": "integer"
+        },
+        "clip_batch_size": {
+          "default": 64,
+          "title": "Clip Batch Size",
+          "type": "integer"
+        },
+        "dropout": {
+          "default": 0.1,
+          "title": "Dropout",
+          "type": "number"
+        },
+        "stage_loss_weight": {
+          "default": 1.0,
+          "title": "Stage Loss Weight",
+          "type": "number"
+        },
+        "rewind_probability": {
+          "default": 0.8,
+          "title": "Rewind Probability",
+          "type": "number"
+        },
+        "language_perturbation_probability": {
+          "default": 0.2,
+          "title": "Language Perturbation Probability",
+          "type": "number"
+        },
+        "num_sparse_stages": {
+          "default": 1,
+          "title": "Num Sparse Stages",
+          "type": "integer"
+        },
+        "sparse_subtask_names": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sparse Subtask Names"
+        },
+        "sparse_temporal_proportions": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sparse Temporal Proportions"
+        },
+        "num_dense_stages": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Dense Stages"
+        },
+        "dense_subtask_names": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense Subtask Names"
+        },
+        "dense_temporal_proportions": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense Temporal Proportions"
+        },
+        "pretrained_model_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Model Path"
+        },
+        "image_key": {
+          "default": "observation.images.top",
+          "title": "Image Key",
+          "type": "string"
+        },
+        "state_key": {
+          "default": "observation.state",
+          "title": "State Key",
+          "type": "string"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        }
+      },
+      "title": "SARMConfig",
+      "type": "object"
+    },
+    "SOFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOFollowerConfig",
+      "type": "object"
+    },
+    "SOFollowerRobotConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOFollowerRobotConfig",
+      "type": "object"
+    },
+    "SOLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOLeaderConfig",
+      "type": "object"
+    },
+    "SOLeaderTeleopConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOLeaderTeleopConfig",
+      "type": "object"
+    },
+    "SmolVLAConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "chunk_size": {
+          "default": 50,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 50,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 32,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "resize_imgs_with_padding": {
+          "default": [
+            512,
+            512
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resize Imgs With Padding",
+          "type": "array"
+        },
+        "empty_cameras": {
+          "default": 0,
+          "title": "Empty Cameras",
+          "type": "integer"
+        },
+        "adapt_to_pi_aloha": {
+          "default": false,
+          "title": "Adapt To Pi Aloha",
+          "type": "boolean"
+        },
+        "use_delta_joint_actions_aloha": {
+          "default": false,
+          "title": "Use Delta Joint Actions Aloha",
+          "type": "boolean"
+        },
+        "tokenizer_max_length": {
+          "default": 48,
+          "title": "Tokenizer Max Length",
+          "type": "integer"
+        },
+        "num_steps": {
+          "default": 10,
+          "title": "Num Steps",
+          "type": "integer"
+        },
+        "use_cache": {
+          "default": true,
+          "title": "Use Cache",
+          "type": "boolean"
+        },
+        "freeze_vision_encoder": {
+          "default": true,
+          "title": "Freeze Vision Encoder",
+          "type": "boolean"
+        },
+        "train_expert_only": {
+          "default": true,
+          "title": "Train Expert Only",
+          "type": "boolean"
+        },
+        "train_state_proj": {
+          "default": true,
+          "title": "Train State Proj",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 0.0001,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.95
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 1e-10,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 10,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 30000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 2.5e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        },
+        "vlm_model_name": {
+          "default": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+          "title": "Vlm Model Name",
+          "type": "string"
+        },
+        "load_vlm_weights": {
+          "default": false,
+          "title": "Load Vlm Weights",
+          "type": "boolean"
+        },
+        "add_image_special_tokens": {
+          "default": false,
+          "title": "Add Image Special Tokens",
+          "type": "boolean"
+        },
+        "attention_mode": {
+          "default": "cross_attn",
+          "title": "Attention Mode",
+          "type": "string"
+        },
+        "prefix_length": {
+          "default": -1,
+          "title": "Prefix Length",
+          "type": "integer"
+        },
+        "pad_language_to": {
+          "default": "longest",
+          "title": "Pad Language To",
+          "type": "string"
+        },
+        "num_expert_layers": {
+          "default": -1,
+          "title": "Num Expert Layers",
+          "type": "integer"
+        },
+        "num_vlm_layers": {
+          "default": 16,
+          "title": "Num Vlm Layers",
+          "type": "integer"
+        },
+        "self_attn_every_n_layers": {
+          "default": 2,
+          "title": "Self Attn Every N Layers",
+          "type": "integer"
+        },
+        "expert_width_multiplier": {
+          "default": 0.75,
+          "title": "Expert Width Multiplier",
+          "type": "number"
+        },
+        "min_period": {
+          "default": 0.004,
+          "title": "Min Period",
+          "type": "number"
+        },
+        "max_period": {
+          "default": 4.0,
+          "title": "Max Period",
+          "type": "number"
+        },
+        "rtc_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RTCConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SmolVLAConfig",
+      "type": "object"
+    },
+    "TDMPCConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "n_action_repeats": {
+          "default": 2,
+          "title": "N Action Repeats",
+          "type": "integer"
+        },
+        "horizon": {
+          "default": 5,
+          "title": "Horizon",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 1,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "image_encoder_hidden_dim": {
+          "default": 32,
+          "title": "Image Encoder Hidden Dim",
+          "type": "integer"
+        },
+        "state_encoder_hidden_dim": {
+          "default": 256,
+          "title": "State Encoder Hidden Dim",
+          "type": "integer"
+        },
+        "latent_dim": {
+          "default": 50,
+          "title": "Latent Dim",
+          "type": "integer"
+        },
+        "q_ensemble_size": {
+          "default": 5,
+          "title": "Q Ensemble Size",
+          "type": "integer"
+        },
+        "mlp_dim": {
+          "default": 512,
+          "title": "Mlp Dim",
+          "type": "integer"
+        },
+        "discount": {
+          "default": 0.9,
+          "title": "Discount",
+          "type": "number"
+        },
+        "use_mpc": {
+          "default": true,
+          "title": "Use Mpc",
+          "type": "boolean"
+        },
+        "cem_iterations": {
+          "default": 6,
+          "title": "Cem Iterations",
+          "type": "integer"
+        },
+        "max_std": {
+          "default": 2.0,
+          "title": "Max Std",
+          "type": "number"
+        },
+        "min_std": {
+          "default": 0.05,
+          "title": "Min Std",
+          "type": "number"
+        },
+        "n_gaussian_samples": {
+          "default": 512,
+          "title": "N Gaussian Samples",
+          "type": "integer"
+        },
+        "n_pi_samples": {
+          "default": 51,
+          "title": "N Pi Samples",
+          "type": "integer"
+        },
+        "uncertainty_regularizer_coeff": {
+          "default": 1.0,
+          "title": "Uncertainty Regularizer Coeff",
+          "type": "number"
+        },
+        "n_elites": {
+          "default": 50,
+          "title": "N Elites",
+          "type": "integer"
+        },
+        "elite_weighting_temperature": {
+          "default": 0.5,
+          "title": "Elite Weighting Temperature",
+          "type": "number"
+        },
+        "gaussian_mean_momentum": {
+          "default": 0.1,
+          "title": "Gaussian Mean Momentum",
+          "type": "number"
+        },
+        "max_random_shift_ratio": {
+          "default": 0.0476,
+          "title": "Max Random Shift Ratio",
+          "type": "number"
+        },
+        "reward_coeff": {
+          "default": 0.5,
+          "title": "Reward Coeff",
+          "type": "number"
+        },
+        "expectile_weight": {
+          "default": 0.9,
+          "title": "Expectile Weight",
+          "type": "number"
+        },
+        "value_coeff": {
+          "default": 0.1,
+          "title": "Value Coeff",
+          "type": "number"
+        },
+        "consistency_coeff": {
+          "default": 20.0,
+          "title": "Consistency Coeff",
+          "type": "number"
+        },
+        "advantage_scaling": {
+          "default": 3.0,
+          "title": "Advantage Scaling",
+          "type": "number"
+        },
+        "pi_coeff": {
+          "default": 0.5,
+          "title": "Pi Coeff",
+          "type": "number"
+        },
+        "temporal_decay_coeff": {
+          "default": 0.5,
+          "title": "Temporal Decay Coeff",
+          "type": "number"
+        },
+        "target_model_momentum": {
+          "default": 0.995,
+          "title": "Target Model Momentum",
+          "type": "number"
+        },
+        "optimizer_lr": {
+          "default": 0.0003,
+          "title": "Optimizer Lr",
+          "type": "number"
+        }
+      },
+      "title": "TDMPCConfig",
+      "type": "object"
+    },
+    "UnitreeG1Config": {
+      "properties": {
+        "kp": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Kp",
+          "type": "array"
+        },
+        "kd": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Kd",
+          "type": "array"
+        },
+        "default_positions": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Default Positions",
+          "type": "array"
+        },
+        "control_dt": {
+          "default": 0.004,
+          "title": "Control Dt",
+          "type": "number"
+        },
+        "is_simulation": {
+          "default": true,
+          "title": "Is Simulation",
+          "type": "boolean"
+        },
+        "robot_ip": {
+          "default": "192.168.123.164",
+          "title": "Robot Ip",
+          "type": "string"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "UnitreeG1Config",
+      "type": "object"
+    },
+    "VQBeTConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 5,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "n_action_pred_token": {
+          "default": 3,
+          "title": "N Action Pred Token",
+          "type": "integer"
+        },
+        "action_chunk_size": {
+          "default": 5,
+          "title": "Action Chunk Size",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "vision_backbone": {
+          "default": "resnet18",
+          "title": "Vision Backbone",
+          "type": "string"
+        },
+        "crop_shape": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [
+            84,
+            84
+          ],
+          "title": "Crop Shape"
+        },
+        "crop_is_random": {
+          "default": true,
+          "title": "Crop Is Random",
+          "type": "boolean"
+        },
+        "pretrained_backbone_weights": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Backbone Weights"
+        },
+        "use_group_norm": {
+          "default": true,
+          "title": "Use Group Norm",
+          "type": "boolean"
+        },
+        "spatial_softmax_num_keypoints": {
+          "default": 32,
+          "title": "Spatial Softmax Num Keypoints",
+          "type": "integer"
+        },
+        "n_vqvae_training_steps": {
+          "default": 20000,
+          "title": "N Vqvae Training Steps",
+          "type": "integer"
+        },
+        "vqvae_n_embed": {
+          "default": 16,
+          "title": "Vqvae N Embed",
+          "type": "integer"
+        },
+        "vqvae_embedding_dim": {
+          "default": 256,
+          "title": "Vqvae Embedding Dim",
+          "type": "integer"
+        },
+        "vqvae_enc_hidden_dim": {
+          "default": 128,
+          "title": "Vqvae Enc Hidden Dim",
+          "type": "integer"
+        },
+        "gpt_block_size": {
+          "default": 500,
+          "title": "Gpt Block Size",
+          "type": "integer"
+        },
+        "gpt_input_dim": {
+          "default": 512,
+          "title": "Gpt Input Dim",
+          "type": "integer"
+        },
+        "gpt_output_dim": {
+          "default": 512,
+          "title": "Gpt Output Dim",
+          "type": "integer"
+        },
+        "gpt_n_layer": {
+          "default": 8,
+          "title": "Gpt N Layer",
+          "type": "integer"
+        },
+        "gpt_n_head": {
+          "default": 8,
+          "title": "Gpt N Head",
+          "type": "integer"
+        },
+        "gpt_hidden_dim": {
+          "default": 512,
+          "title": "Gpt Hidden Dim",
+          "type": "integer"
+        },
+        "dropout": {
+          "default": 0.1,
+          "title": "Dropout",
+          "type": "number"
+        },
+        "offset_loss_weight": {
+          "default": 10000.0,
+          "title": "Offset Loss Weight",
+          "type": "number"
+        },
+        "primary_code_loss_weight": {
+          "default": 5.0,
+          "title": "Primary Code Loss Weight",
+          "type": "number"
+        },
+        "secondary_code_loss_weight": {
+          "default": 0.5,
+          "title": "Secondary Code Loss Weight",
+          "type": "number"
+        },
+        "bet_softmax_temperature": {
+          "default": 0.1,
+          "title": "Bet Softmax Temperature",
+          "type": "number"
+        },
+        "sequentially_select": {
+          "default": false,
+          "title": "Sequentially Select",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 0.0001,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.95,
+            0.999
+          ],
+          "items": {},
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 1e-06,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_vqvae_lr": {
+          "default": 0.001,
+          "title": "Optimizer Vqvae Lr",
+          "type": "number"
+        },
+        "optimizer_vqvae_weight_decay": {
+          "default": 0.0001,
+          "title": "Optimizer Vqvae Weight Decay",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 500,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        }
+      },
+      "title": "VQBeTConfig",
+      "type": "object"
+    },
+    "WallXConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "chunk_size": {
+          "default": 32,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 32,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 20,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "max_state_dim": {
+          "default": 20,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "pretrained_name_or_path": {
+          "default": "x-square-robot/wall-oss-flow",
+          "title": "Pretrained Name Or Path",
+          "type": "string"
+        },
+        "action_tokenizer_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "physical-intelligence/fast",
+          "title": "Action Tokenizer Path"
+        },
+        "prediction_mode": {
+          "default": "diffusion",
+          "title": "Prediction Mode",
+          "type": "string"
+        },
+        "attn_implementation": {
+          "default": "eager",
+          "title": "Attn Implementation",
+          "type": "string"
+        },
+        "optimizer_lr": {
+          "default": 2e-05,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.95
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.01,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 1.0,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 100000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 1e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        }
+      },
+      "title": "WallXConfig",
+      "type": "object"
+    },
+    "XVLAConfig": {
+      "properties": {
+        "n_obs_steps": {
+          "default": 1,
+          "title": "N Obs Steps",
+          "type": "integer"
+        },
+        "input_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Features"
+        },
+        "output_features": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/PolicyFeature"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Features"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device"
+        },
+        "use_amp": {
+          "default": false,
+          "title": "Use Amp",
+          "type": "boolean"
+        },
+        "use_peft": {
+          "default": false,
+          "title": "Use Peft",
+          "type": "boolean"
+        },
+        "push_to_hub": {
+          "default": true,
+          "title": "Push To Hub",
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repo Id"
+        },
+        "private": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Private"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tags"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "chunk_size": {
+          "default": 32,
+          "title": "Chunk Size",
+          "type": "integer"
+        },
+        "n_action_steps": {
+          "default": 32,
+          "title": "N Action Steps",
+          "type": "integer"
+        },
+        "dtype": {
+          "default": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "normalization_mapping": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NormalizationMode"
+          },
+          "title": "Normalization Mapping",
+          "type": "object"
+        },
+        "florence_config": {
+          "additionalProperties": true,
+          "title": "Florence Config",
+          "type": "object"
+        },
+        "tokenizer_name": {
+          "default": "facebook/bart-large",
+          "title": "Tokenizer Name",
+          "type": "string"
+        },
+        "tokenizer_max_length": {
+          "default": 64,
+          "title": "Tokenizer Max Length",
+          "type": "integer"
+        },
+        "tokenizer_padding_side": {
+          "default": "right",
+          "title": "Tokenizer Padding Side",
+          "type": "string"
+        },
+        "pad_language_to": {
+          "default": "max_length",
+          "title": "Pad Language To",
+          "type": "string"
+        },
+        "hidden_size": {
+          "default": 1024,
+          "title": "Hidden Size",
+          "type": "integer"
+        },
+        "depth": {
+          "default": 24,
+          "title": "Depth",
+          "type": "integer"
+        },
+        "num_heads": {
+          "default": 16,
+          "title": "Num Heads",
+          "type": "integer"
+        },
+        "mlp_ratio": {
+          "default": 4.0,
+          "title": "Mlp Ratio",
+          "type": "number"
+        },
+        "num_domains": {
+          "default": 30,
+          "title": "Num Domains",
+          "type": "integer"
+        },
+        "len_soft_prompts": {
+          "default": 32,
+          "title": "Len Soft Prompts",
+          "type": "integer"
+        },
+        "dim_time": {
+          "default": 32,
+          "title": "Dim Time",
+          "type": "integer"
+        },
+        "max_len_seq": {
+          "default": 512,
+          "title": "Max Len Seq",
+          "type": "integer"
+        },
+        "use_hetero_proj": {
+          "default": false,
+          "title": "Use Hetero Proj",
+          "type": "boolean"
+        },
+        "action_mode": {
+          "default": "ee6d",
+          "title": "Action Mode",
+          "type": "string"
+        },
+        "num_denoising_steps": {
+          "default": 10,
+          "title": "Num Denoising Steps",
+          "type": "integer"
+        },
+        "use_proprio": {
+          "default": true,
+          "title": "Use Proprio",
+          "type": "boolean"
+        },
+        "max_state_dim": {
+          "default": 32,
+          "title": "Max State Dim",
+          "type": "integer"
+        },
+        "max_action_dim": {
+          "default": 20,
+          "title": "Max Action Dim",
+          "type": "integer"
+        },
+        "domain_feature_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain Feature Key"
+        },
+        "resize_imgs_with_padding": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resize Imgs With Padding"
+        },
+        "num_image_views": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Image Views"
+        },
+        "empty_cameras": {
+          "default": 0,
+          "title": "Empty Cameras",
+          "type": "integer"
+        },
+        "freeze_vision_encoder": {
+          "default": false,
+          "title": "Freeze Vision Encoder",
+          "type": "boolean"
+        },
+        "freeze_language_encoder": {
+          "default": false,
+          "title": "Freeze Language Encoder",
+          "type": "boolean"
+        },
+        "train_policy_transformer": {
+          "default": true,
+          "title": "Train Policy Transformer",
+          "type": "boolean"
+        },
+        "train_soft_prompts": {
+          "default": true,
+          "title": "Train Soft Prompts",
+          "type": "boolean"
+        },
+        "optimizer_lr": {
+          "default": 0.0001,
+          "title": "Optimizer Lr",
+          "type": "number"
+        },
+        "optimizer_betas": {
+          "default": [
+            0.9,
+            0.99
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Optimizer Betas",
+          "type": "array"
+        },
+        "optimizer_eps": {
+          "default": 1e-08,
+          "title": "Optimizer Eps",
+          "type": "number"
+        },
+        "optimizer_weight_decay": {
+          "default": 0.0,
+          "title": "Optimizer Weight Decay",
+          "type": "number"
+        },
+        "optimizer_grad_clip_norm": {
+          "default": 10.0,
+          "title": "Optimizer Grad Clip Norm",
+          "type": "number"
+        },
+        "optimizer_soft_prompt_lr_scale": {
+          "default": 1.0,
+          "title": "Optimizer Soft Prompt Lr Scale",
+          "type": "number"
+        },
+        "optimizer_soft_prompt_warmup_lr_scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Optimizer Soft Prompt Warmup Lr Scale"
+        },
+        "scheduler_warmup_steps": {
+          "default": 1000,
+          "title": "Scheduler Warmup Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_steps": {
+          "default": 30000,
+          "title": "Scheduler Decay Steps",
+          "type": "integer"
+        },
+        "scheduler_decay_lr": {
+          "default": 2.5e-06,
+          "title": "Scheduler Decay Lr",
+          "type": "number"
+        }
+      },
+      "title": "XVLAConfig",
+      "type": "object"
+    },
+    "ZMQCameraConfig": {
+      "properties": {
+        "server_address": {
+          "title": "Server Address",
+          "type": "string"
+        },
+        "port": {
+          "default": 5555,
+          "title": "Port",
+          "type": "integer"
+        },
+        "camera_name": {
+          "default": "zmq_camera",
+          "title": "Camera Name",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "timeout_ms": {
+          "default": 5000,
+          "title": "Timeout Ms",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "server_address"
+      ],
+      "title": "ZMQCameraConfig",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "robot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BiSOFollowerConfig"
+        },
+        {
+          "$ref": "#/$defs/EarthRoverMiniPlusConfig"
+        },
+        {
+          "$ref": "#/$defs/HopeJrArmConfig"
+        },
+        {
+          "$ref": "#/$defs/HopeJrHandConfig"
+        },
+        {
+          "$ref": "#/$defs/KochFollowerConfig"
+        },
+        {
+          "$ref": "#/$defs/LeKiwiConfig"
+        },
+        {
+          "$ref": "#/$defs/LeKiwiClientConfig"
+        },
+        {
+          "$ref": "#/$defs/OmxFollowerConfig"
+        },
+        {
+          "$ref": "#/$defs/Reachy2RobotConfig"
+        },
+        {
+          "$ref": "#/$defs/SOFollowerRobotConfig"
+        },
+        {
+          "$ref": "#/$defs/UnitreeG1Config"
+        }
+      ],
+      "title": "Robot"
+    },
+    "dataset": {
+      "$ref": "#/$defs/DatasetRecordConfig"
+    },
+    "teleop": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BiSOLeaderConfig"
+        },
+        {
+          "$ref": "#/$defs/GamepadTeleopConfig"
+        },
+        {
+          "$ref": "#/$defs/HomunculusArmConfig"
+        },
+        {
+          "$ref": "#/$defs/HomunculusGloveConfig"
+        },
+        {
+          "$ref": "#/$defs/KeyboardTeleopConfig"
+        },
+        {
+          "$ref": "#/$defs/KeyboardEndEffectorTeleopConfig"
+        },
+        {
+          "$ref": "#/$defs/KeyboardRoverTeleopConfig"
+        },
+        {
+          "$ref": "#/$defs/KochLeaderConfig"
+        },
+        {
+          "$ref": "#/$defs/OmxLeaderConfig"
+        },
+        {
+          "$ref": "#/$defs/PhoneConfig"
+        },
+        {
+          "$ref": "#/$defs/Reachy2TeleoperatorConfig"
+        },
+        {
+          "$ref": "#/$defs/SOLeaderTeleopConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Teleop"
+    },
+    "policy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ACTConfig"
+        },
+        {
+          "$ref": "#/$defs/DiffusionConfig"
+        },
+        {
+          "$ref": "#/$defs/GrootConfig"
+        },
+        {
+          "$ref": "#/$defs/PI0Config"
+        },
+        {
+          "$ref": "#/$defs/PI05Config"
+        },
+        {
+          "$ref": "#/$defs/PI0FastConfig"
+        },
+        {
+          "$ref": "#/$defs/RewardClassifierConfig"
+        },
+        {
+          "$ref": "#/$defs/SACConfig"
+        },
+        {
+          "$ref": "#/$defs/SARMConfig"
+        },
+        {
+          "$ref": "#/$defs/SmolVLAConfig"
+        },
+        {
+          "$ref": "#/$defs/TDMPCConfig"
+        },
+        {
+          "$ref": "#/$defs/VQBeTConfig"
+        },
+        {
+          "$ref": "#/$defs/WallXConfig"
+        },
+        {
+          "$ref": "#/$defs/XVLAConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy"
+    },
+    "display_data": {
+      "default": false,
+      "title": "Display Data",
+      "type": "boolean"
+    },
+    "display_ip": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Display Ip"
+    },
+    "display_port": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Display Port"
+    },
+    "display_compressed_images": {
+      "default": false,
+      "title": "Display Compressed Images",
+      "type": "boolean"
+    },
+    "play_sounds": {
+      "default": true,
+      "title": "Play Sounds",
+      "type": "boolean"
+    },
+    "resume": {
+      "default": false,
+      "title": "Resume",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "robot",
+    "dataset"
+  ],
+  "title": "RecordConfig",
+  "type": "object"
+}

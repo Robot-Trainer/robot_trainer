@@ -1,6 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../ui/Card';
-import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import {
+  Container,
+  Grid,
+  Typography,
+  Card,
+  CardContent,
+  Stack,
+  Box,
+  CircularProgress,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Paper
+} from '@mui/material';
+import {
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  AccessTime as AccessTimeIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 import { MOCK_LINES } from '../constants/mockData';
 
 const MonitoringView: React.FC = () => {
@@ -15,87 +36,126 @@ const MonitoringView: React.FC = () => {
     }, 500);
   }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusChip = (status: string) => {
     switch (status) {
-      case 'active': return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'error': return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      default: return <Clock className="h-5 w-5 text-gray-500" />;
+      case 'active':
+        return <Chip icon={<CheckCircleIcon />} label="Active" color="success" size="small" />;
+      case 'warning':
+        return <Chip icon={<WarningIcon />} label="Warning" color="warning" size="small" />;
+      case 'error':
+        return <Chip icon={<ErrorIcon />} label="Error" color="error" size="small" />;
+      default:
+        return <Chip icon={<AccessTimeIcon />} label={status} size="small" />;
+    }
+  };
+
+  const getRobotStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active': return <CheckCircleIcon color="success" fontSize="small" />;
+      case 'warning': return <WarningIcon color="warning" fontSize="small" />;
+      case 'error': return <ErrorIcon color="error" fontSize="small" />;
+      default: return <AccessTimeIcon color="action" fontSize="small" />;
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'error': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case 'info': return <Clock className="h-4 w-4 text-blue-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'error': return <ErrorIcon color="error" fontSize="small" />;
+      case 'warning': return <WarningIcon color="warning" fontSize="small" />;
+      case 'info': return <InfoIcon color="info" fontSize="small" />;
+      default: return <AccessTimeIcon color="action" fontSize="small" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-lg text-gray-500">Loading monitoring data...</div>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <CircularProgress size={24} />
+          <Typography color="textSecondary">Loading monitoring data...</Typography>
+        </Stack>
+      </Box>
     );
   }
 
   return (
-    <div className="h-full bg-gray-50 p-6 overflow-y-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Manufacturing Monitoring</h1>
-        <p className="text-gray-500">Real-time status of all assembly lines</p>
-      </div>
+    <Container maxWidth={false} sx={{ py: 3, height: '100%', overflowY: 'auto' }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Manufacturing Monitoring
+        </Typography>
+        <Typography variant="body1" color="textSecondary">
+          Real-time status of all assembly lines
+        </Typography>
+      </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Grid container spacing={3}>
         {lines.map(line => (
-          <Card key={line.id} className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{line.name}</h2>
-              <div className="flex items-center">
-                {getStatusIcon(line.status)}
-                <span className="ml-2 capitalize">{line.status}</span>
-              </div>
-            </div>
+          <Grid item xs={12} md={6} lg={4} key={line.id}>
+            <Card variant="outlined" sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                  <Typography variant="h6" component="h2">{line.name}</Typography>
+                  {getStatusChip(line.status)}
+                </Stack>
 
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Robots</h3>
-              <div className="space-y-2">
-                {line.robots.map((robot: any) => (
-                  <div key={robot.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span className="text-sm">{robot.name}</span>
-                    <div className="flex items-center">
-                      {getStatusIcon(robot.status)}
-                      <span className="ml-1 text-xs capitalize">{robot.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    Robots
+                  </Typography>
+                  <Stack spacing={1}>
+                    {line.robots.map((robot: any) => (
+                      <Paper key={robot.id} variant="outlined" sx={{ p: 1, bgcolor: 'background.default' }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2">{robot.name}</Typography>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            {getRobotStatusIcon(robot.status)}
+                            <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
+                              {robot.status}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Box>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Notifications</h3>
-              <div className="space-y-2">
-                {line.notifications.length === 0 ? (
-                  <p className="text-sm text-gray-500">No notifications</p>
-                ) : (
-                  line.notifications.map((notification: any) => (
-                    <div key={notification.id} className="flex items-start p-2 bg-gray-50 rounded">
-                      {getNotificationIcon(notification.type)}
-                      <div className="ml-2">
-                        <p className="text-sm">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </Card>
+                <Box>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    Notifications
+                  </Typography>
+                  <Stack spacing={1}>
+                    {line.notifications.length === 0 ? (
+                      <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                        No notifications
+                      </Typography>
+                    ) : (
+                      line.notifications.map((notification: any) => (
+                        <Paper key={notification.id} variant="outlined" sx={{ p: 1, bgcolor: 'background.default' }}>
+                          <Stack direction="row" spacing={1} alignItems="flex-start">
+                            <Box sx={{ mt: 0.5 }}>
+                              {getNotificationIcon(notification.type)}
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" sx={{ lineHeight: 1.3 }}>
+                                {notification.message}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {notification.timestamp}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      ))
+                    )}
+                  </Stack>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 };
 

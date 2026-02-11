@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getTableColumns } from "drizzle-orm";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Stack,
+  Alert
+} from "@mui/material";
 import { Button } from "./Button";
-import Card from "./Card";
 import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
 
@@ -27,6 +35,9 @@ type Props = {
     initialData?: any;
   }) => React.ReactNode;
 };
+
+import { Input } from './Input';
+import { Select } from './Select';
 
 const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
@@ -58,7 +69,6 @@ export const ResourceManager: React.FC<Props> = ({
     }
   }, [table]);
 
-  // activeResource: prefer explicit resource prop, otherwise use tableResource
   const activeResource: ResourceAPI = (resource as any) || (fullTableResource as any);
 
   // infer fields from table columns if not provided
@@ -145,13 +155,13 @@ export const ResourceManager: React.FC<Props> = ({
     setLoading(true);
     try {
       if (!activeResource || typeof activeResource.list !== 'function') {
-        setItems([]);
+        console.warn("No valid resource API found for", title);
         return;
       }
-      const res = await activeResource.list();
-      setItems(Array.isArray(res) ? res : []);
+      const data = await activeResource.list();
+      setItems(data);
     } catch (e) {
-      setItems([]);
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -161,33 +171,20 @@ export const ResourceManager: React.FC<Props> = ({
     load();
   }, [activeResource]);
 
-  const saveAll = async (next: any[]) => {
-    // upsert items by id
-    for (const it of next) {
-      if (!activeResource) continue;
-      if (it.id) {
-        try { await activeResource.update(it.id, it); } catch { await activeResource.create(it); }
-      } else {
-        await activeResource.create(it);
-      }
-    }
-    await load();
-  };
-
   const onCreate = () => {
     setForm(emptyFromFields(inferredFields));
     setEditing(null);
-    setShowForm(true);
     setErrors({});
     setSaveError(null);
+    setShowForm(true);
   };
 
-  const onEdit = (it: any) => {
-    setEditing(it);
-    setForm({ ...it });
-    setShowForm(true);
+  const onEdit = (item: any) => {
+    setForm({ ...item });
+    setEditing(item);
     setErrors({});
     setSaveError(null);
+    setShowForm(true);
   };
 
   const validate = (data: any) => {
@@ -220,7 +217,6 @@ export const ResourceManager: React.FC<Props> = ({
     }
 
     const dataToSave = { ...rawData };
-    // Convert numeric fields from string to number
     for (const f of inferredFields) {
       if (f.type === "number") {
         const val = dataToSave[f.name];
@@ -263,157 +259,150 @@ export const ResourceManager: React.FC<Props> = ({
   };
 
   return (
-    <div>
+    <Box>
       {!showForm && (
         <>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+            <Typography variant="h5" fontWeight="600">{title}</Typography>
             <Button onClick={onCreate} variant="primary" pulse={items.length === 0}>
-              Add {title.replace(/s$/, "")}
+              <Box display="flex" alignItems="center" gap={1}>
+                <span>Add {title.replace(/s$/, "")}</span>
+              </Box>
             </Button>
-          </div>
+          </Box>
+
           {loading ? (
-            <div>Loading…</div>
+            <Typography color="text.secondary">Loading...</Typography>
           ) : (
-            <div className="space-y-3 ">
+            <Stack spacing={2}>
               {items.length === 0 && (
-                <div className="">
-                  <div className="text-sm text-gray-500">
+                <Box textAlign="center" py={8} border="1px dashed #ccc" borderRadius={2}>
+                  <Typography color="text.secondary" mb={2}>
                     No {title.toLowerCase()} defined
-                  </div>
-                  <Button onClick={() => { setShowForm(true); }} className=" card w-sm h-48 m-auto p-auto my-8 justify-around items-center text-center border rounded-xl border-transparent flex">
-                    <span>Add a {title.replace(/s$/, "")}</span>
+                  </Typography>
+                  <Button onClick={onCreate}>
+                    Add a {title.replace(/s$/, "")}
                   </Button>
-                </div>
+                </Box>
               )}
               {items.map((it) => (
-                <div
-                  key={it.id}
-                  className="flex items-center justify-between p-3 border rounded-md"
-                >
-                  <div>
-                    <div className="font-medium">{it.name || "(unnamed)"}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        onEdit(it);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button variant="danger" onClick={() => onDelete(it.id)}>
-                      Delete
-                    </Button>
-                  </div>
-                </div>
+                <Card key={it.id} variant="outlined">
+                  <Box display="flex" alignItems="center" justifyContent="space-between" p={2}>
+                    <Typography fontWeight="500">{it.name || "(unnamed)"}</Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button variant="ghost" onClick={() => onEdit(it)}>Edit</Button>
+                      <Button variant="danger" onClick={() => onDelete(it.id)}>Delete</Button>
+                    </Stack>
+                  </Box>
+                </Card>
               ))}
-            </div>
+            </Stack>
           )}
         </>
       )}
 
       {showForm && (
-        <div className="mt-4">
-          {/* custom form overrides default */}
-          {typeof renderForm === "function" ? (
-            renderForm({
-              onCancel: () => {
-                setShowForm(false);
-                setEditing(null);
-              },
-              onSaved: async (item: any) => {
-                return await onSave(item);
-              },
-              initialData: editing || undefined,
-            })
-          ) : (
-            <>
-              <h3 className="font-medium">
-                {editing ? "Edit" : "Create"} {title.replace(/s$/, "")}
-              </h3>
+        <Card variant="outlined">
+          <CardContent>
+            {typeof renderForm === "function" ? (
+              renderForm({
+                onCancel: () => {
+                  setShowForm(false);
+                  setEditing(null);
+                },
+                onSaved: async (item: any) => {
+                  return await onSave(item);
+                },
+                initialData: editing || undefined,
+              })
+            ) : (
+              <>
+                <Typography variant="h6" mb={3}>
+                  {editing ? "Edit" : "Create"} {title.replace(/s$/, "")}
+                </Typography>
 
-              {editing && (
-                <div className="mb-4 text-xs text-gray-400 flex flex-wrap gap-4">
-                  {['createdAt', 'created_at'].map(k => editing[k] && (
-                    <div key={k}>Created: {new Date(editing[k]).toLocaleString()}</div>
-                  ))}
-                  {['updatedAt', 'updated_at'].map(k => editing[k] && (
-                    <div key={k}>Updated: {new Date(editing[k]).toLocaleString()}</div>
-                  ))}
-                </div>
-              )}
+                {editing && (
+                  <Box mb={3} display="flex" flexWrap="wrap" gap={2}>
+                    {['createdAt', 'created_at'].map(k => editing[k] && (
+                      <Typography key={k} variant="caption" color="text.secondary">
+                        Created: {new Date(editing[k]).toLocaleString()}
+                      </Typography>
+                    ))}
+                    {['updatedAt', 'updated_at'].map(k => editing[k] && (
+                      <Typography key={k} variant="caption" color="text.secondary">
+                        Updated: {new Date(editing[k]).toLocaleString()}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
 
-              <div className="grid grid-cols-2 gap-3">
-                {inferredFields.map((f) => (
-                  <label
-                    key={f.name}
-                    className={`flex flex-col text-sm border hover:border-gray-200 rounded px-2 py-1 transition-colors ${errors[f.name] ? "border-red-500" : "border-transparent"
-                      }`}
+                <Grid container spacing={2} mb={3}>
+                  {inferredFields.map((f) => {
+                    const options = (f.options || []).map(o => ({ label: o, value: o }));
+                    if (!f.required && f.type === 'select') {
+                      options.unshift({ label: 'Select...', value: '' });
+                    }
+
+                    return (
+                      <Grid item xs={12} md={6} key={f.name}>
+                        {f.type === "select" ? (
+                          <Select
+                            label={`${f.label}${f.required ? ' *' : ''}`}
+                            value={form[f.name] ?? ""}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                [f.name]: e.target.value,
+                              }))
+                            }
+                            options={options}
+                          />
+                        ) : (
+                          <Input
+                            label={`${f.label}${f.required ? ' *' : ''}`}
+                            value={form[f.name] ?? ""}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                [f.name]: e.target.value,
+                              }))
+                            }
+                            type={f.type || 'text'}
+                          />
+                        )}
+                        {errors[f.name] && (
+                          <Typography color="error" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                            {errors[f.name]}
+                          </Typography>
+                        )}
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+
+                {saveError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>
+                )}
+
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setForm(emptyFromFields(inferredFields));
+                      setEditing(null);
+                      setShowForm(false);
+                    }}
                   >
-                    <span className="text-gray-600 mb-1">
-                      {f.label} {f.required && "*"}
-                    </span>
-                    {f.type === "select" ? (
-                      <select
-                        value={form[f.name] ?? ""}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            [f.name]: e.target.value,
-                          })
-                        }
-                        className="w-full outline-none bg-white h-6"
-                      >
-                        {!f.required && <option value="">Select...</option>}
-                        {f.options?.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={form[f.name] ?? ""}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            [f.name]: e.target.value,
-                          })
-                        }
-                        className="w-full outline-none"
-                      />
-                    )}
-                    {errors[f.name] && (
-                      <span className="text-red-500 text-xs mt-1">
-                        {errors[f.name]}
-                      </span>
-                    )}
-                  </label>
-                ))}
-              </div>
-              {saveError && (
-                <div className="mt-2 text-red-500 text-sm">{saveError}</div>
-              )}
-              <div className="mt-3 flex gap-2">
-                <Button onClick={() => onSave()}>{editing ? "Save" : "Create"}</Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setForm(emptyFromFields(inferredFields));
-                    setEditing(null);
-                    setShowForm(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => onSave()}>{editing ? "Save" : "Create"}</Button>
+                </Stack>
+              </>
+            )}
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </Box>
   );
 };
 

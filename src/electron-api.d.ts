@@ -8,6 +8,7 @@ interface SerialPort {
 }
 
 interface ElectronAPI {
+  getUsername: () => Promise<string>;
   scanSerialPorts: () => Promise<SerialPort[]>;
   getMigrations: () => JSON;
   saveSystemSettings: (settings: any) => Promise<void>;

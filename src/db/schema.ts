@@ -112,6 +112,8 @@ export const sessionsTable = pgTable("sessions", {
   name: varchar("name").notNull(),
   skillId: integer("skill_id").references(() => skillsTable.id).notNull(),
   robotConfigurationId: integer("robot_configuration_id").references(() => robotConfigurationsTable.id).notNull(),
+  datasetConfig: jsonb("dataset_config").default({}),
+  robotConfigSnapshot: jsonb("robot_config_snapshot").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

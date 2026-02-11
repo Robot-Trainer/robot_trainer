@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Pencil, Plus, CheckCircle, Zap } from '../icons';
+import { TextField, MenuItem, Divider, ListSubheader, Box, IconButton } from '@mui/material';
+import { Pencil, Plus } from '../icons';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -110,44 +111,22 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
   onRobotsChanged,
   label
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [editingRobotId, setEditingRobotId] = useState<number | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const createRobot = async (data: any) => {
     try {
       const res = await robotsResource.create({
         ...data,
-        // Let DB handle createdAt via defaultNow()
       });
       await onRobotsChanged(); // Refresh list to get the new robot
       if (res && res.id) {
         onSelect(res.id);
         setEditingRobotId(res.id); // Immediately edit
-        setIsOpen(false);
       }
     } catch (e) {
       console.error(e);
       alert("Failed to create robot");
     }
-  };
-
-  const handleEdit = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingRobotId(id);
-    onSelect(id);
-    setIsOpen(false);
   };
 
   // Categorize
@@ -187,159 +166,135 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
     }
   }
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === '__create_real__') {
+      createRobot({
+        name: `Real Robot ${new Date().toLocaleString()}`,
+        data: { type: 'real' },
+        modality: 'real',
+        robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
+        serialNumber: ''
+      });
+    } else if (val === '__create_sim__') {
+      createRobot({
+        name: `Simulated Robot ${new Date().toLocaleString()}`,
+        data: { type: 'simulation' },
+        modality: 'simulated',
+        robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
+        serialNumber: 'sim-' + Date.now()
+      });
+    } else if (String(val).startsWith('__create_unknown_')) {
+      const idx = parseInt(val.split('_').pop()!, 10);
+      const d = unknownDevices[idx];
+      if (d) {
+        createRobot({
+          name: `New Robot (${d.serialNumber?.substring(0, 6)})`,
+          serialNumber: d.serialNumber,
+          modality: 'real',
+          data: { type: 'real' },
+          robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
+          notes: `Detected device: ${d.manufacturer}`
+        });
+      }
+    } else if (val) {
+      onSelect(Number(val));
+    }
+  };
+
   return (
-    <div className="mb-4 relative" ref={dropdownRef}>
-      {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
-
-      <div className="flex gap-2">
-        <div
-          className="flex-1 relative cursor-pointer"
-          onClick={() => setIsOpen(!isOpen)}
+    <Box mb={2}>
+      <Box display="flex" gap={1} alignItems="flex-start">
+        <TextField
+          select
+          label={label || "Follower Robot"}
+          value={selectedRobotId || ''}
+          onChange={handleChange}
+          fullWidth
+          size="small"
+          InputLabelProps={{ shrink: true }}
+          SelectProps={{
+            renderValue: (selected) => {
+              const r = robots.find(r => r.id === selected);
+              if (!r) return <span className="text-gray-500">Select or create follower...</span>;
+              return (
+                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                  <span className="font-medium">{r.name}</span>
+                  {r.modality === 'real' && (
+                    <>
+                      <Badge color="green">real</Badge>
+                      {connectedDevices.some(d => d.serialNumber === r.serialNumber) ? (
+                        <Badge color="green">connected</Badge>
+                      ) : (
+                        <Badge color="red">disconnected</Badge>
+                      )}
+                    </>
+                  )}
+                  {r.modality === 'simulated' && (
+                    <Badge color="blue">sim</Badge>
+                  )}
+                </Box>
+              );
+            }
+          }}
         >
-          <div className="w-full pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-h-[38px]">
-            {selectedRobot ? (
-              <div className="flex items-center flex-wrap gap-1">
-                <span className="font-medium">{selectedRobot.name}</span>
-                {selectedRobot.modality === 'real' && (
-                  <>
-                    <Badge color="green">real</Badge>
-                    {connectedDevices.some(d => d.serialNumber === selectedRobot.serialNumber) ? (
-                      <Badge color="green">connected</Badge>
-                    ) : (
-                      <Badge color="red">disconnected</Badge>
-                    )}
-                  </>
-                )}
-                {selectedRobot.modality === 'simulated' && (
-                  <Badge color="blue">sim</Badge>
-                )}
-              </div>
-            ) : (
-              <span className="text-gray-500">Select or create follower...</span>
-            )}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-            <ChevronRight className="h-4 w-4 rotate-90" />
-          </div>
-        </div>
-        {selectedRobot && (
-          <button
-            onClick={(e) => handleEdit(selectedRobot.id, e)}
-            className="p-2 text-gray-500 hover:text-blue-600 border rounded-md bg-white"
-            title="Edit Robot Properties"
-          >
-            <Pencil className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-96 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-
           {/* 1. Real & Connected */}
+          {realConnected.length > 0 && <ListSubheader>Real & Connected</ListSubheader>}
           {realConnected.map(r => (
-            <div
-              key={r.id}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-              onClick={() => { onSelect(r.id); setIsOpen(false); }}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate">{r.name}</span>
-                <Badge color="green">real</Badge>
-                <Badge color="green">connected</Badge>
-              </div>
-              {selectedRobotId === r.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
-            </div>
-          ))}
-
-          {/* 2. Simulated */}
-          {simulated.map(r => (
-            <div
-              key={r.id}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-              onClick={() => { onSelect(r.id); setIsOpen(false); }}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate">{r.name}</span>
-                <Badge color="blue">sim</Badge>
-              </div>
-              {selectedRobotId === r.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
-            </div>
+            <MenuItem key={r.id} value={r.id}>
+              {r.name}
+            </MenuItem>
           ))}
 
           {/* 3. Scanned (Unregistered) */}
+          {unknownDevices.length > 0 && <ListSubheader>Detected New Devices</ListSubheader>}
           {unknownDevices.map((d, i) => (
-            <div
-              key={`unk-${i}`}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between group"
-              onClick={() => createRobot({
-                name: `New Robot (${d.serialNumber?.substring(0, 6)})`,
-                serialNumber: d.serialNumber,
-                modality: 'real',
-                data: { type: 'real' },
-                robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
-                notes: `Detected device: ${d.manufacturer}`
-              })}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate text-gray-600 italic">
-                  S/N: {d.serialNumber}
-                </span>
-                <Badge color="green">connected</Badge>
-                <Badge color="yellow" tooltip="Not configured yet">real</Badge>
-              </div>
-              <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 mr-2 font-medium">Click to configure</span>
-            </div>
+            <MenuItem key={`unk-${i}`} value={`__create_unknown_${i}`} sx={{ fontStyle: 'italic' }}>
+              Add: {d.serialNumber} ({d.manufacturer})
+            </MenuItem>
+          ))}
+
+          {/* 2. Simulated */}
+          {simulated.length > 0 && <ListSubheader>Simulated</ListSubheader>}
+          {simulated.map(r => (
+            <MenuItem key={r.id} value={r.id}>
+              {r.name}
+            </MenuItem>
           ))}
 
           {/* 4. Real & Disconnected */}
+          {realDisconnected.length > 0 && <ListSubheader>Offline / Disconnected</ListSubheader>}
           {realDisconnected.map(r => (
-            <div
-              key={r.id}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-              onClick={() => { onSelect(r.id); setIsOpen(false); }}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate text-gray-500">{r.name}</span>
-                <Badge color="green">real</Badge>
-                <Badge color="red">disconnected</Badge>
-              </div>
-              {selectedRobotId === r.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
-            </div>
+            <MenuItem key={r.id} value={r.id} sx={{ color: 'text.secondary' }}>
+              {r.name}
+            </MenuItem>
           ))}
 
-          <hr className="my-1 border-gray-200" />
+          <Divider />
+          <MenuItem value="__create_real__" sx={{ color: 'primary.main', gap: 1 }}>
+            <Plus className="w-4 h-4" /> Create New Real Robot
+          </MenuItem>
+          <MenuItem value="__create_sim__" sx={{ color: 'primary.main', gap: 1 }}>
+            <Plus className="w-4 h-4" /> Create New Simulated Robot
+          </MenuItem>
+        </TextField>
 
-          {/* 5. New Options */}
-          <div
-            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-blue-700 flex items-center"
-            onClick={() => createRobot({
-              name: `Real Robot ${new Date().toLocaleString()}`,
-              data: { type: 'real' },
-              modality: 'real',
-              robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
-              serialNumber: ''
-            })}
+        {selectedRobot && (
+          <IconButton
+            onClick={() => setEditingRobotId(selectedRobot.id)}
+            size="small"
+            sx={{
+              border: '1px solid #e5e7eb',
+              borderRadius: 1,
+              p: '8px',
+              mt: '2px'
+            }}
+            title="Edit Robot Properties"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Real Robot
-          </div>
-          <div
-            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-blue-700 flex items-center"
-            onClick={() => createRobot({
-              name: `Simulated Robot ${new Date().toLocaleString()}`,
-              data: { type: 'simulation' },
-              modality: 'simulated',
-              robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
-              serialNumber: 'sim-' + Date.now()
-            })}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Simulated Robot
-          </div>
-
-        </div>
-      )}
-    </div>
+            <Pencil className="w-5 h-5 text-gray-500" />
+          </IconButton>
+        )}
+      </Box>
+    </Box>
   );
 };

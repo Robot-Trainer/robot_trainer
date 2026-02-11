@@ -6,7 +6,9 @@ import types
 import json
 import dataclasses
 import importlib
+import importlib.util
 import pkgutil
+from unittest.mock import MagicMock
 from pathlib import Path
 from typing import Union, List, Optional, Type, Any, get_origin, get_args
 
@@ -60,6 +62,18 @@ try:
     from lerobot.optim.optimizers import OptimizerConfig
     from lerobot.optim.schedulers import LRSchedulerConfig
     from lerobot.robots.config import RobotConfig
+
+    # Mock rerun to allow importing lerobot_record which depends on it
+    sys.modules["rerun"] = MagicMock()
+    
+    # Import lerobot_record from scripts using dynamic import since it is not in a package with __init__.py
+    scripts_path = site_packages / "lerobot/scripts/lerobot_record.py"
+    spec = importlib.util.spec_from_file_location("lerobot_record", str(scripts_path))
+    lerobot_record = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lerobot_record)
+    
+    RecordConfig = lerobot_record.RecordConfig
+    DatasetRecordConfig = lerobot_record.DatasetRecordConfig
 except ImportError as e:
     print(f"Error importing config classes: {e}")
     sys.exit(1)
@@ -166,34 +180,25 @@ def patch_class(cls):
     class_cache[cls] = patched_cls
     return patched_cls
 
-roots = [TrainPipelineConfig, GymManipulatorConfig, EvalConfig]
+
+roots = [RecordConfig, RobotConfig, DatasetRecordConfig, TeleoperatorConfig, PreTrainedConfig]
 
 print("Patching classes...")
 # We must patch roots and use the patched versions
-patched_roots = [patch_class(r) for r in roots]
+patched_roots = {r.__name__: patch_class(r) for r in roots}
 
-print(f"Patched roots: {[r.__name__ for r in patched_roots]}")
+print(f"Patched roots: {list(patched_roots.keys())}")
 
-# Verify one patch
-for r in patched_roots:
-    if r.__name__ == "TrainPipelineConfig":
-        # Check annotations of the NEW class
-        t = r.__annotations__.get('policy')
-        print(f"TrainPipelineConfig.policy type: {t}")
+print("Generating schemas...")
+for name, cls in patched_roots.items():
+    try:
+        adapter = TypeAdapter(cls)
+        schema = adapter.json_schema()
+        
+        output_path = f"src/python/{name}.json"
+        with open(output_path, "w") as f:
+            json.dump(schema, f, indent=2)
+        print(f"Schema for {name} saved to {output_path}")
+    except Exception as e:
+        print(f"Error generating schema for {name}: {e}")
 
-print("Generating schema...")
-MasterUnion = Union[tuple(patched_roots)]
-try:
-    adapter = TypeAdapter(MasterUnion)
-    schema = adapter.json_schema()
-except Exception as e:
-    print(f"Error generating schema: {e}")
-    sys.exit(1)
-
-output_path = "src/python/lerobot_schema.json"
-try:
-    with open(output_path, "w") as f:
-        json.dump(schema, f, indent=2)
-    print(f"Schema successfully saved to {output_path}")
-except Exception as e:
-    print(f"Error saving schema: {e}")

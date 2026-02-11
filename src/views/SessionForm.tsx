@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../db/db';
 import { eq } from 'drizzle-orm';
+import { getRobotConfigurationSnapshot } from '../db/selectors';
 import {
   robotConfigurationsTable,
   skillsTable,
@@ -13,6 +14,7 @@ import {
 } from '../db/schema';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import TextField from '@mui/material/TextField';
 import Select from '../ui/Select';
 import Badge from '../ui/Badge';
 import { Play, CheckCircle, ChevronRight } from '../icons';
@@ -158,6 +160,13 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [simStreamUrl, setSimStreamUrl] = useState<string | null>(null);
 
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+
+  // Dataset Config
+  const [repoId, setRepoId] = useState('');
+  const [singleTask, setSingleTask] = useState('');
+  const [fps, setFps] = useState<number>(30);
+  const [saving, setSaving] = useState(false);
 
   // Timers and refs
   const recordingStartTime = useRef<number | null>(null);
@@ -309,13 +318,27 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
               duration: 'N/A' // Not stored in schema
             })));
           }
+
+          // Dataset Config if existing
+          const ds = initialData.datasetConfig || {};
+          setRepoId(ds.repo_id || '');
+          setSingleTask(ds.single_task || '');
+          if (typeof ds.fps === 'number') setFps(ds.fps);
+
         } else {
-          // Defaults
+          // Defaults if creating new
           if (loadedConfigs.length > 0) setSelectedConfigId(loadedConfigs[0].id);
           if (loadedSkills.length > 0) setSelectedSkillId(loadedSkills[0].id);
+
+          const username = await (window as any).electronAPI?.getUsername?.() || 'user';
+          setRepoId(`${username}/new-dataset`);
+          // Try to set single task from skill if selected
+          if (loadedSkills.length > 0) setSingleTask(loadedSkills[0].name);
         }
       } catch (e) {
         console.error("Failed to load initial data", e);
+      } finally {
+        setLoadingInitial(false);
       }
     };
     loadData();
@@ -387,7 +410,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       const config = configs.find(c => c.id === selectedConfigId);
       // We pass some dummy config for now, or real config if we had it
       const res = await (window as any).electronAPI?.startSimulation({
-        // Pass relevant config params if available in your config object
+        env: 'aloha',
+        dataset: 'lerobot/aloha_sim_transfer_cube_human',
+        repo_id: 'lerobot/aloha_sim_transfer_cube_human',
+        policy_type: 'act',
+        fps: 30,
+        ...config
       });
       if (res && res.ok) {
         setSimRunning(true);
@@ -457,6 +485,39 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     }
   };
 
+  const handleSave = async () => {
+    if (!selectedConfigId || !selectedSkillId) return;
+    setSaving(true);
+    try {
+      const snapshot = await getRobotConfigurationSnapshot(selectedConfigId);
+
+      const datasetConfig = {
+        repo_id: repoId,
+        single_task: singleTask,
+        fps: fps,
+        // Default other fields that schema requires or we want
+        root: null,
+        video: true,
+        push_to_hub: true
+      };
+
+      const payload = {
+        id: initialData?.id,
+        name: sessionName,
+        robotConfigurationId: selectedConfigId,
+        skillId: selectedSkillId,
+        datasetConfig,
+        robotConfigSnapshot: snapshot
+      };
+
+      onSaved(payload);
+    } catch (e) {
+      console.error('Failed to save session', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Logic to start real cameras if available
   const activeCameras = cameras.filter(c => c.modality === 'real');
   const hasRealCameras = activeCameras.length > 0;
@@ -500,14 +561,15 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       {/* Top Bar */}
       <header className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onCancel}>← Back</Button>
           <div className="flex flex-col">
-            <label className="text-xs text-gray-500 font-semibold uppercase">Session Name</label>
-            <input
-              className="border-b border-gray-300 focus:border-blue-500 outline-none text-lg font-medium text-gray-900 w-64"
+            <TextField
+              label="Session Name"
+              variant="standard"
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
               placeholder="Enter Session Name"
+              InputProps={{ className: 'text-lg font-medium text-gray-900 w-64' }}
+              InputLabelProps={{ className: 'text-xs text-gray-500 font-semibold uppercase' }}
             />
           </div>
         </div>
@@ -529,12 +591,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
               options={skills.map(s => ({ label: s.name, value: String(s.id) }))}
             />
           </div>
-          <Button variant="primary" onClick={() => onSaved({
-            id: initialData?.id,
-            name: sessionName,
-            robotConfigurationId: selectedConfigId,
-            skillId: selectedSkillId
-          })}>Save Session</Button>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Session'}
+          </Button>
         </div>
       </header>
 
@@ -542,6 +601,43 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col gap-4 overflow-y-auto">
+
+          {/* Dataset Configuration */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Dataset</h3>
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 mb-1 font-medium">Repo ID</label>
+              <input
+                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full focus:ring-1 focus:ring-blue-500 outline-none"
+                value={repoId}
+                onChange={e => setRepoId(e.target.value)}
+                placeholder="username/dataset-name"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 mb-1 font-medium">Task Description</label>
+              <input
+                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full focus:ring-1 focus:ring-blue-500 outline-none"
+                value={singleTask} // Changed from description to singleTask
+                onChange={e => setSingleTask(e.target.value)}
+                placeholder="e.g. Pick the cube"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 mb-1 font-medium">FPS</label>
+              <select
+                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                value={fps}
+                onChange={e => setFps(Number(e.target.value))}
+              >
+                <option value={30}>30 FPS</option>
+                <option value={60}>60 FPS</option>
+                <option value={15}>15 FPS</option>
+              </select>
+            </div>
+          </div>
+
+          <hr className="border-gray-200" />
 
           {/* Simulation Controls */}
           <div className="space-y-2">

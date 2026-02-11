@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // https://vitejs.dev/config
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [{
     name: 'copy-drizzle',
     writeBundle: async () => {
@@ -18,10 +18,10 @@ export default defineConfig({
     rollupOptions: {
       external: ["serialport", "drizzle-orm"],
     },
-    watch: {
+    watch: mode === 'development' ? {
       // Exclude the Python venv from file watching to avoid ENOSPC errors
       exclude: ['src/python/.venv/**'],
-    },
+    } : null,
   },
   server: {
     watch: {
@@ -31,4 +31,4 @@ export default defineConfig({
   define: {
     'import.meta.env.mode': JSON.stringify('production'),
   },
-});
+}));

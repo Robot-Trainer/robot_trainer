@@ -1,56 +1,84 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Button from '../ui/Button';
-import { ChevronRight, CheckCircle } from '../icons';
+import { ChevronRight, CheckCircle, Loader } from '../icons';
 import useUIStore from '../lib/uiStore';
+import { Accordion, AccordionSummary, AccordionDetails, Typography, Box } from '@mui/material';
 
-const AccordionItem = ({ title, isOpen, onToggle, status, children, output }: any) => {
-  const [showDetails, setShowDetails] = useState(false);
+// Local icon components
+const XCircle = (props: any) => (
+  <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+  </svg>
+);
+
+const OutputLog = ({ output, status }: { output: string | null, status: string }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [output]);
+
+  if (!output && status !== 'loading') return null;
 
   return (
-    <div className="border rounded-md mb-2 overflow-hidden">
-      <div
-        className={`flex items-center justify-between p-3 cursor-pointer ${isOpen ? 'bg-gray-50' : 'bg-white'}`}
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-2">
-          {status === 'complete' ? (
-            <CheckCircle className="w-5 h-5 text-green-500" />
-          ) : (
-            <div className={`w-5 h-5 rounded-full border-2 ${status === 'loading' ? 'border-blue-500 border-t-transparent animate-spin' : 'border-gray-300'}`} />
-          )}
-          <span className="font-medium">{title}</span>
-        </div>
-        <ChevronRight className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+    <div className="mt-4 border-t border-gray-100 pt-3">
+      <div className="bg-gray-900 rounded-md p-3 shadow-inner max-h-64 overflow-y-auto" ref={scrollRef}>
+        <pre className="font-mono text-xs text-green-400 whitespace-pre-wrap break-all">
+          {output}
+          {status === 'loading' && <span className="animate-pulse">_</span>}
+        </pre>
       </div>
-      {isOpen && (
-        <div className="p-3 border-t bg-white">
-          {children}
-          {output && (
-            <div className="mt-4 border-t pt-2">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowDetails(!showDetails); }}
-                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-              >
-                {showDetails ? 'Hide Details' : 'See Details'}
-              </button>
-              {showDetails && (
-                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap max-h-48 font-mono">
-                  {output}
-                </pre>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
 
-export const SetupWizard: React.FC = () => {
-  const [step, setStep] = useState(1);
+const SetupAccordionItem = ({ title, expanded, onChange, status, children, output }: any) => {
+  return (
+    <Accordion expanded={expanded} onChange={onChange} disableGutters elevation={0} sx={{ border: '1px solid #e5e7eb', mb: 1, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+      <AccordionSummary
+        expandIcon={<ChevronRight className="w-5 h-5 text-gray-400 rotate-90" />}
+        aria-controls={`${title}-content`}
+        id={`${title}-header`}
+        sx={{
+          backgroundColor: expanded ? '#eff6ff' : 'white', // blue-50
+          borderRadius: '8px',
+          '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 2 }
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={2}>
+          {status === 'complete' ? (
+            <CheckCircle className="w-6 h-6 text-green-500" />
+          ) : status === 'error' ? (
+            <XCircle className="w-6 h-6 text-red-500" />
+          ) : status === 'loading' ? (
+            <Loader className="w-6 h-6 text-blue-500 animate-spin" />
+          ) : (
+            <div className="w-6 h-6 rounded-full border-2 border-gray-200" />
+          )}
+          <Typography variant="h6" className={status === 'pending' ? 'text-gray-500' : 'text-gray-900'} sx={{ fontSize: '1.125rem', fontWeight: 500 }}>
+            {title}
+          </Typography>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails sx={{ borderTop: '1px solid #dbeafe', p: 2 }}>
+        <div className="text-gray-600 leading-relaxed">
+          {children}
+        </div>
+        <OutputLog output={output} status={status} />
+      </AccordionDetails>
+    </Accordion>
+  );
+};
 
+export const SetupWizard: React.FC = () => {
   // Accordion state
   const [expandedItem, setExpandedItem] = useState<number | null>(1);
+
+  const handleAccordionChange = (panel: number) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedItem(isExpanded ? panel : null);
+  };
 
   // Step 1: Miniconda
   const [condaStatus, setCondaStatus] = useState<'pending' | 'loading' | 'complete' | 'error'>('pending');
@@ -68,49 +96,40 @@ export const SetupWizard: React.FC = () => {
   const [lerobotError, setLerobotError] = useState<string | null>(null);
   const [lerobotOutput, setLerobotOutput] = useState<string | null>(null);
 
+  // Store actions
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
   const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
   const showSetupWizardForced = useUIStore((s: any) => s.showSetupWizardForced);
   const setShowSetupWizardForced = useUIStore((s: any) => s.setShowSetupWizardForced);
 
-  // Initial check
+  // Initial check on mount
   useEffect(() => {
     checkConda();
   }, []);
 
-  // Listen for output events
+  // Listen for logs
   useEffect(() => {
-    const off1 = window.electronAPI.onInstallMinicondaOutput((data) => {
-      setCondaOutput((prev) => (prev || '') + data);
-    });
-    const off2 = window.electronAPI.onCreateAnacondaEnvOutput((data) => {
-      setEnvOutput((prev) => (prev || '') + data);
-    });
-    const off3 = window.electronAPI.onInstallLerobotOutput((data) => {
-      setLerobotOutput((prev) => (prev || '') + data);
-    });
-    return () => {
-      off1();
-      off2();
-      off3();
-    };
+    const off1 = (window as any).electronAPI.onInstallMinicondaOutput((data: any) => setCondaOutput(p => (p || '') + data));
+    const off2 = (window as any).electronAPI.onCreateAnacondaEnvOutput((data: any) => setEnvOutput(p => (p || '') + data));
+    const off3 = (window as any).electronAPI.onInstallLerobotOutput((data: any) => setLerobotOutput(p => (p || '') + data));
+    return () => { off1(); off2(); off3(); };
   }, []);
 
-  // auto-close modal when all steps complete
+  // Auto-close on success
   useEffect(() => {
     if (condaStatus === 'complete' && envStatus === 'complete' && lerobotStatus === 'complete') {
-      try {
-        // if the wizard was explicitly opened (menu), don't auto-close
+      const timer = setTimeout(() => {
         if (!showSetupWizardForced) setShowSetupWizard(false);
-      } catch (e) { console.error(e); }
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [condaStatus, envStatus, lerobotStatus, setShowSetupWizard, showSetupWizardForced]);
 
   const checkConda = async () => {
     setCondaStatus('loading');
     try {
-      const res = await window.electronAPI.checkAnaconda();
+      const res = await (window as any).electronAPI.checkAnaconda();
       setCondaResult(res);
       if (res.found) {
         setCondaStatus('complete');
@@ -118,16 +137,14 @@ export const SetupWizard: React.FC = () => {
         const hasEnv = res.envs.some((e: any) => e.name === 'robot_trainer');
         if (hasEnv) {
           setEnvStatus('complete');
-
-          // Also ensure we save the python path
+          // Save valid config
           const env = res.envs.find((e: any) => e.name === 'robot_trainer');
           if (env && env.pythonPath) {
-            await window.electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: res.path });
+            await (window as any).electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: res.path });
           }
-
           // Check LeRobot
           setLerobotStatus('loading');
-          const lr = await window.electronAPI.checkLerobot();
+          const lr = await (window as any).electronAPI.checkLerobot();
           if (lr.installed) {
             setLerobotStatus('complete');
             setExpandedItem(null);
@@ -140,7 +157,7 @@ export const SetupWizard: React.FC = () => {
           setExpandedItem(2);
         }
       } else {
-        setCondaStatus('pending'); // Not found, need action
+        setCondaStatus('pending');
         setExpandedItem(1);
       }
     } catch (e) {
@@ -149,194 +166,213 @@ export const SetupWizard: React.FC = () => {
     }
   };
 
-  const handleInstallMiniconda = async () => {
-    setCondaStatus('loading');
-    setCondaError(null);
-    setCondaOutput(null);
+  const handleInstallMiniconda = async (): Promise<boolean> => {
+    setCondaStatus('loading'); setCondaError(null); setCondaOutput('');
     try {
-      const res = await window.electronAPI.installMiniconda();
+      const res = await (window as any).electronAPI.installMiniconda();
       if (res.output) setCondaOutput(res.output);
       if (res.success) {
-        // Re-check
         await checkConda();
+        return true;
       } else {
         setCondaError(res.error || 'Installation failed');
         setCondaStatus('error');
+        return false;
       }
     } catch (e) {
       setCondaError(String(e));
       setCondaStatus('error');
+      return false;
     }
   };
 
-  const handleCreateEnv = async () => {
-    setEnvStatus('loading');
-    setEnvError(null);
-    setEnvOutput(null);
+  const handleCreateEnv = async (): Promise<boolean> => {
+    setEnvStatus('loading'); setEnvError(null); setEnvOutput('');
     try {
-      const res = await window.electronAPI.createAnacondaEnv('robot_trainer');
+      const res = await (window as any).electronAPI.createAnacondaEnv('robot_trainer');
       if (res.output) setEnvOutput(res.output);
       if (res.success) {
         setEnvStatus('complete');
-        setExpandedItem(3);
-        // Refresh conda result to get the new env path
-        const condaRes = await window.electronAPI.checkAnaconda();
+        // Refresh conda info
+        const condaRes = await (window as any).electronAPI.checkAnaconda();
         setCondaResult(condaRes);
-
-        // Save system settings with the new python path
         const env = condaRes.envs.find((e: any) => e.name === 'robot_trainer');
         if (env && env.pythonPath) {
-          await window.electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: condaRes.path });
+          await (window as any).electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: condaRes.path });
         }
+        return true;
       } else {
         setEnvError(res.output || 'Creation failed');
         setEnvStatus('error');
+        return false;
       }
     } catch (e) {
       setEnvError(String(e));
       setEnvStatus('error');
+      return false;
     }
   };
 
-  const handleInstallLerobot = async () => {
-    setLerobotStatus('loading');
-    setLerobotError(null);
-    setLerobotOutput(null);
+  const handleInstallLerobot = async (): Promise<boolean> => {
+    setLerobotStatus('loading'); setLerobotError(null); setLerobotOutput('');
     try {
-      const res = await window.electronAPI.installLerobot();
+      const res = await (window as any).electronAPI.installLerobot();
       if (res.output) setLerobotOutput(res.output);
       if (res.success) {
         setLerobotStatus('complete');
-        setExpandedItem(null); // All done
+        return true;
       } else {
         setLerobotError(res.error || res.output || 'Installation failed');
         setLerobotStatus('error');
+        return false;
       }
     } catch (e) {
       setLerobotError(String(e));
       setLerobotStatus('error');
+      return false;
     }
   };
 
+  const runAutoSetup = async () => {
+    // 1. Conda
+    let step1Success = condaStatus === 'complete';
+    if (!step1Success) {
+      setExpandedItem(1);
+      step1Success = await handleInstallMiniconda();
+    }
+    if (!step1Success) return;
+
+    // 2. Env
+    const condaRes = await (window as any).electronAPI.checkAnaconda();
+    const hasEnv = condaRes.envs.some((e: any) => e.name === 'robot_trainer');
+
+    if (!hasEnv) {
+      setExpandedItem(2);
+      const step2Success = await handleCreateEnv();
+      if (!step2Success) return;
+    }
+
+    // 3. LeRobot
+    const lr = await (window as any).electronAPI.checkLerobot();
+    if (!lr.installed) {
+      setExpandedItem(3);
+      const step3Success = await handleInstallLerobot();
+      if (!step3Success) return;
+    }
+
+    setExpandedItem(null);
+  };
+
+  const isRunning = condaStatus === 'loading' || envStatus === 'loading' || lerobotStatus === 'loading';
+  const allComplete = condaStatus === 'complete' && envStatus === 'complete' && lerobotStatus === 'complete';
+
   return (
-    <div className="max-w-4xl mx-auto pt-8">
-      <div className="mb-8 text-center">
-        <h2 className="text-2xl font-semibold text-gray-900">Welcome!</h2>
-        <p className="text-gray-500 mt-1">
-          Let's setup your environment. This takes a few steps (and some time), but with your permission, we'll handle it all for you.
+    <div className="max-w-3xl mx-auto flex flex-col h-full py-10 px-6">
+      <div className="text-center mb-10">
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Environment Setup
+        </Typography>
+        <p className="text-gray-500">
+          We'll get everything ready for you.
         </p>
       </div>
 
-      <div className="mt-4 max-w-2xl mx-auto">
-        <AccordionItem
-          title="1. Detect or Install Miniconda"
-          isOpen={expandedItem === 1}
-          onToggle={() => setExpandedItem(expandedItem === 1 ? null : 1)}
+      <div className="flex-1 space-y-4">
+        {/* Step 1 */}
+        <SetupAccordionItem
+          title="Miniconda Installation"
+          expanded={expandedItem === 1}
+          onChange={handleAccordionChange(1)}
           status={condaStatus}
           output={condaOutput}
         >
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              Miniconda is a minimal installer for conda. It is a small, <a href="https://anaconda.com" target="_blank" rel="noopener noreferrer">enterprise-grade package manager for Python</a>.
-            </p>
-            {condaStatus === 'complete' ? (
-              <div className="text-sm text-green-600">
-                Miniconda/Anaconda detected at: <span className="font-mono">{condaResult?.path}</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {condaError && <div className="text-sm text-red-600">{condaError}</div>}
-                <Button onClick={handleInstallMiniconda} disabled={condaStatus === 'loading'}>
-                  {condaStatus === 'loading' ? 'Installing. This may take a while...' : 'Install Miniconda'}
-                </Button>
-                <div className="text-xs text-gray-500">
-                  This will install Miniconda to your application data folder.
-                </div>
-              </div>
-            )}
-          </div>
-        </AccordionItem>
+          {condaStatus === 'complete' ? (
+            <span>Found existing installation at <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">{condaResult?.path}</code>.</span>
+          ) : (
+            <>
+              Checks for <strong>Miniconda</strong>. If missing, it will be downloaded and installed to manage Python packages.
+              {condaError && <div className="mt-2 text-red-600 bg-red-50 p-2 rounded text-sm">{condaError}</div>}
+            </>
+          )}
+        </SetupAccordionItem>
 
-        <AccordionItem
-          title="2. Create Robot Trainer Environment"
-          isOpen={expandedItem === 2}
-          onToggle={() => setExpandedItem(expandedItem === 2 ? null : 2)}
+        {/* Step 2 */}
+        <SetupAccordionItem
+          title="Python Environment Setup"
+          expanded={expandedItem === 2}
+          onChange={handleAccordionChange(2)}
           status={envStatus}
           output={envOutput}
         >
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              We need a dedicated Python environment named <code>robot_trainer</code> to manage dependencies.
-            </p>
-            {envStatus === 'complete' ? (
-              <div className="text-sm text-green-600">
-                Environment <code>robot_trainer</code> is ready.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {envError && <div className="text-sm text-red-600 whitespace-pre-wrap">{envError}</div>}
-                <Button onClick={handleCreateEnv} disabled={envStatus === 'loading' || condaStatus !== 'complete'}>
-                  {envStatus === 'loading' ? 'Creating...' : 'Create Environment'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </AccordionItem>
+          {envStatus === 'complete' ? (
+            <span>Environment <code className="text-blue-600 font-medium">robot_trainer</code> is ready.</span>
+          ) : (
+            <>
+              Creates a dedicated Python environment (<code className="text-blue-600">robot_trainer</code>) to keep dependencies isolated and organized.
+              {envError && <div className="mt-2 text-red-600 bg-red-50 p-2 rounded text-sm">{envError}</div>}
+            </>
+          )}
+        </SetupAccordionItem>
 
-        <AccordionItem
-          title="3. Install LeRobot"
-          isOpen={expandedItem === 3}
-          onToggle={() => setExpandedItem(expandedItem === 3 ? null : 3)}
+        {/* Step 3 */}
+        <SetupAccordionItem
+          title="LeRobot Library Installation"
+          expanded={expandedItem === 3}
+          onChange={handleAccordionChange(3)}
           status={lerobotStatus}
           output={lerobotOutput}
         >
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              <a href="https://huggingface.co/docs/lerobot/index" target="_blank" rel="noopener noreferrer">LeRobot</a> is a library for robot learning. We will install it into the <code>robot_trainer</code> environment.
-            </p>
-            {lerobotStatus === 'complete' ? (
-              <div className="text-sm text-green-600">
-                LeRobot installed successfully.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {lerobotError && <div className="text-sm text-red-600 whitespace-pre-wrap">{lerobotError}</div>}
-                <Button onClick={handleInstallLerobot} disabled={lerobotStatus === 'loading' || envStatus !== 'complete'}>
-                  {lerobotStatus === 'loading' ? 'Installing. This may take even longer...' : 'Install LeRobot'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </AccordionItem>
+          {lerobotStatus === 'complete' ? (
+            <span>All required libraries are installed.</span>
+          ) : (
+            <>
+              Installs the <strong>LeRobot</strong> library and other necessary tools into the environment.
+              {lerobotError && <div className="mt-2 text-red-600 bg-red-50 p-2 rounded text-sm">{lerobotError}</div>}
+            </>
+          )}
+        </SetupAccordionItem>
       </div>
 
-      <div className="flex justify-between mt-8 max-w-2xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => {
-            if (step === 1) {
+      <div className="mt-8 flex justify-center">
+        {!allComplete && (
+          <Button
+            onClick={runAutoSetup}
+            disabled={isRunning}
+            className="w-full max-w-sm py-3 text-lg shadow-lg hover:shadow-xl transition-shadow"
+          >
+            {isRunning ? 'Setting up...' : 'Start Setup'}
+          </Button>
+        )}
+        {allComplete && (
+          <Button
+            variant="ghost"
+            onClick={() => {
               setResourceManagerShowForm(false);
               setCurrentPage('robots');
               setShowSetupWizard(false);
-              try { setShowSetupWizardForced(false); } catch (e) { console.error(e); }
-            } else {
-              setStep((s) => Math.max(1, s - 1));
-            }
-          }}
-        >
-          Back
-        </Button>
-        {step < 4 ? (
-          <Button
-            onClick={() => setStep((s) => Math.min(4, s + 1))}
-            disabled={lerobotStatus !== 'complete'}
+              try { setShowSetupWizardForced(false); } catch (e) { }
+            }}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
           >
-            Next Step <ChevronRight className="h-4 w-4 ml-2" />
+            Setup Complete. Close Wizard →
           </Button>
-        ) : null}
+        )}
       </div>
-    </div >
+
+      {/* Optional fallback close/back if stuck */}
+      {(!isRunning && !allComplete) && (
+        <div className="text-center mt-4">
+          <button
+            onClick={() => {
+              setShowSetupWizard(false);
+              try { setShowSetupWizardForced(false); } catch (e) { }
+            }}
+            className="text-sm text-gray-400 hover:text-gray-600 underline"
+          >
+            Skip / Close
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
-
-export default SetupWizard;

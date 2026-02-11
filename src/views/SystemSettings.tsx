@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import Card from '../ui/Card';
+import { Card, CardContent, Container, Typography, Stack, TextField, IconButton, Alert, Box } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { configResource } from '../db/resources';
@@ -54,7 +56,7 @@ const SystemSettings: React.FC = () => {
       if ((window as any).electronAPI?.saveSystemSettings) {
         const res = await (window as any).electronAPI.saveSystemSettings(settings);
         if (res && res.success === false) {
-           throw new Error(res.error || 'Unknown error');
+          throw new Error(res.error || 'Unknown error');
         }
       }
       setMessage('Settings saved');
@@ -82,58 +84,121 @@ const SystemSettings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pt-8">
-      <div className="mb-6 text-center">
-        <h2 className="text-2xl font-semibold text-gray-900">System Settings</h2>
-        <p className="text-gray-500 mt-1">Configure Python interpreter and system-level environment variables</p>
-      </div>
+    <Container maxWidth="md" sx={{ pt: 4 }}>
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          System Settings
+        </Typography>
+        <Typography variant="body1" color="textSecondary">
+          Configure Python interpreter and system-level environment variables
+        </Typography>
+      </Box>
 
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-700">Python Interpreter Path</label>
-            <Input value={settings.pythonPath || ''} onChange={(e: any) => update({ pythonPath: e.target.value })} placeholder="/usr/bin/python3 or C:\\Python39\\python.exe" />
-            <p className="text-xs text-gray-500 mt-1">Full path to the Python interpreter to use for jobs.</p>
-          </div>
+      <Card variant="outlined">
+        <CardContent>
+          <Stack spacing={3}>
+            <Box>
+              <Input
+                label="Python Interpreter Path"
+                value={settings.pythonPath || ''}
+                onChange={(e: any) => update({ pythonPath: e.target.value })}
+                placeholder="/usr/bin/python3 or C:\\Python39\\python.exe"
+              />
+              <Typography variant="caption" color="textSecondary">
+                Full path to the Python interpreter to use for jobs.
+              </Typography>
+            </Box>
 
-          <div>
-            <label className="block text-sm text-gray-700">Virtual Environment Path</label>
-            <Input value={settings.venvPath || ''} onChange={(e: any) => update({ venvPath: e.target.value })} placeholder="/home/user/.venv/myenv" />
-            <p className="text-xs text-gray-500 mt-1">Optional: point to a virtual environment to use.</p>
-          </div>
+            <Box>
+              <Input
+                label="Virtual Environment Path"
+                value={settings.venvPath || ''}
+                onChange={(e: any) => update({ venvPath: e.target.value })}
+                placeholder="/home/user/.venv/myenv"
+              />
+              <Typography variant="caption" color="textSecondary">
+                Optional: point to a virtual environment to use.
+              </Typography>
+            </Box>
 
-          <div>
-            <label className="block text-sm text-gray-700">Extra PATH entries</label>
-            <textarea className="w-full mt-1 p-2 border rounded text-sm" rows={3} value={settings.extraPath || ''} onChange={(e) => update({ extraPath: e.target.value })} placeholder="/opt/bin\n/other/bin" />
-            <p className="text-xs text-gray-500 mt-1">Add extra directories (one per line) to prepend to PATH for subprocesses.</p>
-          </div>
+            <Box>
+              <TextField
+                label="Extra PATH entries"
+                multiline
+                rows={3}
+                value={settings.extraPath || ''}
+                onChange={(e) => update({ extraPath: e.target.value })}
+                placeholder={"/opt/bin\n/other/bin"}
+                fullWidth
+                variant="outlined"
+                size="small"
+                InputLabelProps={{ shrink: true }}
+              />
+              <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 0.5 }}>
+                Add extra directories (one per line) to prepend to PATH for subprocesses.
+              </Typography>
+            </Box>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-sm text-gray-700">Environment Variables</label>
-              <Button variant="ghost" onClick={addEnvVar}>Add</Button>
-            </div>
+            <Box>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                <Typography variant="h6">Environment Variables</Typography>
+                <Button variant="ghost" onClick={addEnvVar}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <AddIcon fontSize="small" />
+                    <span>Add Variable</span>
+                  </Stack>
+                </Button>
+              </Stack>
 
-            <div className="mt-2 space-y-2">
-              {(settings.envVars || []).map((v, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Input className="flex-1" value={v.key} onChange={(e: any) => setEnvVar(idx, 'key', e.target.value)} placeholder="KEY" />
-                  <Input className="flex-1" value={v.value} onChange={(e: any) => setEnvVar(idx, 'value', e.target.value)} placeholder="VALUE" />
-                  <Button variant="ghost" onClick={() => removeEnvVar(idx)}>Remove</Button>
-                </div>
-              ))}
-              {(!settings.envVars || settings.envVars.length === 0) && <div className="text-sm text-gray-500">No environment variables configured.</div>}
-            </div>
-          </div>
+              <Stack spacing={2}>
+                {(settings.envVars || []).map((env, idx) => (
+                  <Stack key={idx} direction="row" spacing={2} alignItems="center">
+                    <Box sx={{ flex: 1 }}>
+                      <Input
+                        label="Key"
+                        value={env.key}
+                        onChange={(e: any) => setEnvVar(idx, 'key', e.target.value)}
+                        placeholder="MY_ENV_VAR"
+                        className="mb-0" // override Input's default margin
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Input
+                        label="Value"
+                        value={env.value}
+                        onChange={(e: any) => setEnvVar(idx, 'value', e.target.value)}
+                        placeholder="Value..."
+                        className="mb-0" // override Input's default margin
+                      />
+                    </Box>
+                    <IconButton onClick={() => removeEnvVar(idx)} color="error" size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                ))}
+                {(settings.envVars || []).length === 0 && (
+                  <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                    No environment variables defined.
+                  </Typography>
+                )}
+              </Stack>
+            </Box>
 
-          <div className="flex items-center gap-3">
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</Button>
-            <Button variant="ghost" onClick={() => { setSettings(defaultSettings); setMessage('Reset to defaults'); }}>Reset</Button>
-            {message && <div className="text-sm text-gray-600 ml-3">{message}</div>}
-          </div>
-        </div>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2 }}>
+              <Button onClick={save} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </Box>
+
+            {message && (
+              <Alert severity={message.includes('Failed') ? 'error' : 'success'}>
+                {message}
+              </Alert>
+            )}
+          </Stack>
+        </CardContent>
       </Card>
-    </div>
+    </Container>
   );
 };
 

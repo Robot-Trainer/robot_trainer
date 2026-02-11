@@ -44,7 +44,7 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     // Poll for the wizard for a short period; it should NOT appear
     let found = true;
     try {
-      await window.waitForSelector('text=Welcome!', { timeout: 10000 });
+      await window.waitForSelector('text=Environment Setup', { timeout: 10000 });
       found = true;
     } catch {
       found = false;
@@ -75,7 +75,7 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
 
     await window.waitForLoadState('domcontentloaded');
     // Wait until the setup wizard appears and any loading settles
-    await window.waitForSelector('text=Welcome!', { timeout: 10000 });
+    await window.waitForSelector('text=Environment Setup', { timeout: 10000 });
     await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
     await window.screenshot({ path: 'test-results/setupwizard-firstload-2-missing-paths.png', fullPage: true });
   });
@@ -101,7 +101,7 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     });
 
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForSelector('text=Welcome!', { timeout: 10000 });
+    await window.waitForSelector('text=Environment Setup', { timeout: 10000 });
     await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
     await window.screenshot({ path: 'test-results/setupwizard-firstload-3-env-missing.png', fullPage: true });
   });
@@ -127,7 +127,7 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     });
 
     await window.waitForLoadState('domcontentloaded');
-    await window.waitForSelector('text=Welcome!', { timeout: 10000 });
+    await window.waitForSelector('text=Environment Setup', { timeout: 10000 });
     await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
     await window.screenshot({ path: 'test-results/setupwizard-firstload-4-lerobot-missing.png', fullPage: true });
   });

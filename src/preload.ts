@@ -3,6 +3,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  getUsername: () => ipcRenderer.invoke('get-username'),
   scanSerialPorts: () => ipcRenderer.invoke("scan-serial-ports"),
   saveSystemSettings: (settings: any) =>
     ipcRenderer.invoke("save-system-settings", settings),

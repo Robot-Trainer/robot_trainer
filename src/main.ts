@@ -109,6 +109,10 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
 // Handle Serial port port scanning from renderer process
 const setupIpcHandlers = () => {
 
+  ipcMain.handle('get-username', () => {
+    return process.env.USER || process.env.USERNAME || 'user';
+  });
+
   ipcMain.handle('get-migrations', async () => {
     let migrationsFolder: string;
     if (app.isPackaged) {

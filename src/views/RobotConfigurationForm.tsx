@@ -10,6 +10,8 @@ import { robotModelsResource, teleoperatorModelsResource, robotsResource, camera
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
+import ConfigForm from './ConfigForm';
+import RobotConfigSchema from '../python/RobotConfig.json';
 
 interface RobotConfigurationFormProps {
   onCancel?: () => void;
@@ -19,6 +21,7 @@ interface RobotConfigurationFormProps {
 
 export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ onCancel, onSaved, initialData }) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [configName, setConfigName] = useState('');
   const [leaderType, setLeaderType] = useState<'keyboard' | 'gamepad' | 'real' | 'phone'>('keyboard');
@@ -70,7 +73,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
   // If opened for editing, populate simple top-level fields from the initial data
   useEffect(() => {
     if (!initialData) return;
-    
+
     const hydrate = async () => {
       try {
         setConfigName(initialData.name || '');
@@ -184,9 +187,14 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
       return;
     }
 
-        const selectedCameraIds = cameraSlots
-          .map((s) => s.id)
-          .filter((id): id is number => id !== null);
+    if (!selectedRobotId) {
+      alert("Please select a follower robot.");
+      return;
+    }
+
+    const selectedCameraIds = cameraSlots
+      .map((s) => s.id)
+      .filter((id): id is number => id !== null);
 
 
     // Try to find current port info if connected
@@ -299,7 +307,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
       // 4. Save Teleoperator (Diff & Upsert)
       const existingTeleops = await db.select().from(configTeleoperatorsTable).where(eq(configTeleoperatorsTable.configurationId, configurationId));
       const existingTeleop = existingTeleops[0];
-      
+
       let desiredTeleopId: number | null = null;
       if (leaderType === 'real' && leaderModel) {
         const parsed = parseInt(leaderModel, 10);
@@ -310,14 +318,14 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
         if (desiredTeleopId === null) {
           // Was present, now removed
           await db.delete(configTeleoperatorsTable).where(and(
-             eq(configTeleoperatorsTable.configurationId, configurationId),
-             eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+            eq(configTeleoperatorsTable.configurationId, configurationId),
+            eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
           ));
         } else if (existingTeleop.teleoperatorId !== desiredTeleopId) {
           // Changed model: Delete old, Insert new
-           await db.delete(configTeleoperatorsTable).where(and(
-             eq(configTeleoperatorsTable.configurationId, configurationId),
-             eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+          await db.delete(configTeleoperatorsTable).where(and(
+            eq(configTeleoperatorsTable.configurationId, configurationId),
+            eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
           ));
           await db.insert(configTeleoperatorsTable).values({
             configurationId,
@@ -329,8 +337,8 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
           await db.update(configTeleoperatorsTable).set({
             snapshot: { config: leaderConfig, type: leaderType }
           }).where(and(
-             eq(configTeleoperatorsTable.configurationId, configurationId),
-             eq(configTeleoperatorsTable.teleoperatorId, desiredTeleopId)
+            eq(configTeleoperatorsTable.configurationId, configurationId),
+            eq(configTeleoperatorsTable.teleoperatorId, desiredTeleopId)
           ));
         }
       } else {
@@ -352,6 +360,19 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
 
   const deviceOptions = getDeviceOptions();
   const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
+
+  if (showAdvanced) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-4">
+          <Button onClick={() => setShowAdvanced(false)} variant="secondary">
+            &larr; Back to Basic Config
+          </Button>
+        </div>
+        <ConfigForm schema={RobotConfigSchema as any} title="Advanced Robot Configuration" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -426,8 +447,8 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
           <h3 className="text-lg font-medium mb-4">Leader Arm (Teleoperator)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
               <Select
+                label="Type"
                 value={leaderType}
                 onChange={(e) => setLeaderType(e.target.value as any)}
                 options={[
@@ -442,8 +463,8 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             {leaderType === 'real' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Teleoperator Model</label>
                   <Select
+                    label="Teleoperator Model"
                     value={leaderModel}
                     onChange={(e) => setLeaderModel(e.target.value)}
                     options={availableTeleoperators}
@@ -485,8 +506,12 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
         <hr />
 
 
-        <div className="flex justify-end pt-4">
-          <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
+        <div className="flex justify-between pt-4">
+          <Button onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</Button>
+          <div className="flex gap-2">
+            {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
+            <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
+          </div>
         </div>
       </Card>
     </div>

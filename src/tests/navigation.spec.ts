@@ -63,7 +63,7 @@ test.describe('Environment Check Navigation', () => {
     await expect(window.locator('text=Loading env...')).not.toBeVisible({ timeout: 10000 });
 
     // Should NOT see wizard (because config is present AND check passed)
-    await expect(window.locator('text=Welcome!')).not.toBeVisible();
+    await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).not.toBeVisible();
 
     // 3. Test Failure Case
     await setIpcHandlers({
@@ -76,7 +76,7 @@ test.describe('Environment Check Navigation', () => {
     await window.reload();
 
     // Wizard should appear
-    await expect(window.locator('text=Welcome!')).toBeVisible();
+    await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).toBeVisible();
 
     // "Loading env..." should be gone
     await expect(window.locator('text=Loading env...')).not.toBeVisible();

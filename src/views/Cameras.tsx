@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box } from '@mui/material';
 import ResourceManager from '../ui/ResourceManager';
 import { camerasTable } from '../db/schema';
 import { db } from '../db/db';
@@ -12,9 +13,9 @@ const CameraFields = [
 
 const CamerasView: React.FC = () => {
   return (
-    <div className="p-6">
+    <Box sx={{ p: 3 }}>
       <ResourceManager title="Cameras" table={camerasTable} />
-    </div>
+    </Box>
   );
 };
 

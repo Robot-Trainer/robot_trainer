@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card as MuiCard } from '@mui/material';
 
 type Props = {
   children?: React.ReactNode;
@@ -6,9 +7,9 @@ type Props = {
 };
 
 export const Card: React.FC<Props> = ({ children, className = '' }) => (
-  <div className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
+  <MuiCard className={className}>
     {children}
-  </div>
+  </MuiCard>
 );
 
 export default Card;

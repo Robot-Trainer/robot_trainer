@@ -20,31 +20,50 @@ test.describe('Robot Configuration Wizard', () => {
     await expect(window.locator('text=Robot Setup')).toBeVisible(); 
 
     // 5. Select Simulation Type for Follower to see Robot Models
-    await window.click('text=Select or create follower');
-    await window.click('text=Create New Simulated Robot');
+    // Open the dropdown
+    await window.getByLabel('Follower Robot').click();
+    // Select the option
+    await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
 
     // Verify Robot Editor appears and the Model dropdown is visible
     const followerEditor = window.locator('div').filter({ has: window.locator('h4', { hasText: 'Edit Simulated Robot' }) }).first();
     await expect(followerEditor).toBeVisible();
 
-    const followerModelSelect = followerEditor.locator('label:has-text("Model") >> .. >> select');
-    await expect(followerModelSelect).toBeVisible();
+    const followerModelLabel = followerEditor.getByLabel('Model');
+    await expect(followerModelLabel).toBeVisible();
 
     // Verify content (seeded data)
-    const followerOptions = await followerModelSelect.innerText();
+    // Open the Model dropdown to see options
+    await followerModelLabel.click();
+    
+    // Check options in the listbox
+    const listbox = window.getByRole('listbox');
+    await expect(listbox).toBeVisible();
+    const followerOptions = await listbox.innerText();
     expect(followerOptions).toContain('SO100 Follower');
     expect(followerOptions).toContain('Reachy 2');
+    
+    // Close the dropdown (press Escape or click backdrop)
+    await window.keyboard.press('Escape');
 
     // 6. Select Real Robot Teleoperation for Leader to see Teleoperator Models
-    const leaderTypeSelect = window.locator('section:has-text("Leader Arm") >> label:has-text("Type") >> .. >> select');
-    await leaderTypeSelect.selectOption({ label: 'Real Robot Teleoperation' });
+    // The "Type" select inside Leader Arm section
+    const leaderSection = window.locator('section', { hasText: 'Leader Arm' });
+    const leaderTypeSelect = leaderSection.getByLabel('Type');
+    
+    await leaderTypeSelect.click();
+    await window.getByRole('option', { name: 'Real Robot Teleoperation' }).click();
 
     // Verify Teleoperator Model dropdown appears
-    const leaderModelSelect = window.locator('section:has-text("Leader Arm") >> label:has-text("Teleoperator Model") >> .. >> select');
+    const leaderModelSelect = leaderSection.getByLabel('Teleoperator Model');
     await expect(leaderModelSelect).toBeVisible();
 
     // Verify content (seeded data)
-    const leaderOptions = await leaderModelSelect.innerText();
+    await leaderModelSelect.click();
+    const leaderListbox = window.getByRole('listbox');
+    await expect(leaderListbox).toBeVisible();
+    
+    const leaderOptions = await leaderListbox.innerText();
     expect(leaderOptions).toContain('Phone');
     expect(leaderOptions).toContain('Omx Leader');
     expect(leaderOptions).not.toContain('mock_teleop');

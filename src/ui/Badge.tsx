@@ -1,4 +1,5 @@
 import React from 'react';
+import { Chip } from '@mui/material';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -8,20 +9,25 @@ interface BadgeProps {
 }
 
 const Badge: React.FC<BadgeProps> = ({ children, color, tooltip, className = '' }) => {
-  const colors = {
-    green: 'bg-green-100 text-green-800 border-green-200',
-    blue: 'bg-blue-100 text-blue-800 border-blue-200',
-    red: 'bg-red-100 text-red-800 border-red-200',
-    yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  const colorMap: Record<string, "success" | "primary" | "error" | "warning" | "default"> = {
+    green: 'success',
+    blue: 'primary',
+    red: 'error',
+    yellow: 'warning',
   };
 
   return (
-    <span
+    <Chip
+      label={children}
+      color={colorMap[color] || 'default'}
+      size="small"
       title={tooltip}
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colors[color]} mx-1 ${className}`}
-    >
-      {children}
-    </span>
+      className={`mx-1 ${className}`}
+      sx={{ borderRadius: 1 }} // Current was 'rounded' (small radius), not 'rounded-full' like Chip. Keeping closer to original shape? 
+      // User said "Material UI version", so maybe I should let it be a pill? 
+      // I'll leave borderRadius default (pill) as that IS the Material UI version. 
+      // Commenting out sx change -> actually I will remove it.
+    />
   );
 };
 

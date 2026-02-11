@@ -16,7 +16,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     });
 
     await window.click('text=System Settings');
-    await window.fill('label:has-text("Python Interpreter Path") + div input', '/usr/bin/python3');
+    await window.getByLabel('Python Interpreter Path').fill('/usr/bin/python3');
     await window.click('text=Save Settings');
     await window.waitForSelector('text=Settings saved');
   });
@@ -33,18 +33,19 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     });
 
     await window.click('text=System Settings');
-    await window.fill('label:has-text("Python Interpreter Path") + div input', '/usr/bin/python3');
+    await window.getByLabel('Python Interpreter Path').fill('/usr/bin/python3');
     await window.click('text=Save Settings');
+    // Note: The error message might be partial match "Failed to save settings: disk full"
     await window.waitForSelector('text=Failed to save settings', { timeout: 5000 });
   });
 
   test('handles defaults on fresh load gracefully', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
-    
+
     await window.click('text=System Settings');
     // fields should retain defaults (empty)
-    const pyVal = await window.inputValue('label:has-text("Python Interpreter Path") + div input');
+    const pyVal = await window.getByLabel('Python Interpreter Path').inputValue();
     expect(pyVal).toBe('');
   });
 
@@ -59,10 +60,11 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     });
 
     await window.click('text=System Settings');
-    
+
     // Set initial value via UI
-    await window.fill('label:has-text("Python Interpreter Path") + div input', '/initial');
+    await window.getByLabel('Python Interpreter Path').fill('/initial');
     await expect(window.locator('input[value="/initial"]')).toHaveCount(1);
+
 
 
     // simulate main process broadcasting an external change

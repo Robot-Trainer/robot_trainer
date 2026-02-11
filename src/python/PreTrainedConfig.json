@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "FeatureType": {
+      "enum": [
+        "STATE",
+        "VISUAL",
+        "ENV",
+        "ACTION",
+        "REWARD",
+        "LANGUAGE"
+      ],
+      "title": "FeatureType",
+      "type": "string"
+    },
+    "PolicyFeature": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/FeatureType"
+        },
+        "shape": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "shape"
+      ],
+      "title": "PolicyFeature",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "n_obs_steps": {
+      "default": 1,
+      "title": "N Obs Steps",
+      "type": "integer"
+    },
+    "input_features": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/PolicyFeature"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Input Features"
+    },
+    "output_features": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/PolicyFeature"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Output Features"
+    },
+    "device": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Device"
+    },
+    "use_amp": {
+      "default": false,
+      "title": "Use Amp",
+      "type": "boolean"
+    },
+    "use_peft": {
+      "default": false,
+      "title": "Use Peft",
+      "type": "boolean"
+    },
+    "push_to_hub": {
+      "default": true,
+      "title": "Push To Hub",
+      "type": "boolean"
+    },
+    "repo_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Repo Id"
+    },
+    "private": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Private"
+    },
+    "tags": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tags"
+    },
+    "license": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "License"
+    },
+    "pretrained_path": {
+      "anyOf": [
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pretrained Path"
+    }
+  },
+  "title": "PreTrainedConfig",
+  "type": "object"
+}

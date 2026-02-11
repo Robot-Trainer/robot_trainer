@@ -30,7 +30,7 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
   await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 30000 });
 
   // Confirm the wizard is not visible initially
-  const wizardText = window.locator('text=Welcome!');
+  const wizardText = window.getByRole('heading', { name: 'Environment Setup', exact: true });
   await expect(wizardText).not.toBeVisible();
 
   // Invoke the application menu item's click handler from the main process
@@ -48,7 +48,7 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
 });
 
 test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHandlers }) => {
-  
+
   // Mock handlers to simulate a fresh install flow
   // Note: We mock check-anaconda to return false initially so the "Install" button appears.
   await setIpcHandlers({
@@ -59,7 +59,7 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
       wins.forEach((w: any) => {
         w.webContents.send('install-miniconda-output', 'Miniconda installed successfully\n');
       });
-      
+
       await new Promise(resolve => setTimeout(resolve, 500));
 
       wins.forEach((w: any) => {
@@ -82,22 +82,16 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
     setupItem?.click();
   });
 
-  await expect(window.locator('text=Welcome!')).toBeVisible();
+  await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).toBeVisible();
 
-  // Step 1 should be open and show "Install Miniconda"
-  const installBtn = window.locator('button:has-text("Install Miniconda")');
-  await expect(installBtn).toBeVisible();
+  // Step 1 should be open by default if conda missing, "Start Setup" triggers the flow
+  const startBtn = window.locator('button:has-text("Start Setup")');
+  await expect(startBtn).toBeVisible();
 
-  // Click install
-  await installBtn.click();
+  // Click Start
+  await startBtn.click();
 
-  // Wait for "See Details" to appear
-  const detailsBtn = window.locator('button:has-text("See Details")');
-  await expect(detailsBtn).toBeVisible();
-
-  // Click "See Details"
-  await detailsBtn.click();
-
-  // Validate that the details section is visible and contains expected text
+  // Validate that the output section becomes visible and contains expected text
+  // The wizard automatically toggles or keeps open the item being worked on.
   await expect(window.locator('text=Miniconda installed successfully')).toBeVisible();
 });

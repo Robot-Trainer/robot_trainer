@@ -26,9 +26,9 @@ test.describe('Robots CRUD', () => {
     await window.click('text=Add Robot');
 
     // Select a robot model (index 1 to skip the placeholder)
-    const modelSelect = window.locator('label:has-text("Robot Model") >> .. >> select');
-    await modelSelect.waitFor();
-    await modelSelect.selectOption({ index: 1 });
+    // MUI Select uses a hidden input but opens with a button/combobox role
+    await window.getByLabel('Robot Model').click();
+    await window.getByRole('option').nth(1).click();
 
     // We can't really select ports in CI environment easily unless mocked, 
     // but we can assume saving with no device works.
@@ -39,14 +39,17 @@ test.describe('Robots CRUD', () => {
     await window.waitForSelector('text=(unnamed)');
 
     // edit the robot (editing uses the built-in form)
-    await window.locator('text=(unnamed)').locator('../..').locator('text=Edit').click();
-    const nameInput = window.locator('label:has-text("Robot Name") >> .. >> input');
-    await nameInput.fill('Test Robot v2');
+    await window.locator('text=(unnamed)').locator('..').locator('..').locator('button:has-text("Edit")').click();
+
+    // Fill Robot Name
+    await window.getByLabel('Robot Name').fill('Test Robot v2');
+
     await window.click('text=Save Robot');
     await window.waitForSelector('text=Test Robot v2');
 
     // delete
-    await window.locator('text=Test Robot v2').locator('../..').locator('text=Delete').click();
+    await window.locator('text=Test Robot v2').locator('..').locator('..').locator('button:has-text("Delete")').click();
+
     // ensure gone
     await expect(window.locator('text=Test Robot v2')).toHaveCount(0);
   });

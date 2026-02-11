@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Pencil, Plus, CheckCircle } from '../icons';
+import { TextField, MenuItem, Divider, ListSubheader, Box, IconButton } from '@mui/material';
+import { Pencil, Plus } from '../icons';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -148,20 +149,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
   label,
   onRemove
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const createCamera = async (data: any) => {
     try {
@@ -170,19 +158,11 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
       if (res && res.id) {
         onSelect(res.id);
         setEditingId(res.id); // Immediately edit
-        setIsOpen(false);
       }
     } catch (e) {
       console.error(e);
       alert("Failed to create camera");
     }
-  };
-
-  const handleEdit = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(id);
-    onSelect(id);
-    setIsOpen(false);
   };
 
   const realCameras = cameras.filter(c => c.modality === 'real');
@@ -205,103 +185,101 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
     }
   }
 
-  return (
-    <div className="mb-2 relative" ref={dropdownRef}>
-      {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === '__create_real__') {
+      createCamera({
+        name: `Real Camera ${new Date().toLocaleString()}`,
+        modality: 'real'
+      });
+    } else if (val === '__create_sim__') {
+      createCamera({
+        name: `Simulated Camera ${new Date().toLocaleString()}`,
+        modality: 'simulated',
+        resolution: '1280x720',
+        fps: 30,
+        positionX: 0, positionY: 0, positionZ: 0,
+        rotationX: 0, rotationY: 0, rotationZ: 0
+      });
+    } else if (val) {
+      onSelect(Number(val));
+    }
+  };
 
-      <div className="flex gap-2">
-        <div className="flex-1 relative cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-          <div className="w-full pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-h-[38px]">
-            {selectedCamera ? (
-              <div className="flex items-center flex-wrap gap-1">
-                <span className="font-medium">{selectedCamera.name}</span>
-                {selectedCamera.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">sim</Badge>}
-                <span className="text-gray-400 text-xs ml-2">
-                  {selectedCamera.modality === 'simulated' ? `${selectedCamera.resolution} @ ${selectedCamera.fps}fps` : ''}
-                </span>
-              </div>
-            ) : (
-              <span className="text-gray-500">Select or create camera...</span>
-            )}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-            <ChevronRight className="h-4 w-4 rotate-90" />
-          </div>
-        </div>
+  return (
+    <Box mb={2}>
+      <Box display="flex" gap={1} alignItems="flex-start">
+        <TextField
+          select
+          label={label || "Camera"}
+          value={selectedCameraId || ''}
+          onChange={handleChange}
+          fullWidth
+          size="small"
+          InputLabelProps={{ shrink: true }}
+          SelectProps={{
+            renderValue: (selected) => {
+              const c = cameras.find(c => c.id === selected);
+              if (!c) return <span className="text-gray-500">Select or create camera...</span>;
+              return (
+                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                  <span className="font-medium">{c.name}</span>
+                  {c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">sim</Badge>}
+                </Box>
+              );
+            }
+          }}
+        >
+          {realCameras.length > 0 && <ListSubheader>Real</ListSubheader>}
+          {realCameras.map(c => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.name}
+            </MenuItem>
+          ))}
+
+          {simCameras.length > 0 && <ListSubheader>Simulated</ListSubheader>}
+          {simCameras.map(c => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.name}
+            </MenuItem>
+          ))}
+
+          <Divider />
+          <MenuItem value="__create_real__" sx={{ color: 'primary.main', gap: 1 }}>
+            <Plus className="w-4 h-4" /> Create New Real Camera
+          </MenuItem>
+          <MenuItem value="__create_sim__" sx={{ color: 'primary.main', gap: 1 }}>
+            <Plus className="w-4 h-4" /> Create New Simulated Camera
+          </MenuItem>
+        </TextField>
+
         {selectedCamera && (
-          <button
-            onClick={(e) => handleEdit(selectedCamera.id, e)}
-            className="p-2 text-gray-500 hover:text-blue-600 border rounded-md bg-white"
+          <IconButton
+            onClick={() => setEditingId(selectedCamera.id)}
+            size="small"
+            sx={{
+              border: '1px solid #e5e7eb',
+              borderRadius: 1,
+              p: '8px',
+              mt: '2px' // Align approximately with input
+            }}
             title="Edit Camera Properties"
           >
-            <Pencil className="w-5 h-5" />
-          </button>
+            <Pencil className="w-5 h-5 text-gray-500" />
+          </IconButton>
         )}
         {onRemove && (
-          <Button variant="ghost" onClick={() => onRemove(selectedCameraId!)} className="px-3" title="Remove Camera slot">
-            X
-          </Button>
+          <IconButton
+            onClick={() => onRemove(selectedCameraId!)}
+            size="small"
+            color="default"
+            sx={{ mt: '2px' }}
+            title="Remove Camera slot"
+          >
+            <span className="text-lg font-bold leading-none">×</span>
+          </IconButton>
         )}
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-96 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-          {/* 1. Real Cameras */}
-          {realCameras.length > 0 && <div className="px-3 py-1 text-xs text-gray-500 font-semibold bg-gray-50 mt-1">Real</div>}
-          {realCameras.map(c => (
-            <div key={c.id}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-              onClick={() => { onSelect(c.id); setIsOpen(false); }}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate">{c.name}</span>
-              </div>
-              {selectedCameraId === c.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
-            </div>
-          ))}
-
-          {/* 2. Simulated Cameras */}
-          {simCameras.length > 0 && <div className="px-3 py-1 text-xs text-gray-500 font-semibold bg-gray-50 mt-2">Simulated</div>}
-          {simCameras.map(c => (
-            <div key={c.id}
-              className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-              onClick={() => { onSelect(c.id); setIsOpen(false); }}
-            >
-              <div className="flex items-center">
-                <span className="font-normal block truncate">{c.name}</span>
-              </div>
-              {selectedCameraId === c.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
-            </div>
-          ))}
-
-          <hr className="my-1 border-gray-200" />
-
-          <div
-            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-blue-700 flex items-center"
-            onClick={() => createCamera({
-              name: `Real Camera ${new Date().toLocaleString()}`,
-              modality: 'real'
-            })}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Real Camera
-          </div>
-          <div
-            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-blue-700 flex items-center"
-            onClick={() => createCamera({
-              name: `Simulated Camera ${new Date().toLocaleString()}`,
-              modality: 'simulated',
-              resolution: '1280x720',
-              fps: 30,
-              positionX: 0, positionY: 0, positionZ: 0,
-              rotationX: 0, rotationY: 0, rotationZ: 0
-            })}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Simulated Camera
-          </div>
-        </div>
-      )}
-    </div>
+      </Box>
+    </Box>
   );
 };

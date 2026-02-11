@@ -1,16 +1,30 @@
 import React from 'react';
+import { Chip } from '@mui/material';
 
-export const StatusPill: React.FC<{ status?: string }>= ({ status }) => {
-  const styles: Record<string, string> = {
-    ready: "bg-green-100 text-green-700",
-    busy: "bg-blue-100 text-blue-700",
-    error: "bg-red-100 text-red-700",
-    offline: "bg-gray-100 text-gray-600"
+export const StatusPill: React.FC<{ status?: string }> = ({ status }) => {
+  const colorMap: Record<string, "success" | "primary" | "error" | "default" | "warning"> = {
+    ready: "success",
+    active: "success",
+    busy: "primary",
+    error: "error",
+    offline: "default",
+    warning: "warning"
   };
+
+  const color = colorMap[status || ''] || "default";
+
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${styles[status || ''] || styles.offline}`}>
-      {status}
-    </span>
+    <Chip 
+      label={status || 'unknown'} 
+      color={color} 
+      size="small" 
+      sx={{ 
+        height: '20px', 
+        fontSize: '0.75rem', 
+        textTransform: 'uppercase',
+        fontWeight: 600
+      }} 
+    />
   );
 };
 

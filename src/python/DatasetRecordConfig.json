@@ -1,0 +1,125 @@
+{
+  "properties": {
+    "repo_id": {
+      "title": "Repo Id",
+      "type": "string"
+    },
+    "single_task": {
+      "title": "Single Task",
+      "type": "string"
+    },
+    "root": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Root"
+    },
+    "fps": {
+      "default": 30,
+      "title": "Fps",
+      "type": "integer"
+    },
+    "episode_time_s": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "default": 60,
+      "title": "Episode Time S"
+    },
+    "reset_time_s": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "default": 60,
+      "title": "Reset Time S"
+    },
+    "num_episodes": {
+      "default": 50,
+      "title": "Num Episodes",
+      "type": "integer"
+    },
+    "video": {
+      "default": true,
+      "title": "Video",
+      "type": "boolean"
+    },
+    "push_to_hub": {
+      "default": true,
+      "title": "Push To Hub",
+      "type": "boolean"
+    },
+    "private": {
+      "default": false,
+      "title": "Private",
+      "type": "boolean"
+    },
+    "tags": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tags"
+    },
+    "num_image_writer_processes": {
+      "default": 0,
+      "title": "Num Image Writer Processes",
+      "type": "integer"
+    },
+    "num_image_writer_threads_per_camera": {
+      "default": 4,
+      "title": "Num Image Writer Threads Per Camera",
+      "type": "integer"
+    },
+    "video_encoding_batch_size": {
+      "default": 1,
+      "title": "Video Encoding Batch Size",
+      "type": "integer"
+    },
+    "vcodec": {
+      "default": "libsvtav1",
+      "title": "Vcodec",
+      "type": "string"
+    },
+    "rename_map": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Rename Map",
+      "type": "object"
+    }
+  },
+  "required": [
+    "repo_id",
+    "single_task"
+  ],
+  "title": "DatasetRecordConfig",
+  "type": "object"
+}
