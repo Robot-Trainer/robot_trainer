@@ -33,6 +33,7 @@ interface ElectronAPI {
   startSimulation: (config?: any) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
   stopSimulation: () => Promise<{ ok: boolean; message?: string }>;
   startCamera: (devicePath: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
+  openVideoWindow: (url: string) => Promise<void>;
   startRTSP: (url: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
   stopVideo: (id: string) => Promise<{ ok: boolean; message?: string }>;
   // Main -> Renderer request/listen/reply helpers
@@ -44,6 +45,8 @@ interface ElectronAPI {
   onInstallMinicondaOutput: (cb: (data: string) => void) => () => void;
   onCreateAnacondaEnvOutput: (cb: (data: string) => void) => () => void;
   onInstallLerobotOutput: (cb: (data: string) => void) => () => void;
+  getSimulationState: () => Promise<{ running: boolean; wsUrl?: string }>;
+  onSimulationStateChanged: (cb: (state: { running: boolean; wsUrl?: string }) => void) => () => void;
 }
 
 declare global {

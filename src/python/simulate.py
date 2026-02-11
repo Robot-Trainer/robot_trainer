@@ -14,6 +14,7 @@ import time
 import json
 import base64
 import signal
+import argparse
 from io import BytesIO
 from pathlib import Path
 
@@ -86,9 +87,7 @@ def try_lerobot_sim(fps=30):
         return run_fallback_sim(fps=fps)
 
     # Prefer to create the gym manipulator env directly using the provided
-    # `lerobot.rl.gym_manipulator.make_robot_env` factory and the
-    # `env-config.json` shipped with the project. If that fails fall back to
-    # the simple renderer above.
+    # `lerobot.rl.gym_manipulator.make_robot_env` factory.
     try:
         import importlib
         import os
@@ -99,16 +98,31 @@ def try_lerobot_sim(fps=30):
         try:
             gm = importlib.import_module('lerobot.rl.gym_manipulator')
         except Exception:
-            # try alternative module path
-            gm = importlib.import_module('lerobot.scripts.rl.gym_manipulator')
-
+            try:
+                # try alternative module path
+                gm = importlib.import_module('lerobot.scripts.rl.gym_manipulator')
+            except Exception:
+                 # Last resort: maybe it is exposed in common?
+                 try:
+                    gm = importlib.import_module('lerobot.common.envs.gym')
+                 except Exception:
+                    sys.stderr.write('gym_manipulator module not found\n')
+                    return run_fallback_sim(fps=fps)
+        
         # locate config file: prefer explicit --config path via env var, else search nearby
         cfg_path = None
-        # check for CLI arg style --config_path
-        for i, a in enumerate(sys.argv):
-            if a in ('--config_path', '--config') and i + 1 < len(sys.argv):
-                cfg_path = sys.argv[i+1]
-                break
+        
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument('--config_path', type=str)
+        parser.add_argument('--config', type=str)
+        parser.add_argument('--fps', type=int, default=fps)
+        args, _ = parser.parse_known_args()
+        
+        if args.config_path:
+            cfg_path = args.config_path
+        elif args.config:
+            cfg_path = args.config
 
         if not cfg_path:
             # look for env-config.json next to this script
@@ -127,25 +141,83 @@ def try_lerobot_sim(fps=30):
             sys.stderr.flush()
             return run_fallback_sim(fps=fps)
 
-        # Prefer to use the library's parser to build a proper EnvConfig
-        # so that RobotConfig and other choice-registered classes are
-        # instantiated correctly (this mirrors `python -m ... --config_path`).
+        # Load config manually first to check structure
         try:
-            from lerobot.configs import parser as lr_parser
-
-            # wrap a tiny function that calls the module factory so the
-            # parser will instantiate the correct config class for us.
-            def _make_env(cfg):
-                return gm.make_robot_env(cfg)
-
-            wrapped = lr_parser.wrap(Path(cfg_path))(_make_env)
-            env = wrapped()
-        except Exception:
-            # If parser-based creation fails, fall back to the previous
-            # heuristic that attempts to coerce the JSON into a namespace.
             with open(cfg_path, 'r') as f:
                 cfg_data = json.load(f)
+        except Exception as e:
+            sys.stderr.write(f"Failed to load config file: {e}\n")
+            return run_fallback_sim(fps=fps)
 
+        # helper to convert dict -> object with attribute access
+        def to_obj(d):
+            if isinstance(d, dict):
+                ns = type('C', (), {})()
+                for k, v in d.items():
+                    setattr(ns, k, to_obj(v))
+                return ns
+            elif isinstance(d, list):
+                return [to_obj(x) for x in d]
+            else:
+                return d
+
+        cfg_obj = None
+
+        # Check if this is a DatasetRecordConfig (from UI) or EnvConfig
+        # DatasetRecordConfig usually has 'single_task', 'repo_id', etc. at top level
+        # EnvConfig usually has 'env' key or 'name'/'task' at top level.
+        is_dataset_config = 'single_task' in cfg_data or ('robot' in cfg_data and cfg_data.get('robot', {}).get('type') == 'simulation')
+
+        if is_dataset_config:
+            # TRANSFORM DatasetRecordConfig -> EnvConfig
+            
+            # We try to load defaults from local env-config.json to fill in the gaps for gym_hil/processor
+            defaults = {}
+            default_path = Path(__file__).parent / 'env-config.json'
+            if default_path.exists():
+                try:
+                    with open(default_path, 'r') as f:
+                         defaults = json.load(f).get('env', {})
+                except Exception:
+                    pass
+
+            # Construct EnvConfig compatible structure
+            wrapper_settings = defaults.get('processor', {
+                'control_mode': 'keyboard', 
+                'gripper': {'use_gripper': True, 'gripper_penalty': -0.02},
+                'reset': {
+                     'fixed_reset_joint_positions': [0.0, 0.195, 0.0, -2.43, 0.0, 2.62, 0.785],
+                     'reset_time_s': 1.0, 
+                     'control_time_s': 60.0,
+                     'terminate_on_success': True
+                 }
+            })
+            
+            # If default env-config has 'wrapper' instead of processor use that
+            if 'wrapper' in defaults:
+                wrapper_settings = defaults['wrapper']
+            
+            # Helper to validate task name - if it contains spaces it's likely a description and not a valid ID
+            task_name = cfg_data.get('single_task', 'PandaPickCubeKeyboard-v0')
+            if ' ' in task_name:
+                sys.stderr.write(f"Task '{task_name}' looks like a description, falling back to 'PandaPickCubeKeyboard-v0'\n")
+                task_name = 'PandaPickCubeKeyboard-v0'
+
+            cfg_dict = {
+                'name': defaults.get('name', 'gym_hil'),
+                'task': task_name,
+                'fps': cfg_data.get('fps', fps),
+                'robot': None, # Force robot to None for simulation
+                'teleop': None,
+                'wrapper': wrapper_settings,
+                'device': cfg_data.get('device', 'cpu')
+            }
+            
+            cfg_obj = to_obj(cfg_dict)
+
+        else:
+            # Standard EnvConfig handling (manual parse)
+            
             # gym_manipulator expects an EnvConfig-like object. The provided
             # env-config.json places the env data under the "env" key; adjust.
             cfg_dict = cfg_data.get('env', cfg_data)
@@ -156,32 +228,20 @@ def try_lerobot_sim(fps=30):
             if 'processor' in cfg_dict and 'wrapper' not in cfg_dict:
                 cfg_dict['wrapper'] = cfg_dict.pop('processor')
 
-            # helper to convert dict -> object with attribute access
-            def to_obj(d):
-                if isinstance(d, dict):
-                    ns = type('C', (), {})()
-                    for k, v in d.items():
-                        setattr(ns, k, to_obj(v))
-                    return ns
-                elif isinstance(d, list):
-                    return [to_obj(x) for x in d]
-                else:
-                    return d
-
             cfg_obj = to_obj(cfg_dict)
             # add top-level device if provided
             if 'device' in cfg_data:
                 setattr(cfg_obj, 'device', cfg_data.get('device'))
 
-            if hasattr(gm, 'make_robot_env'):
-                env = gm.make_robot_env(cfg_obj)
-            else:
-                if hasattr(gm, 'main'):
-                    gm.main()
-                    return 0
-                sys.stderr.write('gym_manipulator.make_robot_env not found; falling back\n')
-                sys.stderr.flush()
-                return run_fallback_sim(fps=fps)
+        if hasattr(gm, 'make_robot_env'):
+            env = gm.make_robot_env(cfg_obj)
+        else:
+            if hasattr(gm, 'main'):
+                gm.main()
+                return 0
+            sys.stderr.write('gym_manipulator.make_robot_env not found; falling back\n')
+            sys.stderr.flush()
+            return run_fallback_sim(fps=fps)
 
         # reset environment and attempt to render repeatedly
         try:

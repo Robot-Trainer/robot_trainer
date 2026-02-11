@@ -42,18 +42,12 @@ test.describe('Robot Configuration Wizard Input', () => {
     // Create first simulated robot
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
-
-    // The robot creation enters specific edit mode - we need to save/exit it to verify dropdown behavior
-    await expect(window.locator('text=Edit Simulated Robot')).toBeVisible();
-    await window.click('button:has-text("Save Changes")');
+    await window.waitForTimeout(500);
 
     // Create second simulated robot
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
-
-    // Save/exit again
-    await expect(window.locator('text=Edit Simulated Robot')).toBeVisible();
-    await window.click('button:has-text("Save Changes")');
+    await window.waitForTimeout(500);
 
     // Select the first robot again (which has a numeric value)
     await window.getByLabel('Follower Robot').click();

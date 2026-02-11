@@ -130,9 +130,7 @@ const SystemSettings: React.FC = () => {
                 onChange={(e) => update({ extraPath: e.target.value })}
                 placeholder={"/opt/bin\n/other/bin"}
                 fullWidth
-                variant="outlined"
-                size="small"
-                InputLabelProps={{ shrink: true }}
+                variant="standard"
               />
               <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 0.5 }}>
                 Add extra directories (one per line) to prepend to PATH for subprocesses.

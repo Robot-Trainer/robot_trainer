@@ -1,0 +1,38 @@
+{
+  "repo_id": "bernie/new-dataset",
+  "single_task": "Pickup Lego piece",
+  "fps": 30,
+  "robot": {
+    "type": "simulation",
+    "cameras": {
+      "Simulated Camera 2/11/2026, 12:54:19 PM": {
+        "id": 34,
+        "fps": 30,
+        "data": {},
+        "name": "Simulated Camera 2/11/2026, 12:54:19 PM",
+        "modality": "simulated",
+        "createdAt": "2026-02-11T20:54:19.800Z",
+        "positionX": 0,
+        "positionY": 0,
+        "positionZ": 0,
+        "rotationX": 0,
+        "rotationY": 0,
+        "rotationZ": 0,
+        "resolution": "1280x720",
+        "serialNumber": "sim-cam-1770843268287"
+      }
+    },
+    "id": 1,
+    "data": {
+      "type": "simulation"
+    },
+    "name": "Koch",
+    "notes": "",
+    "modality": "simulated",
+    "createdAt": "2026-02-11T20:26:15.068Z",
+    "leaderType": "keyboard",
+    "leaderConfig": null,
+    "robotModelId": 5,
+    "serialNumber": ""
+  }
+}

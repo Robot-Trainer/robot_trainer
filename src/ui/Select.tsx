@@ -18,8 +18,7 @@ export const Select: React.FC<Props> = ({ label, value, onChange, options = [], 
       value={value}
       onChange={onChange}
       className={`${className} mb-4`}
-      variant="outlined"
-      size="small"
+      variant="standard"
       fullWidth
     >
       {options.map((opt) => (

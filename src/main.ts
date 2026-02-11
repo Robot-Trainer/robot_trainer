@@ -397,6 +397,29 @@ const setupIpcHandlers = () => {
     }
   });
 
+  ipcMain.handle('open-video-window', (_event, url) => {
+    const win = new BrowserWindow({
+      width: 800,
+      height: 600,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      const q = url === 'simulation' ? '?popoutMode=simulation' : `?popoutUrl=${encodeURIComponent(url)}`;
+      win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}${q}`);
+    } else {
+      const q = url === 'simulation' ? '?popoutMode=simulation' : `?popoutUrl=${encodeURIComponent(url)}`;
+      win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`), {
+        search: q
+      });
+    }
+  });
+
 
   // Check for local Anaconda/conda envs in the user's home directory and via PATH
   ipcMain.handle('check-anaconda', async () => {
@@ -629,6 +652,14 @@ const setupIpcHandlers = () => {
     }
   });
 
+  ipcMain.handle('get-simulation-state', () => {
+    const vm = videoManagers.get('simulation');
+    if (vm) {
+      return { running: true, wsUrl: `ws://localhost:${vm.getPort()}` };
+    }
+    return { running: false };
+  });
+
   // Start a simulation process (spawns Python simulator) and stream frames
   ipcMain.handle('start-simulation', async (_event, config: any = {}) => {
     try {
@@ -636,31 +667,43 @@ const setupIpcHandlers = () => {
       if (videoManagers.has(id)) {
         return { ok: false, message: 'simulation already running' };
       }
+
+      // Write the config object to a temporary JSON file
+      const tempId = Date.now();
+      const tempConfigPath = path.join(app.getPath('temp'), `lerobot_config_${tempId}.json`);
+      await fs.writeFile(tempConfigPath, JSON.stringify(config, null, 2), 'utf8');
+
       // Build command/args based on user's system settings and provided config
       // Prefer conda run -n robot_trainer if we have conda available
       const condaExec: string | null = await resolveCondaExecutable();
 
-      // Build module args from config (use sensible defaults)
-      const moduleArgs: string[] = [];
-      if (config && typeof config === 'object') {
-        if (config.repo_id) { moduleArgs.push('--repo-id', String(config.repo_id)); }
-        if (config.policy_type) { moduleArgs.push('--policy-type', String(config.policy_type)); }
-        if (config.num_episodes) { moduleArgs.push('--episodes', String(config.num_episodes)); }
-        if (config.fps) { moduleArgs.push('--fps', String(config.fps)); }
-        if (config.env) { moduleArgs.push('--env', String(config.env)); }
-        if (config.dataset) { moduleArgs.push('--dataset', String(config.dataset)); }
+      let moduleName = 'lerobot.scripts.lerobot_record';
+      let scriptArgs = ['-m', moduleName, '--config_path', tempConfigPath];
+
+      // If user selected generic simulation, run our custom simulate.py script
+      if (config.robot && config.robot.type === 'simulation') {
+        const simScriptPath = app.isPackaged
+          ? path.join(process.resourcesPath, 'python', 'simulate.py')
+          : path.join(app.getAppPath(), 'src', 'python', 'simulate.py');
+        
+        scriptArgs = [simScriptPath, '--config_path', tempConfigPath];
       }
 
       let command = 'python3';
-      let args: string[] = ['-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
+      let args: string[] = scriptArgs;
 
       if (condaExec) {
         // Use conda run to ensure correct env activation
         command = condaExec;
-        args = ['run', '-n', 'robot_trainer', 'python', '-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
+        if (config.robot && config.robot.type === 'simulation') {
+             args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
+        } else {
+             args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
+        }
       } else if (systemSettings && systemSettings.pythonPath) {
+
         command = systemSettings.pythonPath;
-        args = ['-m', 'lerobot.rl.gym_manipulator', ...moduleArgs];
+        args = scriptArgs;
       }
 
       const vm = new VideoManager(0);
@@ -669,7 +712,10 @@ const setupIpcHandlers = () => {
       await vm.startSimulation(command, args, recordingPath);
       videoManagers.set(id, vm);
 
-      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
+      const wsUrl = `ws://localhost:${vm.getPort()}`;
+      BrowserWindow.getAllWindows().forEach(w => w.webContents.send('simulation-state-changed', { running: true, wsUrl }));
+
+      return { ok: true, wsUrl };
     } catch (error) {
       console.error('start-simulation failed', error);
       throw error;
@@ -684,6 +730,7 @@ const setupIpcHandlers = () => {
       vm.stopServer();
       videoManagers.delete(id);
     }
+    BrowserWindow.getAllWindows().forEach(w => w.webContents.send('simulation-state-changed', { running: false }));
     return { ok: true };
   });
 

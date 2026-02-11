@@ -41,6 +41,30 @@ const Circle = (props: any) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}><circle cx="12" cy="12" r="8" /></svg>
 );
 
+const ExternalLink = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+
+const TELEOP_TYPE_MAP: Record<string, string> = {
+  "Phone": "phone",
+  "OmxLeader": "omx_leader",
+  "SO101Leader": "so101_leader",
+  "KeyboardTeleop": "keyboard",
+  "KeyboardEndEffectorTeleop": "keyboard_ee",
+  "KeyboardRoverTeleop": "keyboard_rover",
+  "SO100Leader": "so100_leader",
+  "HomunculusGlove": "homunculus_glove",
+  "HomunculusArm": "homunculus_arm",
+  "KochLeader": "koch_leader",
+  "Reachy2Teleoperator": "reachy2_teleoperator",
+  "BiSO100Leader": "bi_so100_leader",
+  "GamepadTeleop": "gamepad",
+};
+
 type ConfigStatus = {
   ready: boolean;
   issues: string[];
@@ -406,17 +430,41 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   // Actions
   const handleStartSimulation = async () => {
+    if (!selectedConfigId) return;
+
     try {
-      const config = configs.find(c => c.id === selectedConfigId);
-      // We pass some dummy config for now, or real config if we had it
-      const res = await (window as any).electronAPI?.startSimulation({
-        env: 'aloha',
-        dataset: 'lerobot/aloha_sim_transfer_cube_human',
-        repo_id: 'lerobot/aloha_sim_transfer_cube_human',
-        policy_type: 'act',
-        fps: 30,
-        ...config
+      const snapshot = await getRobotConfigurationSnapshot(selectedConfigId);
+      if (!snapshot) return;
+
+      const follower = snapshot.robots[0];
+      const teleop = snapshot.teleoperators[0];
+
+      const cameras: Record<string, any> = {};
+      snapshot.cameras.forEach((c: any) => {
+        cameras[c.name] = { ...c.data, ...c._snapshot };
       });
+
+      const recordConfig: any = {
+        repo_id: repoId,
+        single_task: singleTask,
+        fps: fps,
+        robot: {
+          type: (follower as any)?.model?.dirName,
+          cameras,
+          ...(follower?.data || {}),
+          ...(follower?._snapshot || {})
+        }
+      };
+
+      if (teleop) {
+        recordConfig.teleop = {
+          type: TELEOP_TYPE_MAP[(teleop as any).className],
+          ...(teleop?.data || {}),
+          ...(teleop?._snapshot || {})
+        };
+      }
+
+      const res = await (window as any).electronAPI?.startSimulation(recordConfig);
       if (res && res.ok) {
         setSimRunning(true);
         if (res.wsUrl) setSimStreamUrl(res.wsUrl);
@@ -568,8 +616,6 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
               placeholder="Enter Session Name"
-              InputProps={{ className: 'text-lg font-medium text-gray-900 w-64' }}
-              InputLabelProps={{ className: 'text-xs text-gray-500 font-semibold uppercase' }}
             />
           </div>
         </div>
@@ -721,8 +767,17 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
               if (isSim) {
                 return (
-                  <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
-                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
+                  <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm group">
+                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10">{camLabel}</div>
+
+                    <button
+                      onClick={() => (window as any).electronAPI.openVideoWindow('simulation')}
+                      className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded shadow-sm backdrop-blur-sm transition-opacity opacity-0 group-hover:opacity-100 z-20"
+                      title="Open in new window"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+
                     {simStreamUrl ? (
                       <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" />
                     ) : (

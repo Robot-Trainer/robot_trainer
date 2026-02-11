@@ -6,6 +6,7 @@ import {
   configCamerasTable,
   configTeleoperatorsTable,
   robotsTable,
+  robotModelsTable,
   camerasTable,
   teleoperatorModelsTable
 } from './schema';
@@ -21,10 +22,12 @@ export const getRobotConfigurationSnapshot = async (configurationId: number) => 
   const robots = await db
     .select({
       robot: robotsTable,
+      model: robotModelsTable,
       snapshot: configRobotsTable.snapshot
     })
     .from(configRobotsTable)
     .innerJoin(robotsTable, eq(configRobotsTable.robotId, robotsTable.id))
+    .leftJoin(robotModelsTable, eq(robotsTable.robotModelId, robotModelsTable.id))
     .where(eq(configRobotsTable.configurationId, configurationId));
 
   const cameras = await db
@@ -53,10 +56,10 @@ export const getRobotConfigurationSnapshot = async (configurationId: number) => 
   //    cameras: [ { ...camera, _snapshot: ... } ],
   //    teleoperators: [ { ...teleop, _snapshot: ... } ]
   // }
-  
+
   return {
     ...config,
-    robots: robots.map(r => ({ ...r.robot, _snapshot: r.snapshot })),
+    robots: robots.map(r => ({ ...r.robot, model: r.model, _snapshot: r.snapshot })),
     cameras: cameras.map(c => ({ ...c.camera, _snapshot: c.snapshot })),
     teleoperators: teleoperators.map(t => ({ ...t.teleoperator, _snapshot: t.snapshot }))
   };

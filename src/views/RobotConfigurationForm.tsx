@@ -397,7 +397,6 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             placeholder="e.g. Training Station 1"
           />
         </section>
-        <hr />
         {/* Follower Configuration */}
         <section>
           <RobotSelectionDropdown
@@ -415,7 +414,6 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             </Button>
           </div>
         </section>
-        <hr />
         {/* Camera Configuration */}
         <section>
           <h3 className="text-lg font-medium mb-4">Camera(s)</h3>
@@ -439,8 +437,6 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             </div>
           </div>
         </section>
-
-        <hr />
 
         {/* Leader Configuration */}
         <section>
@@ -502,9 +498,6 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             )}
           </div>
         </section>
-
-        <hr />
-
 
         <div className="flex justify-between pt-4">
           <Button onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</Button>

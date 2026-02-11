@@ -15,14 +15,12 @@ export const Input: React.FC<Props> = ({ label, value, onChange, placeholder, ty
     <TextField
       label={label}
       value={value}
+      variant="standard"
       onChange={onChange}
       placeholder={placeholder}
       type={type}
       className={`${className} mb-4`} // Preserve original margin-bottom
-      variant="outlined"
-      size="small"
       fullWidth
-      InputLabelProps={{ shrink: true }} // Optional: keep label up if placeholder exists
     />
   );
 };

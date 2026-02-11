@@ -12,6 +12,7 @@ import { configResource } from './db/resources';
 
 
 import { Activity, Robot, Session, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
+import { VideoPlayer } from './ui/VideoPlayer';
 
 const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: string }>; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
@@ -24,6 +25,43 @@ const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: st
 
 const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false }) => {
   const [activeTab, setActiveTab] = useState('robot-configurations');
+
+  // Check for popout mode
+  const searchParams = new URLSearchParams(window.location.search);
+  const popoutUrl = searchParams.get('popoutUrl');
+  const popoutMode = searchParams.get('popoutMode');
+
+  const [simState, setSimState] = useState<{ running: boolean; wsUrl?: string } | null>(null);
+
+  useEffect(() => {
+    if (popoutMode === 'simulation') {
+      window.electronAPI.getSimulationState().then(setSimState);
+      return window.electronAPI.onSimulationStateChanged(setSimState);
+    }
+  }, [popoutMode]);
+
+  if (popoutUrl) {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <VideoPlayer url={popoutUrl} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  if (popoutMode === 'simulation') {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        {simState?.running && simState.wsUrl ? (
+          <VideoPlayer url={simState.wsUrl} className="w-full h-full object-contain" />
+        ) : (
+          <div className="text-white/50 text-xl font-mono">
+            Waiting for simulation...
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
   const currentPage = useUIStore((s: any) => s.currentPage);
   const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);

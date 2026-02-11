@@ -167,7 +167,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+    const val = String(e.target.value);
     if (val === '__create_real__') {
       createRobot({
         name: `Real Robot ${new Date().toLocaleString()}`,
@@ -184,7 +184,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
         robotModelId: availableModels.length > 0 ? parseInt(availableModels[0].value, 10) : null,
         serialNumber: 'sim-' + Date.now()
       });
-    } else if (String(val).startsWith('__create_unknown_')) {
+    } else if (val.startsWith('__create_unknown_')) {
       const idx = parseInt(val.split('_').pop()!, 10);
       const d = unknownDevices[idx];
       if (d) {

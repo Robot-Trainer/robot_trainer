@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   startSimulation: (config?: any) => ipcRenderer.invoke('start-simulation', config),
   stopSimulation: () => ipcRenderer.invoke('stop-simulation'),
   startCamera: (devicePath: string) => ipcRenderer.invoke('start-camera', devicePath),
+  openVideoWindow: (url: string) => ipcRenderer.invoke('open-video-window', url),
   startRTSP: (url: string) => ipcRenderer.invoke('start-rtsp', url),
   stopVideo: (id: string) => ipcRenderer.invoke('stop-video', id),
   onSimulationFrame: (cb: (base64jpeg: string) => void) => {
@@ -73,5 +74,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const listener = (_: any, data: string) => cb(data);
     ipcRenderer.on('install-lerobot-output', listener);
     return () => ipcRenderer.removeListener('install-lerobot-output', listener);
+  },
+  getSimulationState: () => ipcRenderer.invoke('get-simulation-state'),
+  onSimulationStateChanged: (cb: (state: { running: boolean; wsUrl?: string }) => void) => {
+    const listener = (_: any, state: any) => cb(state);
+    ipcRenderer.on('simulation-state-changed', listener);
+    return () => ipcRenderer.removeListener('simulation-state-changed', listener);
   }
 });

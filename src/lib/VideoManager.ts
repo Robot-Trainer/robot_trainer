@@ -5,11 +5,22 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 
+export interface SimulationCommand {
+  command: string;
+  [key: string]: any;
+}
+
+export interface SimulationResponse {
+  type: string;
+  [key: string]: any;
+}
+
 export class VideoManager extends EventEmitter {
   private ffmpegProcess: ChildProcess | null = null;
   private pythonProcess: ChildProcess | null = null;
   private wss: WebSocketServer | null = null;
   private activeClients: Set<WebSocket> = new Set();
+  private stderrBuffer: string = '';
 
   constructor(private wsPort: number = 0) {
     super();
@@ -93,13 +104,36 @@ export class VideoManager extends EventEmitter {
     await this.startServer();
 
     // 1. Spawn Python Simulation
-    // It expects to write raw RGB24 640x480 frames to stdout
+    // stdin piped for commands, stdout piped for raw frames, stderr piped for responses
     this.pythonProcess = spawn(command, args, {
-      stdio: ['ignore', 'pipe', 'inherit'] // stdout piped
+      stdio: ['pipe', 'pipe', 'pipe']
     });
 
     this.pythonProcess.on('error', (err) => console.error('Python spawn error:', err));
     this.pythonProcess.on('exit', (code) => console.log('Python exited with:', code));
+
+    // Parse stderr for command responses (prefixed with __CMD__:) and log the rest
+    if (this.pythonProcess.stderr) {
+      this.pythonProcess.stderr.on('data', (chunk: Buffer) => {
+        this.stderrBuffer += chunk.toString();
+        const lines = this.stderrBuffer.split('\n');
+        // Keep the last partial line in the buffer
+        this.stderrBuffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('__CMD__:')) {
+            try {
+              const response: SimulationResponse = JSON.parse(line.slice(7));
+              this.emit('simulation-response', response);
+            } catch (e) {
+              console.error('Failed to parse simulation response:', line);
+            }
+          } else if (line.trim()) {
+            // Forward non-command stderr to console
+            console.log('[Python]', line);
+          }
+        }
+      });
+    }
 
     // 2. Spawn FFmpeg
     // Input: rawvideo from pipe:0
@@ -227,8 +261,30 @@ export class VideoManager extends EventEmitter {
     }
   }
 
+  /**
+   * Send a JSON command to the Python simulation process via stdin.
+   * Commands are newline-delimited JSON objects.
+   */
+  public sendCommand(cmd: SimulationCommand): boolean {
+    if (!this.pythonProcess || !this.pythonProcess.stdin || this.pythonProcess.stdin.destroyed) {
+      console.warn('Cannot send command: Python process not running or stdin closed');
+      return false;
+    }
+    try {
+      const line = JSON.stringify(cmd) + '\n';
+      return this.pythonProcess.stdin.write(line);
+    } catch (e) {
+      console.error('Failed to send command to Python process:', e);
+      return false;
+    }
+  }
+
   public stopAll() {
     if (this.pythonProcess) {
+      // Close stdin gracefully before killing
+      if (this.pythonProcess.stdin && !this.pythonProcess.stdin.destroyed) {
+        this.pythonProcess.stdin.end();
+      }
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
@@ -236,5 +292,6 @@ export class VideoManager extends EventEmitter {
       this.ffmpegProcess.kill('SIGINT'); // Allow graceful exit for MP4
       this.ffmpegProcess = null;
     }
+    this.stderrBuffer = '';
   }
 }
