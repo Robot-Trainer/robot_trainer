@@ -232,11 +232,15 @@ def try_lerobot_sim(fps=30):
                 setattr(cfg_obj, 'device', cfg_data.get('device'))
 
         if hasattr(gm, 'make_robot_env'):
+            sys.stderr.write(f"Creating gym_hil environment with task: {cfg_obj.task}\n")
+            sys.stderr.flush()
             res = gm.make_robot_env(cfg_obj)
             if isinstance(res, tuple):
                 env, _ = res
             else:
                 env = res
+            sys.stderr.write(f"Environment created successfully\n")
+            sys.stderr.flush()
         else:
             if hasattr(gm, 'main'):
                 gm.main()
@@ -246,6 +250,8 @@ def try_lerobot_sim(fps=30):
             return run_fallback_sim(fps=fps)
 
         # reset environment and attempt to render repeatedly
+        sys.stderr.write(f"Resetting environment and starting render loop at {fps} FPS\n")
+        sys.stderr.flush()
         try:
             obs = env.reset()
         except Exception:
@@ -269,6 +275,7 @@ def try_lerobot_sim(fps=30):
             except Exception:
                 action = None
 
+        frame_count = 0
         while not STOP:
             frame = None
             try:
@@ -301,6 +308,10 @@ def try_lerobot_sim(fps=30):
                 if isinstance(frame, np.ndarray):
                     img = Image.fromarray(frame)
                     output_frame_raw(img)
+                    frame_count += 1
+                    if frame_count == 1:
+                        sys.stderr.write(f"✓ Started outputting frames (frame shape: {frame.shape})\n")
+                        sys.stderr.flush()
                 elif isinstance(frame, (bytes, bytearray)):
                     # Assume it's already raw RGB bytes if bytes, but we need to be careful about size
                     # If it's raw bytes, we might just write it if we trust it.
@@ -310,6 +321,7 @@ def try_lerobot_sim(fps=30):
                     try:
                         img = Image.open(BytesIO(frame))
                         output_frame_raw(img)
+                        frame_count += 1
                     except Exception:
                         # Maybe raw bytes? Just write it if size matches?
                         # For now, let's assume it's an image we can load or a numpy array.
@@ -318,8 +330,12 @@ def try_lerobot_sim(fps=30):
                     # try to coerce via PIL
                     img = Image.fromarray(np.asarray(frame))
                     output_frame_raw(img)
-            except Exception:
+                    frame_count += 1
+            except Exception as e:
                 # on any conversion error, sleep and continue
+                if frame_count == 0:
+                    sys.stderr.write(f"Frame conversion error: {e}\n")
+                    sys.stderr.flush()
                 time.sleep(dt)
 
         # attempt to close environment cleanly

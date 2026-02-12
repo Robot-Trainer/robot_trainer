@@ -318,7 +318,13 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
     # Check if this is a GymHIL simulation environment
     if cfg.name == "gym_hil":
         assert cfg.robot is None and cfg.teleop is None, "GymHIL environment does not support robot or teleop"
-        import gym_hil  # noqa: F401
+        try:
+            import gym_hil  # noqa: F401
+        except ImportError as e:
+            raise ImportError(
+                f"gym_hil package not found. Please install it with: pip install gym-hil\n"
+                f"Original error: {e}"
+            )
 
         # Extract gripper settings with defaults
         use_gripper = cfg.processor.gripper.use_gripper if cfg.processor.gripper is not None else True
