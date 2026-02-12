@@ -78,7 +78,12 @@ from lerobot.utils.constants import ACTION, DONE, OBS_IMAGES, OBS_STATE, REWARD
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
 
-from .joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+try:
+    from .joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+except ImportError:
+    # These are only needed for real robot environments, not simulation
+    JointVelocityProcessorStep = None
+    MotorCurrentProcessorStep = None
 
 logging.basicConfig(level=logging.INFO)
 
@@ -313,7 +318,10 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
     # Check if this is a GymHIL simulation environment
     if cfg.name == "gym_hil":
         assert cfg.robot is None and cfg.teleop is None, "GymHIL environment does not support robot or teleop"
-        import gym_hil  # noqa: F401
+        try:
+            import gym_hil  # noqa: F401
+        except ImportError as e:
+            raise ImportError(f"gym_hil package not found: {e}")
 
         # Extract gripper settings with defaults
         use_gripper = cfg.processor.gripper.use_gripper if cfg.processor.gripper is not None else True
@@ -410,9 +418,11 @@ def make_processors(
 
     if cfg.processor.observation is not None:
         if cfg.processor.observation.add_joint_velocity_to_observation:
-            env_pipeline_steps.append(JointVelocityProcessorStep(dt=1.0 / cfg.fps))
+            if JointVelocityProcessorStep is not None:
+                env_pipeline_steps.append(JointVelocityProcessorStep(dt=1.0 / cfg.fps))
         if cfg.processor.observation.add_current_to_observation:
-            env_pipeline_steps.append(MotorCurrentProcessorStep(robot=env.robot))
+            if MotorCurrentProcessorStep is not None:
+                env_pipeline_steps.append(MotorCurrentProcessorStep(robot=env.robot))
 
     if kinematics_solver is not None:
         env_pipeline_steps.append(

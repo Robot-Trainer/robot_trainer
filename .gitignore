@@ -106,3 +106,5 @@ typings/
 out/
 
 src/python/build
+__pycache__/
+*.pyc

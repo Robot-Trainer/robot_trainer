@@ -90,12 +90,31 @@ def try_lerobot_sim(fps=30):
     # `lerobot.rl.gym_manipulator.make_robot_env` factory.
     try:
         import importlib
+        import importlib.util
         import os
         import numpy as np
         from PIL import Image
 
-        # Load the gym_manipulator module (package path used by CLI)
-        gm = importlib.import_module('gym_manipulator')
+        # Load the gym_manipulator module from the same directory
+        gym_manipulator_path = Path(__file__).parent / 'gym_manipulator.py'
+        if gym_manipulator_path.is_file():
+            try:
+                spec = importlib.util.spec_from_file_location('gym_manipulator', gym_manipulator_path)
+                gm = importlib.util.module_from_spec(spec)
+                sys.modules['gym_manipulator'] = gm
+                spec.loader.exec_module(gm)
+            except Exception as e:
+                sys.stderr.write(f'Failed to load gym_manipulator.py from {gym_manipulator_path}: {e}\n')
+                sys.stderr.flush()
+                return run_fallback_sim(fps=fps)
+        else:
+            # Fallback to trying to import from path (if installed as a package)
+            try:
+                gm = importlib.import_module('gym_manipulator')
+            except Exception as e:
+                sys.stderr.write(f'gym_manipulator.py not found locally and not available as package: {e}\n')
+                sys.stderr.flush()
+                return run_fallback_sim(fps=fps)
         
         # locate config file: prefer explicit --config path via env var, else search nearby
         cfg_path = None
@@ -223,11 +242,15 @@ def try_lerobot_sim(fps=30):
                 setattr(cfg_obj, 'device', cfg_data.get('device'))
 
         if hasattr(gm, 'make_robot_env'):
+            sys.stderr.write(f"Creating gym_hil environment with task: {cfg_obj.task}\n")
+            sys.stderr.flush()
             res = gm.make_robot_env(cfg_obj)
             if isinstance(res, tuple):
                 env, _ = res
             else:
                 env = res
+            sys.stderr.write(f"Environment created successfully\n")
+            sys.stderr.flush()
         else:
             if hasattr(gm, 'main'):
                 gm.main()
@@ -237,6 +260,8 @@ def try_lerobot_sim(fps=30):
             return run_fallback_sim(fps=fps)
 
         # reset environment and attempt to render repeatedly
+        sys.stderr.write(f"Resetting environment and starting render loop at {fps} FPS\n")
+        sys.stderr.flush()
         try:
             obs = env.reset()
         except Exception:
@@ -260,27 +285,24 @@ def try_lerobot_sim(fps=30):
             except Exception:
                 action = None
 
+        first_frame_logged = False
         while not STOP:
             frame = None
             try:
-                # prefer env.render() if available
-                if hasattr(env, 'render'):
-                    frame = env.render()
-                # step to advance simulation and then render
-                if frame is None and action is not None:
+                # step to advance simulation first
+                if action is not None:
                     try:
                         env.step(action)
-                    except Exception:
-                        # some envs expect tuple return
-                        try:
-                            env.step(action, {})
-                        except Exception:
-                            pass
-                    try:
-                        frame = env.render()
-                    except Exception:
-                        frame = None
-            except Exception:
+                    except Exception as e:
+                        sys.stderr.write(f"Step error: {e}\n")
+                        sys.stderr.flush()
+                
+                # Now render after stepping
+                if hasattr(env, 'render'):
+                    frame = env.render()
+            except Exception as e:
+                sys.stderr.write(f"Render loop error: {e}\n")
+                sys.stderr.flush()
                 frame = None
 
             if frame is None:
@@ -292,6 +314,10 @@ def try_lerobot_sim(fps=30):
                 if isinstance(frame, np.ndarray):
                     img = Image.fromarray(frame)
                     output_frame_raw(img)
+                    if not first_frame_logged:
+                        sys.stderr.write(f"✓ Started outputting frames (frame shape: {frame.shape})\n")
+                        sys.stderr.flush()
+                        first_frame_logged = True
                 elif isinstance(frame, (bytes, bytearray)):
                     # Assume it's already raw RGB bytes if bytes, but we need to be careful about size
                     # If it's raw bytes, we might just write it if we trust it.
@@ -301,6 +327,8 @@ def try_lerobot_sim(fps=30):
                     try:
                         img = Image.open(BytesIO(frame))
                         output_frame_raw(img)
+                        if not first_frame_logged:
+                            first_frame_logged = True
                     except Exception:
                         # Maybe raw bytes? Just write it if size matches?
                         # For now, let's assume it's an image we can load or a numpy array.
@@ -309,8 +337,13 @@ def try_lerobot_sim(fps=30):
                     # try to coerce via PIL
                     img = Image.fromarray(np.asarray(frame))
                     output_frame_raw(img)
-            except Exception:
+                    if not first_frame_logged:
+                        first_frame_logged = True
+            except Exception as e:
                 # on any conversion error, sleep and continue
+                if not first_frame_logged:
+                    sys.stderr.write(f"Frame conversion error: {e}\n")
+                    sys.stderr.flush()
                 time.sleep(dt)
 
         # attempt to close environment cleanly
