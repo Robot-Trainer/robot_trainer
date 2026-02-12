@@ -444,27 +444,89 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         cameras[c.name] = { ...c.data, ...c._snapshot };
       });
 
-      const recordConfig: any = {
-        repo_id: repoId,
-        single_task: singleTask,
-        fps: fps,
-        robot: {
-          type: (follower as any)?.model?.dirName,
-          cameras,
-          ...(follower?.data || {}),
-          ...(follower?._snapshot || {})
-        }
+      const gymManipulatorConfig: any = {
+        "env": {
+          // "type": "gym_manipulator",
+          "name": "gym_hil",
+          "task": "PandaPickCubeKeyboard-v0",
+          "fps": 10,
+          "robot": null,
+          "teleop": null,
+          "processor": {
+            "control_mode": "keyboard",
+            "gripper": {
+              "use_gripper": true,
+              "gripper_penalty": -0.02,
+            },
+            "observation": {
+              "display_cameras": true,
+            },
+            "reset": {
+              "fixed_reset_joint_positions": [0.0, 0.195, 0.0, -2.43, 0.0, 2.62, 0.785],
+              "reset_time_s": 2.0,
+              "control_time_s": 15.0,
+              "terminate_on_success": true
+            }
+          },
+          "features": {
+            "observation.images.front": {
+              "type": "VISUAL",
+              "shape": [3, 128, 128]
+            },
+            "observation.images.wrist": {
+              "type": "VISUAL",
+              "shape": [3, 128, 128]
+            },
+            "observation.state": {
+              "type": "STATE",
+              "shape": [18]
+            },
+            "action": {
+              "type": "ACTION",
+              "shape": [3]
+            }
+          },
+          "features_map": {
+            "observation.images.front": "observation.images.front",
+            "observation.images.wrist": "observation.images.wrist",
+            "observation.state": "observation.state",
+            "action": "action"
+          }
+        },
+        /*any = {
+          env: {
+            type: "gym_manipulator",
+            name: "gym_hil",
+            task: "PandaPickCubeGamepad-v0", // singleTask,
+            fps: fps,
+            robot: {
+              type: (follower as any)?.model?.configClassName,
+            },
+            teleop: {
+              type: 'keyboard',
+            }
+          },*/
+        dataset: {
+          repo_id: repoId,
+          root: null,
+          task: "pick_cube",
+          replay_episode: null,
+          push_to_hub: false
+        },
+        device: 'cpu',
+        // mode: 'record'
       };
+      console.log("Prepared gym manipulator config:", gymManipulatorConfig);
 
-      if (teleop) {
-        recordConfig.teleop = {
-          type: TELEOP_TYPE_MAP[(teleop as any).className],
-          ...(teleop?.data || {}),
-          ...(teleop?._snapshot || {})
-        };
-      }
+      // if (teleop) {
+      //   gymManipulatorConfig.env.teleop = {
+      //     type: TELEOP_TYPE_MAP[(teleop as any).className],
+      //     ...(teleop?.data || {}),
+      //     ...(teleop?._snapshot || {})
+      //   };
+      // }
 
-      const res = await (window as any).electronAPI?.startSimulation(recordConfig);
+      const res = await (window as any).electronAPI?.startSimulation(gymManipulatorConfig);
       if (res && res.ok) {
         setSimRunning(true);
         if (res.wsUrl) setSimStreamUrl(res.wsUrl);
@@ -779,7 +841,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
                     </button>
 
                     {simStreamUrl ? (
-                      <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" />
+                      <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" channel={cam.name} />
                     ) : (
                       <div className="text-white/50 text-sm">Simulation not running</div>
                     )}

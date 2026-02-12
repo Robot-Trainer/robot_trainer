@@ -1,0 +1,2383 @@
+{
+  "$defs": {
+    "BiSOFollowerConfig": {
+      "properties": {
+        "left_arm_config": {
+          "$ref": "#/$defs/SOFollowerConfig"
+        },
+        "right_arm_config": {
+          "$ref": "#/$defs/SOFollowerConfig"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "left_arm_config",
+        "right_arm_config"
+      ],
+      "title": "BiSOFollowerConfig",
+      "type": "object"
+    },
+    "BiSOLeaderConfig": {
+      "properties": {
+        "left_arm_config": {
+          "$ref": "#/$defs/SOLeaderConfig"
+        },
+        "right_arm_config": {
+          "$ref": "#/$defs/SOLeaderConfig"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "left_arm_config",
+        "right_arm_config"
+      ],
+      "title": "BiSOLeaderConfig",
+      "type": "object"
+    },
+    "ColorMode": {
+      "enum": [
+        "rgb",
+        "bgr"
+      ],
+      "title": "ColorMode",
+      "type": "string"
+    },
+    "Cv2Rotation": {
+      "enum": [
+        0,
+        90,
+        180,
+        -90
+      ],
+      "title": "Cv2Rotation",
+      "type": "integer"
+    },
+    "DatasetConfig": {
+      "properties": {
+        "repo_id": {
+          "title": "Repo Id",
+          "type": "string"
+        },
+        "task": {
+          "title": "Task",
+          "type": "string"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Root"
+        },
+        "num_episodes_to_record": {
+          "default": 5,
+          "title": "Num Episodes To Record",
+          "type": "integer"
+        },
+        "replay_episode": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replay Episode"
+        },
+        "push_to_hub": {
+          "default": false,
+          "title": "Push To Hub",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "repo_id",
+        "task"
+      ],
+      "title": "DatasetConfig",
+      "type": "object"
+    },
+    "EarthRoverMiniPlusConfig": {
+      "properties": {
+        "sdk_url": {
+          "default": "http://localhost:8000",
+          "title": "Sdk Url",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "EarthRoverMiniPlusConfig",
+      "type": "object"
+    },
+    "FeatureType": {
+      "enum": [
+        "STATE",
+        "VISUAL",
+        "ENV",
+        "ACTION",
+        "REWARD",
+        "LANGUAGE"
+      ],
+      "title": "FeatureType",
+      "type": "string"
+    },
+    "GamepadTeleopConfig": {
+      "properties": {
+        "use_gripper": {
+          "default": true,
+          "title": "Use Gripper",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "GamepadTeleopConfig",
+      "type": "object"
+    },
+    "GripperConfig": {
+      "properties": {
+        "use_gripper": {
+          "default": true,
+          "title": "Use Gripper",
+          "type": "boolean"
+        },
+        "gripper_penalty": {
+          "default": 0.0,
+          "title": "Gripper Penalty",
+          "type": "number"
+        }
+      },
+      "title": "GripperConfig",
+      "type": "object"
+    },
+    "HILSerlProcessorConfig": {
+      "properties": {
+        "control_mode": {
+          "default": "gamepad",
+          "title": "Control Mode",
+          "type": "string"
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObservationConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "image_preprocessing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImagePreprocessingConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gripper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GripperConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResetConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "inverse_kinematics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InverseKinematicsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reward_classifier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RewardClassifierConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_gripper_pos": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 100.0,
+          "title": "Max Gripper Pos"
+        }
+      },
+      "title": "HILSerlProcessorConfig",
+      "type": "object"
+    },
+    "HILSerlRobotEnvConfig": {
+      "properties": {
+        "task": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task"
+        },
+        "fps": {
+          "default": 30,
+          "title": "Fps",
+          "type": "integer"
+        },
+        "features": {
+          "additionalProperties": {
+            "$ref": "#/$defs/PolicyFeature"
+          },
+          "title": "Features",
+          "type": "object"
+        },
+        "features_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Features Map",
+          "type": "object"
+        },
+        "max_parallel_tasks": {
+          "default": 1,
+          "title": "Max Parallel Tasks",
+          "type": "integer"
+        },
+        "disable_env_checker": {
+          "default": true,
+          "title": "Disable Env Checker",
+          "type": "boolean"
+        },
+        "robot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BiSOFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/EarthRoverMiniPlusConfig"
+            },
+            {
+              "$ref": "#/$defs/HopeJrArmConfig"
+            },
+            {
+              "$ref": "#/$defs/HopeJrHandConfig"
+            },
+            {
+              "$ref": "#/$defs/KochFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/LeKiwiConfig"
+            },
+            {
+              "$ref": "#/$defs/LeKiwiClientConfig"
+            },
+            {
+              "$ref": "#/$defs/OmxFollowerConfig"
+            },
+            {
+              "$ref": "#/$defs/Reachy2RobotConfig"
+            },
+            {
+              "$ref": "#/$defs/SOFollowerRobotConfig"
+            },
+            {
+              "$ref": "#/$defs/UnitreeG1Config"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Robot"
+        },
+        "teleop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BiSOLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/GamepadTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/HomunculusArmConfig"
+            },
+            {
+              "$ref": "#/$defs/HomunculusGloveConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardEndEffectorTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KeyboardRoverTeleopConfig"
+            },
+            {
+              "$ref": "#/$defs/KochLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/OmxLeaderConfig"
+            },
+            {
+              "$ref": "#/$defs/PhoneConfig"
+            },
+            {
+              "$ref": "#/$defs/Reachy2TeleoperatorConfig"
+            },
+            {
+              "$ref": "#/$defs/SOLeaderTeleopConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Teleop"
+        },
+        "processor": {
+          "$ref": "#/$defs/HILSerlProcessorConfig"
+        },
+        "name": {
+          "default": "real_robot",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "title": "HILSerlRobotEnvConfig",
+      "type": "object"
+    },
+    "HomunculusArmConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "baud_rate": {
+          "default": 115200,
+          "title": "Baud Rate",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "HomunculusArmConfig",
+      "type": "object"
+    },
+    "HomunculusGloveConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "side": {
+          "title": "Side",
+          "type": "string"
+        },
+        "baud_rate": {
+          "default": 115200,
+          "title": "Baud Rate",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port",
+        "side"
+      ],
+      "title": "HomunculusGloveConfig",
+      "type": "object"
+    },
+    "HopeJrArmConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "HopeJrArmConfig",
+      "type": "object"
+    },
+    "HopeJrHandConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "side": {
+          "title": "Side",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port",
+        "side"
+      ],
+      "title": "HopeJrHandConfig",
+      "type": "object"
+    },
+    "ImagePreprocessingConfig": {
+      "properties": {
+        "crop_params_dict": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "maxItems": 4,
+                "minItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crop Params Dict"
+        },
+        "resize_size": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resize Size"
+        }
+      },
+      "title": "ImagePreprocessingConfig",
+      "type": "object"
+    },
+    "InverseKinematicsConfig": {
+      "properties": {
+        "urdf_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Urdf Path"
+        },
+        "target_frame_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Frame Name"
+        },
+        "end_effector_bounds": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Effector Bounds"
+        },
+        "end_effector_step_sizes": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Effector Step Sizes"
+        }
+      },
+      "title": "InverseKinematicsConfig",
+      "type": "object"
+    },
+    "KeyboardEndEffectorTeleopConfig": {
+      "properties": {
+        "use_gripper": {
+          "default": true,
+          "title": "Use Gripper",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardEndEffectorTeleopConfig",
+      "type": "object"
+    },
+    "KeyboardRoverTeleopConfig": {
+      "properties": {
+        "linear_speed": {
+          "default": 1.0,
+          "title": "Linear Speed",
+          "type": "number"
+        },
+        "angular_speed": {
+          "default": 1.0,
+          "title": "Angular Speed",
+          "type": "number"
+        },
+        "speed_increment": {
+          "default": 0.1,
+          "title": "Speed Increment",
+          "type": "number"
+        },
+        "turn_assist_ratio": {
+          "default": 0.3,
+          "title": "Turn Assist Ratio",
+          "type": "number"
+        },
+        "angular_speed_ratio": {
+          "default": 0.6,
+          "title": "Angular Speed Ratio",
+          "type": "number"
+        },
+        "min_linear_speed": {
+          "default": 0.1,
+          "title": "Min Linear Speed",
+          "type": "number"
+        },
+        "min_angular_speed": {
+          "default": 0.05,
+          "title": "Min Angular Speed",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardRoverTeleopConfig",
+      "type": "object"
+    },
+    "KeyboardTeleopConfig": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "KeyboardTeleopConfig",
+      "type": "object"
+    },
+    "KochFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "KochFollowerConfig",
+      "type": "object"
+    },
+    "KochLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "gripper_open_pos": {
+          "default": 50.0,
+          "title": "Gripper Open Pos",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "KochLeaderConfig",
+      "type": "object"
+    },
+    "LeKiwiClientConfig": {
+      "properties": {
+        "remote_ip": {
+          "title": "Remote Ip",
+          "type": "string"
+        },
+        "port_zmq_cmd": {
+          "default": 5555,
+          "title": "Port Zmq Cmd",
+          "type": "integer"
+        },
+        "port_zmq_observations": {
+          "default": 5556,
+          "title": "Port Zmq Observations",
+          "type": "integer"
+        },
+        "teleop_keys": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Teleop Keys",
+          "type": "object"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "polling_timeout_ms": {
+          "default": 15,
+          "title": "Polling Timeout Ms",
+          "type": "integer"
+        },
+        "connect_timeout_s": {
+          "default": 5,
+          "title": "Connect Timeout S",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "remote_ip"
+      ],
+      "title": "LeKiwiClientConfig",
+      "type": "object"
+    },
+    "LeKiwiConfig": {
+      "properties": {
+        "port": {
+          "default": "/dev/ttyACM0",
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "LeKiwiConfig",
+      "type": "object"
+    },
+    "ObservationConfig": {
+      "properties": {
+        "add_joint_velocity_to_observation": {
+          "default": false,
+          "title": "Add Joint Velocity To Observation",
+          "type": "boolean"
+        },
+        "add_current_to_observation": {
+          "default": false,
+          "title": "Add Current To Observation",
+          "type": "boolean"
+        },
+        "display_cameras": {
+          "default": false,
+          "title": "Display Cameras",
+          "type": "boolean"
+        }
+      },
+      "title": "ObservationConfig",
+      "type": "object"
+    },
+    "OmxFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "OmxFollowerConfig",
+      "type": "object"
+    },
+    "OmxLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "gripper_open_pos": {
+          "default": 37.0,
+          "title": "Gripper Open Pos",
+          "type": "number"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "OmxLeaderConfig",
+      "type": "object"
+    },
+    "OpenCVCameraConfig": {
+      "properties": {
+        "index_or_path": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "title": "Index Or Path"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "rotation": {
+          "$ref": "#/$defs/Cv2Rotation",
+          "default": 0
+        },
+        "warmup_s": {
+          "default": 1,
+          "title": "Warmup S",
+          "type": "integer"
+        },
+        "fourcc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fourcc"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "index_or_path"
+      ],
+      "title": "OpenCVCameraConfig",
+      "type": "object"
+    },
+    "PhoneConfig": {
+      "properties": {
+        "phone_os": {
+          "$ref": "#/$defs/PhoneOS",
+          "default": "ios"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "PhoneConfig",
+      "type": "object"
+    },
+    "PhoneOS": {
+      "enum": [
+        "android",
+        "ios"
+      ],
+      "title": "PhoneOS",
+      "type": "string"
+    },
+    "PolicyFeature": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/FeatureType"
+        },
+        "shape": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "shape"
+      ],
+      "title": "PolicyFeature",
+      "type": "object"
+    },
+    "Reachy2CameraConfig": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "image_type": {
+          "title": "Image Type",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "port": {
+          "default": 50065,
+          "title": "Port",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "name",
+        "image_type"
+      ],
+      "title": "Reachy2CameraConfig",
+      "type": "object"
+    },
+    "Reachy2RobotConfig": {
+      "properties": {
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "port": {
+          "default": 50065,
+          "title": "Port",
+          "type": "integer"
+        },
+        "disable_torque_on_disconnect": {
+          "default": false,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "use_external_commands": {
+          "default": false,
+          "title": "Use External Commands",
+          "type": "boolean"
+        },
+        "with_mobile_base": {
+          "default": true,
+          "title": "With Mobile Base",
+          "type": "boolean"
+        },
+        "with_l_arm": {
+          "default": true,
+          "title": "With L Arm",
+          "type": "boolean"
+        },
+        "with_r_arm": {
+          "default": true,
+          "title": "With R Arm",
+          "type": "boolean"
+        },
+        "with_neck": {
+          "default": true,
+          "title": "With Neck",
+          "type": "boolean"
+        },
+        "with_antennas": {
+          "default": true,
+          "title": "With Antennas",
+          "type": "boolean"
+        },
+        "with_left_teleop_camera": {
+          "default": false,
+          "title": "With Left Teleop Camera",
+          "type": "boolean"
+        },
+        "with_right_teleop_camera": {
+          "default": false,
+          "title": "With Right Teleop Camera",
+          "type": "boolean"
+        },
+        "with_torso_camera": {
+          "default": false,
+          "title": "With Torso Camera",
+          "type": "boolean"
+        },
+        "camera_width": {
+          "default": 640,
+          "title": "Camera Width",
+          "type": "integer"
+        },
+        "camera_height": {
+          "default": 480,
+          "title": "Camera Height",
+          "type": "integer"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "Reachy2RobotConfig",
+      "type": "object"
+    },
+    "Reachy2TeleoperatorConfig": {
+      "properties": {
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "localhost",
+          "title": "Ip Address"
+        },
+        "use_present_position": {
+          "default": false,
+          "title": "Use Present Position",
+          "type": "boolean"
+        },
+        "with_mobile_base": {
+          "default": true,
+          "title": "With Mobile Base",
+          "type": "boolean"
+        },
+        "with_l_arm": {
+          "default": true,
+          "title": "With L Arm",
+          "type": "boolean"
+        },
+        "with_r_arm": {
+          "default": true,
+          "title": "With R Arm",
+          "type": "boolean"
+        },
+        "with_neck": {
+          "default": true,
+          "title": "With Neck",
+          "type": "boolean"
+        },
+        "with_antennas": {
+          "default": true,
+          "title": "With Antennas",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "Reachy2TeleoperatorConfig",
+      "type": "object"
+    },
+    "RealSenseCameraConfig": {
+      "properties": {
+        "serial_number_or_name": {
+          "title": "Serial Number Or Name",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "use_depth": {
+          "default": false,
+          "title": "Use Depth",
+          "type": "boolean"
+        },
+        "rotation": {
+          "$ref": "#/$defs/Cv2Rotation",
+          "default": 0
+        },
+        "warmup_s": {
+          "default": 1,
+          "title": "Warmup S",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "serial_number_or_name"
+      ],
+      "title": "RealSenseCameraConfig",
+      "type": "object"
+    },
+    "ResetConfig": {
+      "properties": {
+        "fixed_reset_joint_positions": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Reset Joint Positions"
+        },
+        "reset_time_s": {
+          "default": 5.0,
+          "title": "Reset Time S",
+          "type": "number"
+        },
+        "control_time_s": {
+          "default": 20.0,
+          "title": "Control Time S",
+          "type": "number"
+        },
+        "terminate_on_success": {
+          "default": true,
+          "title": "Terminate On Success",
+          "type": "boolean"
+        }
+      },
+      "title": "ResetConfig",
+      "type": "object"
+    },
+    "RewardClassifierConfig": {
+      "properties": {
+        "pretrained_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pretrained Path"
+        },
+        "success_threshold": {
+          "default": 0.5,
+          "title": "Success Threshold",
+          "type": "number"
+        },
+        "success_reward": {
+          "default": 1.0,
+          "title": "Success Reward",
+          "type": "number"
+        }
+      },
+      "title": "RewardClassifierConfig",
+      "type": "object"
+    },
+    "SOFollowerConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOFollowerConfig",
+      "type": "object"
+    },
+    "SOFollowerRobotConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "disable_torque_on_disconnect": {
+          "default": true,
+          "title": "Disable Torque On Disconnect",
+          "type": "boolean"
+        },
+        "max_relative_target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Target"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOFollowerRobotConfig",
+      "type": "object"
+    },
+    "SOLeaderConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOLeaderConfig",
+      "type": "object"
+    },
+    "SOLeaderTeleopConfig": {
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "use_degrees": {
+          "default": false,
+          "title": "Use Degrees",
+          "type": "boolean"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "SOLeaderTeleopConfig",
+      "type": "object"
+    },
+    "UnitreeG1Config": {
+      "properties": {
+        "kp": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Kp",
+          "type": "array"
+        },
+        "kd": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Kd",
+          "type": "array"
+        },
+        "default_positions": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Default Positions",
+          "type": "array"
+        },
+        "control_dt": {
+          "default": 0.004,
+          "title": "Control Dt",
+          "type": "number"
+        },
+        "is_simulation": {
+          "default": true,
+          "title": "Is Simulation",
+          "type": "boolean"
+        },
+        "robot_ip": {
+          "default": "192.168.123.164",
+          "title": "Robot Ip",
+          "type": "string"
+        },
+        "cameras": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RealSenseCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCVCameraConfig"
+              },
+              {
+                "$ref": "#/$defs/Reachy2CameraConfig"
+              },
+              {
+                "$ref": "#/$defs/ZMQCameraConfig"
+              }
+            ]
+          },
+          "title": "Cameras",
+          "type": "object"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "calibration_dir": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Dir"
+        }
+      },
+      "title": "UnitreeG1Config",
+      "type": "object"
+    },
+    "ZMQCameraConfig": {
+      "properties": {
+        "server_address": {
+          "title": "Server Address",
+          "type": "string"
+        },
+        "port": {
+          "default": 5555,
+          "title": "Port",
+          "type": "integer"
+        },
+        "camera_name": {
+          "default": "zmq_camera",
+          "title": "Camera Name",
+          "type": "string"
+        },
+        "color_mode": {
+          "$ref": "#/$defs/ColorMode",
+          "default": "rgb"
+        },
+        "timeout_ms": {
+          "default": 5000,
+          "title": "Timeout Ms",
+          "type": "integer"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        }
+      },
+      "required": [
+        "server_address"
+      ],
+      "title": "ZMQCameraConfig",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "env": {
+      "$ref": "#/$defs/HILSerlRobotEnvConfig"
+    },
+    "dataset": {
+      "$ref": "#/$defs/DatasetConfig"
+    },
+    "mode": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mode"
+    },
+    "device": {
+      "default": "cpu",
+      "title": "Device",
+      "type": "string"
+    }
+  },
+  "required": [
+    "env",
+    "dataset"
+  ],
+  "title": "GymManipulatorConfig",
+  "type": "object"
+}

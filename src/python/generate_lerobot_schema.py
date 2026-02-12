@@ -53,7 +53,6 @@ import_submodules("lerobot")
 # Explicitly import top-level configs of interest
 try:
     from lerobot.configs.train import TrainPipelineConfig
-    from lerobot.rl.gym_manipulator import GymManipulatorConfig
     from lerobot.configs.default import EvalConfig
     from lerobot.configs.policies import PreTrainedConfig
     from lerobot.envs.configs import EnvConfig
@@ -63,8 +62,10 @@ try:
     from lerobot.optim.schedulers import LRSchedulerConfig
     from lerobot.robots.config import RobotConfig
 
-    # Mock rerun to allow importing lerobot_record which depends on it
+    # Mock modules to allow importing scripts that depend on them
     sys.modules["rerun"] = MagicMock()
+    sys.modules["socketio"] = MagicMock()
+    sys.modules["flask"] = MagicMock()
     
     # Import lerobot_record from scripts using dynamic import since it is not in a package with __init__.py
     scripts_path = site_packages / "lerobot/scripts/lerobot_record.py"
@@ -74,6 +75,13 @@ try:
     
     RecordConfig = lerobot_record.RecordConfig
     DatasetRecordConfig = lerobot_record.DatasetRecordConfig
+
+    # Import GymManipulatorConfig from local gym_manipulator.py
+    gym_man_path = Path(__file__).parent / "gym_manipulator.py"
+    spec = importlib.util.spec_from_file_location("gym_manipulator", str(gym_man_path))
+    gym_manipulator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gym_manipulator)
+    GymManipulatorConfig = gym_manipulator.GymManipulatorConfig
 except ImportError as e:
     print(f"Error importing config classes: {e}")
     sys.exit(1)
@@ -181,7 +189,7 @@ def patch_class(cls):
     return patched_cls
 
 
-roots = [RecordConfig, RobotConfig, DatasetRecordConfig, TeleoperatorConfig, PreTrainedConfig]
+roots = [RecordConfig, RobotConfig, DatasetRecordConfig, TeleoperatorConfig, PreTrainedConfig, GymManipulatorConfig]
 
 print("Patching classes...")
 # We must patch roots and use the patched versions

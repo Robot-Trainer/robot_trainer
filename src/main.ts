@@ -261,43 +261,34 @@ const setupIpcHandlers = () => {
           child_pip_install.stderr.on('data', (d: any) => err += d);
           child_pip_install.on('close', (code) => {
             if (code !== 0) {
-
               resolve({ success: false, output: out + err });
+              return;
             }
-            const child_lerobot_install = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
-            child_lerobot_install.stdout.on('data', (d: any) => out += d);
-            child_lerobot_install.stderr.on('data', (d: any) => err += d);
-            child_lerobot_install.on('close', (code) => {
-              if (code !== 0) {
-                resolve({ success: false, output: out + err });
-                return;
-              }
 
-              // Resolve python path to safely install lerobot[hilserl] avoiding conda run shell issues
-              const child_get_python = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', 'import sys; print(sys.executable)'], { stdio: ['ignore', 'pipe', 'pipe'] });
-              let pythonExecutable = '';
-              child_get_python.stdout.on('data', (d: any) => pythonExecutable += d.toString());
-              child_get_python.on('close', (code) => {
-                // If we got a python path, use it directly. Otherwise fallback to conda run (which might fail on brackets).
-                const targetExec = (code === 0 && pythonExecutable.trim()) ? pythonExecutable.trim() : condaExec;
-                const targetArgs = (code === 0 && pythonExecutable.trim())
-                  ? ['-m', 'pip', 'install', 'lerobot[hilserl]']
-                  : ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[hilserl]'];
+            // Resolve python path to safely install lerobot[hilserl] avoiding conda run shell issues
+            const child_get_python = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', 'import sys; print(sys.executable)'], { stdio: ['ignore', 'pipe', 'pipe'] });
+            let pythonExecutable = '';
+            child_get_python.stdout.on('data', (d: any) => pythonExecutable += d.toString());
+            child_get_python.on('close', (code) => {
+              // If we got a python path, use it directly. Otherwise fallback to conda run (which might fail on brackets).
+              const targetExec = (code === 0 && pythonExecutable.trim()) ? pythonExecutable.trim() : condaExec;
+              const targetArgs = (code === 0 && pythonExecutable.trim())
+                ? ['-m', 'pip', 'install', 'lerobot[hilserl]', 'python-socketio', 'aiohttp']
+                : ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[hilserl]', 'python-socketio', 'aiohttp'];
 
-                const child_hil_install = spawn(targetExec, targetArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-                child_hil_install.stdout.on('data', (d: any) => out += d);
-                child_hil_install.stderr.on('data', (d: any) => err += d);
-                child_hil_install.on('close', (code) => {
-                  resolve({ success: code === 0, output: out + err });
-                });
-                child_hil_install.on('error', (e) => {
-                  resolve({ success: false, output: String(e) });
-                });
+              const child_hil_install = spawn(targetExec, targetArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+              child_hil_install.stdout.on('data', (d: any) => out += d);
+              child_hil_install.stderr.on('data', (d: any) => err += d);
+              child_hil_install.on('close', (code) => {
+                resolve({ success: code === 0, output: out + err });
+              });
+              child_hil_install.on('error', (e) => {
+                resolve({ success: false, output: String(e) });
               });
             });
-            child_lerobot_install.on('error', (e) => {
-
-              resolve({ success: false, output: String(e) });
+            child_get_python.on('error', (e) => {
+              // If resolving python fails, try continuing with conda run fallback in the next step logic (handled above)
+              // or just fail. Here we rely on the close handler logic which defaults to condaExec if pythonExecutable is empty.
             });
           });
         });
@@ -314,29 +305,16 @@ const setupIpcHandlers = () => {
       }
 
       return await new Promise((resolve) => {
-        const child = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot'], { stdio: ['ignore', 'pipe', 'pipe'] });
+        const child_hil = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot[hilserl]', 'python-socketio', 'aiohttp'], { stdio: ['ignore', 'pipe', 'pipe'] });
 
         let out = '';
         let err = '';
-        child.stdout.on('data', (d: any) => out += d);
-        child.stderr.on('data', (d: any) => err += d);
-        child.on('close', (code) => {
-          if (code !== 0) {
-            resolve({ success: false, output: out + err });
-            return;
-          }
-
-          const child_hil = spawn(pythonPath, ['-m', 'pip', 'install', 'lerobot[hilserl]'], { stdio: ['ignore', 'pipe', 'pipe'] });
-          child_hil.stdout.on('data', (d: any) => out += d);
-          child_hil.stderr.on('data', (d: any) => err += d);
-          child_hil.on('close', (code) => {
-            resolve({ success: code === 0, output: out + err });
-          });
-          child_hil.on('error', (e) => {
-            resolve({ success: false, output: String(e) });
-          });
+        child_hil.stdout.on('data', (d: any) => out += d);
+        child_hil.stderr.on('data', (d: any) => err += d);
+        child_hil.on('close', (code) => {
+          resolve({ success: code === 0, output: out + err });
         });
-        child.on('error', (e) => {
+        child_hil.on('error', (e) => {
           resolve({ success: false, output: String(e) });
         });
       });
@@ -677,42 +655,73 @@ const setupIpcHandlers = () => {
       // Prefer conda run -n robot_trainer if we have conda available
       const condaExec: string | null = await resolveCondaExecutable();
 
-      let moduleName = 'lerobot.scripts.lerobot_record';
-      let scriptArgs = ['-m', moduleName, '--config_path', tempConfigPath];
+      // let moduleName = 'lerobot.scripts.lerobot_record';
+      // let scriptArgs = ['-m', moduleName, '--config_path', tempConfigPath];
 
       // If user selected generic simulation, run our custom simulate.py script
-      if (config.robot && config.robot.type === 'simulation') {
-        const simScriptPath = app.isPackaged
-          ? path.join(process.resourcesPath, 'python', 'simulate.py')
-          : path.join(app.getAppPath(), 'src', 'python', 'simulate.py');
-        
-        scriptArgs = [simScriptPath, '--config_path', tempConfigPath];
-      }
+      // if ((config.robot && config.robot.type === 'simulation') || config.env) {
+      const simScriptPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'python', 'gym_manipulator.py')
+        : path.join(app.getAppPath(), 'src', 'python', 'gym_manipulator.py');
+
+      let scriptArgs = [simScriptPath, '--config_path', tempConfigPath];
+      // }
 
       let command = 'python3';
       let args: string[] = scriptArgs;
 
-      if (condaExec) {
-        // Use conda run to ensure correct env activation
-        command = condaExec;
-        if (config.robot && config.robot.type === 'simulation') {
-             args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
-        } else {
-             args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
-        }
-      } else if (systemSettings && systemSettings.pythonPath) {
+      // Use conda run to ensure correct env activation
+      command = condaExec;
+      // if (config.robot && config.robot.type === 'simulation') {
+      args = ['run', '--no-capture-output', '-n', 'robot_trainer', 'python', '-u', ...scriptArgs];
+      // } else {
+      // args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
+      // }
+      // } else if (systemSettings && systemSettings.pythonPath) {
 
-        command = systemSettings.pythonPath;
-        args = scriptArgs;
-      }
+      // command = systemSettings.pythonPath;
+      // args = scriptArgs;
+      // }
 
-      const vm = new VideoManager(0);
-      const recordingPath = path.join(app.getPath('userData'), `simulation_${Date.now()}.mp4`);
+      const vm = new VideoManager();
+      // const recordingPath = path.join(app.getPath('userData'), `simulation_${Date.now()}.mp4`);
 
-      await vm.startSimulation(command, args, recordingPath);
+      // Prepare to capture the dynamic URL from the python process
+      const waitForUrl = new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Timeout waiting for simulation server URL"));
+        }, 15000); // 15s timeout
+
+        const onResponse = (response: any) => {
+          if (response.type === 'server-ready' && response.url) {
+            clearTimeout(timeout);
+            vm.off('simulation-response', onResponse);
+            resolve(response.url);
+          }
+        };
+        vm.on('simulation-response', onResponse);
+
+        // Also reject if process exits early
+        vm.on('exit', (code: number) => {
+          clearTimeout(timeout);
+          vm.off('simulation-response', onResponse);
+          reject(new Error(`Simulation process exited early with code ${code}`));
+        });
+      });
+
+      await vm.startSimulation(command, args);
       videoManagers.set(id, vm);
 
-      const wsUrl = `ws://localhost:${vm.getPort()}`;
+      let wsUrl = '';
+      try {
+        wsUrl = await waitForUrl;
+      } catch (e) {
+        console.warn('Failed to get dynamic URL from simulation, falling back cleanly or erroring:', e);
+        // If we timeout, we might want to kill the process? or just let it be?
+        // For now, let's propagate the error so the UI knows it failed to connect.
+        throw e;
+      }
+
       BrowserWindow.getAllWindows().forEach(w => w.webContents.send('simulation-state-changed', { running: true, wsUrl }));
 
       return { ok: true, wsUrl };
@@ -727,7 +736,6 @@ const setupIpcHandlers = () => {
     const vm = videoManagers.get(id);
     if (vm) {
       vm.stopAll();
-      vm.stopServer();
       videoManagers.delete(id);
     }
     BrowserWindow.getAllWindows().forEach(w => w.webContents.send('simulation-state-changed', { running: false }));
@@ -735,44 +743,17 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('start-camera', async (_event, devicePath: string) => {
-    try {
-      const id = `camera_${devicePath}`;
-      if (videoManagers.has(id)) return { ok: false, message: 'already running' };
-
-      const vm = new VideoManager(0);
-      const recordingPath = path.join(app.getPath('userData'), `camera_${Date.now()}.mp4`);
-
-      await vm.startCamera(devicePath, recordingPath);
-      videoManagers.set(id, vm);
-      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    return { ok: false, message: 'Camera support disabled' };
   });
 
   ipcMain.handle('start-rtsp', async (_event, url: string) => {
-    try {
-      const id = `rtsp_${url}`;
-      if (videoManagers.has(id)) return { ok: false, message: 'already running' };
-
-      const vm = new VideoManager(0);
-      const recordingPath = path.join(app.getPath('userData'), `rtsp_${Date.now()}.mp4`);
-
-      await vm.startRTSP(url, recordingPath);
-      videoManagers.set(id, vm);
-      return { ok: true, wsUrl: `ws://localhost:${vm.getPort()}` };
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    return { ok: false, message: 'RTSP support disabled' };
   });
 
   ipcMain.handle('stop-video', async (_event, id: string) => {
     const vm = videoManagers.get(id);
     if (vm) {
       vm.stopAll();
-      vm.stopServer();
       videoManagers.delete(id);
     }
     return { ok: true };

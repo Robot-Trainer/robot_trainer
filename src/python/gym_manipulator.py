@@ -18,8 +18,19 @@
 
 import logging
 import time
+import socket
+import json
+import sys
+import os
+import ctypes.util
 from dataclasses import dataclass
 from typing import Any
+
+# Detect if hardware acceleration is available (EGL) or not (OSMesa)
+if ctypes.util.find_library("EGL"):
+    os.environ["MUJOCO_GL"] = "egl"
+else:
+    os.environ["MUJOCO_GL"] = "osmesa"
 
 import gymnasium as gym
 import numpy as np
@@ -78,10 +89,28 @@ from lerobot.utils.constants import ACTION, DONE, OBS_IMAGES, OBS_STATE, REWARD
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
 
-from .joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+from lerobot.rl.joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+
+import socketio
+import asyncio
+from aiohttp import web
+import base64
+import cv2
+
+# Initialize the Socket.IO server
+sio = socketio.AsyncServer(async_mode='aiohttp', cors_allowed_origins='*')
+app = web.Application()
+sio.attach(app)
+
+@sio.event
+def connect(sid, environ):
+    logging.info(f"Client connected: {sid}")
+
+@sio.event
+def disconnect(sid):
+    logging.info(f"Client disconnected: {sid}")
 
 logging.basicConfig(level=logging.INFO)
-
 
 @dataclass
 class DatasetConfig:
@@ -105,7 +134,7 @@ class GymManipulatorConfig:
     device: str = "cpu"
 
 
-def reset_follower_position(robot_arm: Robot, target_position: np.ndarray) -> None:
+async def reset_follower_position(robot_arm: Robot, target_position: np.ndarray) -> None:
     """Reset robot arm to target position using smooth trajectory."""
     current_position_dict = robot_arm.bus.sync_read("Present_Position")
     current_position = np.array(
@@ -117,7 +146,7 @@ def reset_follower_position(robot_arm: Robot, target_position: np.ndarray) -> No
     for pose in trajectory:
         action_dict = dict(zip(current_position_dict, pose, strict=False))
         robot_arm.bus.sync_write("Goal_Position", action_dict)
-        precise_sleep(0.015)
+        await asyncio.sleep(0.015)
 
 
 class RobotEnv(gym.Env):
@@ -221,7 +250,7 @@ class RobotEnv(gym.Env):
             dtype=np.float32,
         )
 
-    def reset(
+    async def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[RobotObservation, dict[str, Any]]:
         """Reset environment to initial state.
@@ -238,11 +267,13 @@ class RobotEnv(gym.Env):
         start_time = time.perf_counter()
         if self.reset_pose is not None:
             log_say("Reset the environment.", play_sounds=True)
-            reset_follower_position(self.robot, np.array(self.reset_pose))
+            await reset_follower_position(self.robot, np.array(self.reset_pose))
             log_say("Reset the environment done.", play_sounds=True)
 
-        precise_sleep(max(self.reset_time_s - (time.perf_counter() - start_time), 0.0))
+        await asyncio.sleep(max(self.reset_time_s - (time.perf_counter() - start_time), 0.0))
 
+        # super().reset() works fine even if parent is sync as long as we don't await non-awaitables.
+        # gym.Env.reset usually just sets np_random.
         super().reset(seed=seed, options=options)
 
         # Reset episode tracking variables.
@@ -252,8 +283,9 @@ class RobotEnv(gym.Env):
         self._raw_joint_positions = {f"{key}.pos": obs[f"{key}.pos"] for key in self._joint_names}
         return obs, {TeleopEvents.IS_INTERVENTION: False}
 
-    def step(self, action) -> tuple[RobotObservation, float, bool, bool, dict[str, Any]]:
+    async def step(self, action) -> tuple[RobotObservation, float, bool, bool, dict[str, Any]]:
         """Execute one environment step with given action."""
+        logging.info(f"Received action: {action}")
         joint_targets_dict = {f"{key}.pos": action[i] for i, key in enumerate(self.robot.bus.motors.keys())}
 
         self.robot.send_action(joint_targets_dict)
@@ -263,7 +295,7 @@ class RobotEnv(gym.Env):
         self._raw_joint_positions = {f"{key}.pos": obs[f"{key}.pos"] for key in self._joint_names}
 
         if self.display_cameras:
-            self.render()
+            await self.render()
 
         self.current_step += 1
 
@@ -279,17 +311,24 @@ class RobotEnv(gym.Env):
             {TeleopEvents.IS_INTERVENTION: False},
         )
 
-    def render(self) -> None:
-        """Display robot camera feeds."""
-        import cv2
-
+    async def render(self) -> None:
+        """Display robot camera feeds via Socket.IO."""
         current_observation = self._get_observation()
+        logging.info("Rendering camera feeds...")
+        logging.info(f"Current observation keys: {list(current_observation.keys())}")
         if current_observation is not None:
             image_keys = [key for key in current_observation if "image" in key]
 
             for key in image_keys:
-                cv2.imshow(key, cv2.cvtColor(current_observation[key].numpy(), cv2.COLOR_RGB2BGR))
-                cv2.waitKey(1)
+                frame_bgr = cv2.cvtColor(current_observation[key].numpy(), cv2.COLOR_RGB2BGR)
+                _, buffer = cv2.imencode('.jpg', frame_bgr)
+                jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+                
+                # Emit the frame
+                await sio.emit('video_frame', {'image': jpg_as_text, 'camera_name': key})
+            
+            # Yield to asyncio loop
+            await sio.sleep(0)
 
     def close(self) -> None:
         """Close environment and disconnect robot."""
@@ -299,6 +338,24 @@ class RobotEnv(gym.Env):
     def get_raw_joint_positions(self) -> dict[str, float]:
         """Get raw joint positions."""
         return self._raw_joint_positions
+
+
+class AsyncGymWrapper(gym.Wrapper):
+    """Wrapper that makes standard gym environments comply with async interface used in this script."""
+
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+
+    async def reset(self, **kwargs):
+        return self.env.reset(**kwargs)
+
+    async def step(self, action):
+        return self.env.step(action)
+
+    def get_raw_joint_positions(self) -> dict[str, float]:
+        if hasattr(self.unwrapped, "get_raw_joint_positions"):
+            return self.unwrapped.get_raw_joint_positions()
+        return {}
 
 
 def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
@@ -327,6 +384,7 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
             gripper_penalty=gripper_penalty,
         )
 
+        env = AsyncGymWrapper(env)
         return env, None
 
     # Real robot environment
@@ -508,7 +566,40 @@ def make_processors(
     )
 
 
-def step_env_and_process_transition(
+async def emit_observation_frames(observation: dict) -> None:
+    """Emit observation images to connected Socket.IO clients.
+
+    Extracts image tensors from the observation dict, encodes them as JPEG,
+    and emits them as base64 via Socket.IO 'video_frame' events.
+    """
+    image_keys = [key for key in observation if "image" in key]
+    for key in image_keys:
+        value = observation[key]
+        if isinstance(value, torch.Tensor):
+            # Remove batch dimension if present and move to CPU
+            img = value.squeeze(0).cpu()
+            # Handle CHW -> HWC conversion if needed
+            if img.dim() == 3 and img.shape[0] in (1, 3):
+                img = img.permute(1, 2, 0)
+            
+            img_np = img.numpy()
+            # Convert from float [0, 1] to uint8 [0, 255]
+            if np.issubdtype(img_np.dtype, np.floating) and img_np.max() <= 1.0:
+                img_np = (img_np * 255).clip(0, 255)
+            
+            img_np = img_np.astype(np.uint8)
+
+            # Convert RGB to BGR for cv2 JPEG encoding
+            if img_np.ndim == 3 and img_np.shape[-1] == 3:
+                img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+            _, buffer = cv2.imencode('.jpg', img_np)
+            jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+            await sio.emit('video_frame', {'image': jpg_as_text, 'camera_name': key})
+    if image_keys:
+        await sio.sleep(0)
+
+
+async def step_env_and_process_transition(
     env: gym.Env,
     transition: EnvTransition,
     action: torch.Tensor,
@@ -537,7 +628,7 @@ def step_env_and_process_transition(
     processed_action_transition = action_processor(transition)
     processed_action = processed_action_transition[TransitionKey.ACTION]
 
-    obs, reward, terminated, truncated, info = env.step(processed_action)
+    obs, reward, terminated, truncated, info = await env.step(processed_action)
 
     reward = reward + processed_action_transition[TransitionKey.REWARD]
     terminated = terminated or processed_action_transition[TransitionKey.DONE]
@@ -560,7 +651,7 @@ def step_env_and_process_transition(
     return new_transition
 
 
-def control_loop(
+async def control_loop(
     env: gym.Env,
     env_processor: DataProcessorPipeline[EnvTransition, EnvTransition],
     action_processor: DataProcessorPipeline[EnvTransition, EnvTransition],
@@ -579,14 +670,14 @@ def control_loop(
     """
     dt = 1.0 / cfg.env.fps
 
-    print(f"Starting control loop at {cfg.env.fps} FPS")
-    print("Controls:")
-    print("- Use gamepad/teleop device for intervention")
-    print("- When not intervening, robot will stay still")
-    print("- Press Ctrl+C to exit")
+    logging.info(f"Starting control loop at {cfg.env.fps} FPS")
+    logging.info("Controls:")
+    logging.info("- Use gamepad/teleop device for intervention")
+    logging.info("- When not intervening, robot will stay still")
+    logging.info("- Press Ctrl+C to exit")
 
     # Reset environment and processors
-    obs, info = env.reset()
+    obs, info = await env.reset()
     complementary_data = (
         {"raw_joint_positions": info.pop("raw_joint_positions")} if "raw_joint_positions" in info else {}
     )
@@ -653,7 +744,7 @@ def control_loop(
             neutral_action = torch.cat([neutral_action, torch.tensor([1.0])])  # Gripper stay
 
         # Use the new step function
-        transition = step_env_and_process_transition(
+        transition = await step_env_and_process_transition(
             env=env,
             transition=transition,
             action=neutral_action,
@@ -687,6 +778,9 @@ def control_loop(
                 frame["task"] = cfg.dataset.task
                 dataset.add_frame(frame)
 
+        # Emit observation frames to connected Socket.IO clients
+        await emit_observation_frames(transition[TransitionKey.OBSERVATION])
+
         episode_step += 1
 
         # Handle episode termination
@@ -708,7 +802,7 @@ def control_loop(
                     dataset.save_episode()
 
             # Reset for new episode
-            obs, info = env.reset()
+            obs, info = await env.reset()
             env_processor.reset()
             action_processor.reset()
 
@@ -716,14 +810,15 @@ def control_loop(
             transition = env_processor(transition)
 
         # Maintain fps timing
-        precise_sleep(max(dt - (time.perf_counter() - step_start_time), 0.0))
+        await asyncio.sleep(max(dt - (time.perf_counter() - step_start_time), 0.0))
+        await sio.sleep(0)  # Yield to asyncio loop
 
     if dataset is not None and cfg.dataset.push_to_hub:
         logging.info("Pushing dataset to hub")
         dataset.push_to_hub()
 
 
-def replay_trajectory(
+async def replay_trajectory(
     env: gym.Env, action_processor: DataProcessorPipeline, cfg: GymManipulatorConfig
 ) -> None:
     """Replay recorded trajectory on robot environment."""
@@ -738,7 +833,7 @@ def replay_trajectory(
     episode_frames = dataset.hf_dataset.filter(lambda x: x["episode_index"] == cfg.dataset.replay_episode)
     actions = episode_frames.select_columns(ACTION)
 
-    _, info = env.reset()
+    _, info = await env.reset()
 
     for action_data in actions:
         start_time = time.perf_counter()
@@ -747,27 +842,52 @@ def replay_trajectory(
             action=action_data[ACTION],
         )
         transition = action_processor(transition)
-        env.step(transition[TransitionKey.ACTION])
-        precise_sleep(max(1 / cfg.env.fps - (time.perf_counter() - start_time), 0.0))
+        await env.step(transition[TransitionKey.ACTION])
+        await asyncio.sleep(max(1 / cfg.env.fps - (time.perf_counter() - start_time), 0.0))
 
 
 @parser.wrap()
 def main(cfg: GymManipulatorConfig) -> None:
     """Main entry point for gym manipulator script."""
-    env, teleop_device = make_robot_env(cfg.env)
-    env_processor, action_processor = make_processors(env, teleop_device, cfg.env, cfg.device)
+    logging.info("Starting gym_manipulator...")
+    
+    async def run_gym_logic():
+        try:
+            env, teleop_device = make_robot_env(cfg.env)
+            env_processor, action_processor = make_processors(env, teleop_device, cfg.env, cfg.device)
 
-    print("Environment observation space:", env.observation_space)
-    print("Environment action space:", env.action_space)
-    print("Environment processor:", env_processor)
-    print("Action processor:", action_processor)
+            logging.info("Environment observation space:", env.observation_space)
+            # logging.info("Environment action space:", env.action_space)
+            # logging.info("Environment processor:", env_processor)
+            # logging.info("Action processor:", action_processor)
 
-    if cfg.mode == "replay":
-        replay_trajectory(env, action_processor, cfg)
-        exit()
+            if cfg.mode == "replay":
+                await replay_trajectory(env, action_processor, cfg)
+                return
 
-    control_loop(env, env_processor, action_processor, teleop_device, cfg)
+            await control_loop(env, env_processor, action_processor, teleop_device, cfg)
+        except Exception as e:
+            logging.error(f"Error in gym logic: {e}", exc_info=True)
+
+    async def on_startup(app):
+        sio.start_background_task(run_gym_logic)
+
+    app.on_startup.append(on_startup)
+
+    # Find a free port
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(('', 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    # Run the web server
+    # Print to stderr so VideoManager can catch it
+    print(f"__CMD__:{json.dumps({'type': 'server-ready', 'url': f'http://localhost:{port}'})}", file=sys.stderr, flush=True)
+    logging.info(f"Socket.IO server running on http://localhost:{port}")
+    web.run_app(app, port=port)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, force=True)
+    logging.info("Starting gym_manipulator...")
     main()

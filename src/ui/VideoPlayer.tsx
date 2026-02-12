@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 // import the asset URL so Vite replaces it with the correct dev/prod path
 // eslint-disable-next-line import/no-unresolved
 import jsmpegUrl from '../lib/jsmpeg.min.js?url';
@@ -6,6 +7,7 @@ import jsmpegUrl from '../lib/jsmpeg.min.js?url';
 interface VideoPlayerProps {
   url: string;
   className?: string;
+  channel?: string;
 }
 
 async function ensureJSMpegLoaded(): Promise<void> {
@@ -16,7 +18,7 @@ async function ensureJSMpegLoaded(): Promise<void> {
   const existing = (window as any).__JSMpegLoading as Promise<void> | undefined;
   if (existing) return existing;
 
-      const p = new Promise<void>((resolve, reject) => {
+  const p = new Promise<void>((resolve, reject) => {
     try {
       const script = document.createElement('script');
       // Use the asset URL imported via Vite so it works in dev and production
@@ -45,42 +47,86 @@ async function ensureJSMpegLoaded(): Promise<void> {
   return p.finally(() => { (window as any).__JSMpegLoading = undefined; });
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<any>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     let mounted = true;
     if (!canvasRef.current || !url) return;
 
-    // Destroy previous player if exists
+    // Destroy previous player/socket if exists
     if (playerRef.current) {
       try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
       playerRef.current = null;
     }
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
 
-    (async () => {
+    if (url.startsWith("http")) {
+      // Socket.IO mode
       try {
-        await ensureJSMpegLoaded();
-        if (!mounted) return;
-        const JSMpeg = (window as any).JSMpeg;
-        if (!JSMpeg || !JSMpeg.Player) {
-          console.error('JSMpeg not available after load');
-          return;
-        }
+        const socket = io(url);
+        socketRef.current = socket;
 
-        // Initialize JSMpeg player
-        // Accept both websocket mpeg-ts endpoints and http streams supported by JSMpeg
-        playerRef.current = new JSMpeg.Player(url, {
-          canvas: canvasRef.current,
-          autoplay: true,
-          audio: false,
-          disableGl: false,
+        socket.on('connect', () => {
+          console.log('VideoPlayer connected to Socket.IO:', url);
         });
+
+        socket.on('video_frame', (data: { image: string, camera_name: string }) => {
+          if (!canvasRef.current || !mounted) return;
+          if (data.camera_name !== 'observation.images.front') {
+            return; // Skip frames if channel filter is set and doesn't match
+          }
+
+          const img = new Image();
+          img.onerror = () => {
+            console.error('VideoPlayer: Failed to decode frame for', data.camera_name);
+          };
+          img.onload = () => {
+            if (!canvasRef.current || !mounted) return;
+
+            if (canvasRef.current.width !== img.width || canvasRef.current.height !== img.height) {
+              canvasRef.current.width = img.width;
+              canvasRef.current.height = img.height;
+            }
+            const ctx = canvasRef.current.getContext('2d');
+            console.log(canvasRef.current);
+            ctx?.drawImage(img, 0, 0);
+          };
+          img.src = 'data:image/jpeg;base64,' + data.image;
+        });
+
       } catch (e) {
-        console.error('Failed to init JSMpeg', e);
+        console.error('Failed to init Socket.IO', e);
       }
-    })();
+    } else {
+      (async () => {
+        try {
+          await ensureJSMpegLoaded();
+          if (!mounted) return;
+          const JSMpeg = (window as any).JSMpeg;
+          if (!JSMpeg || !JSMpeg.Player) {
+            console.error('JSMpeg not available after load');
+            return;
+          }
+
+          // Initialize JSMpeg player
+          // Accept both websocket mpeg-ts endpoints and http streams supported by JSMpeg
+          playerRef.current = new JSMpeg.Player(url, {
+            canvas: canvasRef.current,
+            autoplay: true,
+            audio: false,
+            disableGl: false,
+          });
+        } catch (e) {
+          console.error('Failed to init JSMpeg', e);
+        }
+      })();
+    }
 
     return () => {
       mounted = false;
@@ -88,8 +134,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className }) => {
         try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
         playerRef.current = null;
       }
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, [url]);
+  }, [url, channel]);
 
   return (
     <canvas ref={canvasRef} className={className} />
