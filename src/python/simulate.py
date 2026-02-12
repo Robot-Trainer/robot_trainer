@@ -97,7 +97,7 @@ def try_lerobot_sim(fps=30):
 
         # Load the gym_manipulator module from the same directory
         gym_manipulator_path = Path(__file__).parent / 'gym_manipulator.py'
-        if gym_manipulator_path.exists():
+        if gym_manipulator_path.is_file():
             try:
                 spec = importlib.util.spec_from_file_location('gym_manipulator', gym_manipulator_path)
                 gm = importlib.util.module_from_spec(spec)
@@ -285,7 +285,7 @@ def try_lerobot_sim(fps=30):
             except Exception:
                 action = None
 
-        frame_count = 0
+        first_frame_logged = False
         while not STOP:
             frame = None
             try:
@@ -314,10 +314,10 @@ def try_lerobot_sim(fps=30):
                 if isinstance(frame, np.ndarray):
                     img = Image.fromarray(frame)
                     output_frame_raw(img)
-                    frame_count += 1
-                    if frame_count == 1:
+                    if not first_frame_logged:
                         sys.stderr.write(f"✓ Started outputting frames (frame shape: {frame.shape})\n")
                         sys.stderr.flush()
+                        first_frame_logged = True
                 elif isinstance(frame, (bytes, bytearray)):
                     # Assume it's already raw RGB bytes if bytes, but we need to be careful about size
                     # If it's raw bytes, we might just write it if we trust it.
@@ -327,7 +327,8 @@ def try_lerobot_sim(fps=30):
                     try:
                         img = Image.open(BytesIO(frame))
                         output_frame_raw(img)
-                        frame_count += 1
+                        if not first_frame_logged:
+                            first_frame_logged = True
                     except Exception:
                         # Maybe raw bytes? Just write it if size matches?
                         # For now, let's assume it's an image we can load or a numpy array.
@@ -336,10 +337,11 @@ def try_lerobot_sim(fps=30):
                     # try to coerce via PIL
                     img = Image.fromarray(np.asarray(frame))
                     output_frame_raw(img)
-                    frame_count += 1
+                    if not first_frame_logged:
+                        first_frame_logged = True
             except Exception as e:
                 # on any conversion error, sleep and continue
-                if frame_count == 0:
+                if not first_frame_logged:
                     sys.stderr.write(f"Frame conversion error: {e}\n")
                     sys.stderr.flush()
                 time.sleep(dt)

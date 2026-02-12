@@ -321,10 +321,7 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
         try:
             import gym_hil  # noqa: F401
         except ImportError as e:
-            raise ImportError(
-                f"gym_hil package not found. Please ensure gym_hil is installed in your Python environment.\n"
-                f"Original error: {e}"
-            )
+            raise ImportError(f"gym_hil package not found: {e}")
 
         # Extract gripper settings with defaults
         use_gripper = cfg.processor.gripper.use_gripper if cfg.processor.gripper is not None else True
