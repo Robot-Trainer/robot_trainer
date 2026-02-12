@@ -95,19 +95,7 @@ def try_lerobot_sim(fps=30):
         from PIL import Image
 
         # Load the gym_manipulator module (package path used by CLI)
-        try:
-            gm = importlib.import_module('lerobot.rl.gym_manipulator')
-        except Exception:
-            try:
-                # try alternative module path
-                gm = importlib.import_module('lerobot.scripts.rl.gym_manipulator')
-            except Exception:
-                 # Last resort: maybe it is exposed in common?
-                 try:
-                    gm = importlib.import_module('lerobot.common.envs.gym')
-                 except Exception:
-                    sys.stderr.write('gym_manipulator module not found\n')
-                    return run_fallback_sim(fps=fps)
+        gm = importlib.import_module('gym_manipulator')
         
         # locate config file: prefer explicit --config path via env var, else search nearby
         cfg_path = None
@@ -210,6 +198,7 @@ def try_lerobot_sim(fps=30):
                 'robot': None, # Force robot to None for simulation
                 'teleop': None,
                 'wrapper': wrapper_settings,
+                'processor': wrapper_settings,
                 'device': cfg_data.get('device', 'cpu')
             }
             
@@ -226,7 +215,7 @@ def try_lerobot_sim(fps=30):
                 cfg_dict['type'] = cfg_dict.get('name')
             # map 'processor' -> 'wrapper' if present
             if 'processor' in cfg_dict and 'wrapper' not in cfg_dict:
-                cfg_dict['wrapper'] = cfg_dict.pop('processor')
+                cfg_dict['wrapper'] = cfg_dict['processor']
 
             cfg_obj = to_obj(cfg_dict)
             # add top-level device if provided
@@ -234,7 +223,11 @@ def try_lerobot_sim(fps=30):
                 setattr(cfg_obj, 'device', cfg_data.get('device'))
 
         if hasattr(gm, 'make_robot_env'):
-            env = gm.make_robot_env(cfg_obj)
+            res = gm.make_robot_env(cfg_obj)
+            if isinstance(res, tuple):
+                env, _ = res
+            else:
+                env = res
         else:
             if hasattr(gm, 'main'):
                 gm.main()
