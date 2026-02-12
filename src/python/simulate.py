@@ -90,12 +90,21 @@ def try_lerobot_sim(fps=30):
     # `lerobot.rl.gym_manipulator.make_robot_env` factory.
     try:
         import importlib
+        import importlib.util
         import os
         import numpy as np
         from PIL import Image
 
-        # Load the gym_manipulator module (package path used by CLI)
-        gm = importlib.import_module('gym_manipulator')
+        # Load the gym_manipulator module from the same directory
+        gym_manipulator_path = Path(__file__).parent / 'gym_manipulator.py'
+        if gym_manipulator_path.exists():
+            spec = importlib.util.spec_from_file_location('gym_manipulator', gym_manipulator_path)
+            gm = importlib.util.module_from_spec(spec)
+            sys.modules['gym_manipulator'] = gm
+            spec.loader.exec_module(gm)
+        else:
+            # Fallback to trying to import from path (if installed as a package)
+            gm = importlib.import_module('gym_manipulator')
         
         # locate config file: prefer explicit --config path via env var, else search nearby
         cfg_path = None
@@ -263,24 +272,24 @@ def try_lerobot_sim(fps=30):
         while not STOP:
             frame = None
             try:
-                # prefer env.render() if available
+                # step to advance simulation first
+                if action is not None:
+                    try:
+                        result = env.step(action)
+                        # Handle different return formats (Gym API changes)
+                        if isinstance(result, tuple) and len(result) >= 4:
+                            # Standard gym return: (obs, reward, terminated, truncated, info) or (obs, reward, done, info)
+                            pass
+                    except Exception as e:
+                        sys.stderr.write(f"Step error: {e}\n")
+                        sys.stderr.flush()
+                
+                # Now render after stepping
                 if hasattr(env, 'render'):
                     frame = env.render()
-                # step to advance simulation and then render
-                if frame is None and action is not None:
-                    try:
-                        env.step(action)
-                    except Exception:
-                        # some envs expect tuple return
-                        try:
-                            env.step(action, {})
-                        except Exception:
-                            pass
-                    try:
-                        frame = env.render()
-                    except Exception:
-                        frame = None
-            except Exception:
+            except Exception as e:
+                sys.stderr.write(f"Render loop error: {e}\n")
+                sys.stderr.flush()
                 frame = None
 
             if frame is None:

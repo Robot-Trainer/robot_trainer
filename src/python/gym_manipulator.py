@@ -78,7 +78,12 @@ from lerobot.utils.constants import ACTION, DONE, OBS_IMAGES, OBS_STATE, REWARD
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
 
-from .joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+try:
+    from .joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+except ImportError:
+    # These are only needed for real robot environments, not simulation
+    JointVelocityProcessorStep = None
+    MotorCurrentProcessorStep = None
 
 logging.basicConfig(level=logging.INFO)
 
@@ -410,9 +415,11 @@ def make_processors(
 
     if cfg.processor.observation is not None:
         if cfg.processor.observation.add_joint_velocity_to_observation:
-            env_pipeline_steps.append(JointVelocityProcessorStep(dt=1.0 / cfg.fps))
+            if JointVelocityProcessorStep is not None:
+                env_pipeline_steps.append(JointVelocityProcessorStep(dt=1.0 / cfg.fps))
         if cfg.processor.observation.add_current_to_observation:
-            env_pipeline_steps.append(MotorCurrentProcessorStep(robot=env.robot))
+            if MotorCurrentProcessorStep is not None:
+                env_pipeline_steps.append(MotorCurrentProcessorStep(robot=env.robot))
 
     if kinematics_solver is not None:
         env_pipeline_steps.append(
