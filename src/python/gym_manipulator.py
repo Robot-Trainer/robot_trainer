@@ -322,7 +322,7 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
             import gym_hil  # noqa: F401
         except ImportError as e:
             raise ImportError(
-                f"gym_hil package not found. Please install it with: pip install gym-hil\n"
+                f"gym_hil package not found. Please ensure gym_hil is installed in your Python environment.\n"
                 f"Original error: {e}"
             )
 

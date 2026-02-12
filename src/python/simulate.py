@@ -98,13 +98,23 @@ def try_lerobot_sim(fps=30):
         # Load the gym_manipulator module from the same directory
         gym_manipulator_path = Path(__file__).parent / 'gym_manipulator.py'
         if gym_manipulator_path.exists():
-            spec = importlib.util.spec_from_file_location('gym_manipulator', gym_manipulator_path)
-            gm = importlib.util.module_from_spec(spec)
-            sys.modules['gym_manipulator'] = gm
-            spec.loader.exec_module(gm)
+            try:
+                spec = importlib.util.spec_from_file_location('gym_manipulator', gym_manipulator_path)
+                gm = importlib.util.module_from_spec(spec)
+                sys.modules['gym_manipulator'] = gm
+                spec.loader.exec_module(gm)
+            except Exception as e:
+                sys.stderr.write(f'Failed to load gym_manipulator.py from {gym_manipulator_path}: {e}\n')
+                sys.stderr.flush()
+                return run_fallback_sim(fps=fps)
         else:
             # Fallback to trying to import from path (if installed as a package)
-            gm = importlib.import_module('gym_manipulator')
+            try:
+                gm = importlib.import_module('gym_manipulator')
+            except Exception as e:
+                sys.stderr.write(f'gym_manipulator.py not found locally and not available as package: {e}\n')
+                sys.stderr.flush()
+                return run_fallback_sim(fps=fps)
         
         # locate config file: prefer explicit --config path via env var, else search nearby
         cfg_path = None
@@ -282,11 +292,7 @@ def try_lerobot_sim(fps=30):
                 # step to advance simulation first
                 if action is not None:
                     try:
-                        result = env.step(action)
-                        # Handle different return formats (Gym API changes)
-                        if isinstance(result, tuple) and len(result) >= 4:
-                            # Standard gym return: (obs, reward, terminated, truncated, info) or (obs, reward, done, info)
-                            pass
+                        env.step(action)
                     except Exception as e:
                         sys.stderr.write(f"Step error: {e}\n")
                         sys.stderr.flush()
