@@ -22,8 +22,8 @@ SIMPLE_MJCF = """
 def mock_mujoco_renderer():
     with patch("mujoco.Renderer") as mock:
         instance = mock.return_value
-        # Return a black image
-        instance.render.return_value = [np.zeros((128, 128, 3), dtype=np.uint8)]
+        # Return a black image (numpy array) — renderer.render() should return an ndarray
+        instance.render.return_value = np.zeros((128, 128, 3), dtype=np.uint8)
         # Allow update_scene
         instance.update_scene = MagicMock()
         yield mock
