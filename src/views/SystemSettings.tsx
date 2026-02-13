@@ -4,6 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import { useToast } from '../ui/ToastContext';
 import { configResource } from '../db/resources';
 
 interface SystemSettingsShape {
@@ -21,9 +22,9 @@ const defaultSettings: SystemSettingsShape = {
 };
 
 const SystemSettings: React.FC = () => {
+  const toast = useToast();
   const [settings, setSettings] = useState<SystemSettingsShape>(defaultSettings);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +51,6 @@ const SystemSettings: React.FC = () => {
 
   const save = async () => {
     setSaving(true);
-    setMessage(null);
     try {
       await configResource.setAll(settings);
       if ((window as any).electronAPI?.saveSystemSettings) {
@@ -59,9 +59,9 @@ const SystemSettings: React.FC = () => {
           throw new Error(res.error || 'Unknown error');
         }
       }
-      setMessage('Settings saved');
+      toast.success('Settings saved');
     } catch (err) {
-      setMessage(`Failed to save settings: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Failed to save settings: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSaving(false);
     }
@@ -187,12 +187,6 @@ const SystemSettings: React.FC = () => {
                 {saving ? 'Saving...' : 'Save Settings'}
               </Button>
             </Box>
-
-            {message && (
-              <Alert severity={message.includes('Failed') ? 'error' : 'success'}>
-                {message}
-              </Alert>
-            )}
           </Stack>
         </CardContent>
       </Card>

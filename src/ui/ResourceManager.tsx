@@ -9,6 +9,7 @@ import {
   Stack,
   Alert
 } from "@mui/material";
+import { useToast } from "./ToastContext";
 import { Button } from "./Button";
 import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
@@ -52,6 +53,7 @@ export const ResourceManager: React.FC<Props> = ({
   fields,
   renderForm,
 }) => {
+  const toast = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -234,17 +236,20 @@ export const ResourceManager: React.FC<Props> = ({
       let result;
       if (editing) {
         result = await activeResource.update(editing.id, { ...editing, ...dataToSave });
-        setEditing(null);
+        setEditing(result);
       } else {
         result = await activeResource.create({ ...dataToSave });
+        setEditing(result);
       }
+      toast.success('Saved successfully');
+      setForm(result);
       await load();
-      setForm(emptyFromFields(fields));
-      setShowForm(false);
       return result;
     } catch (e) {
       console.error(e);
-      setSaveError("Failed to save. Please check your data and try again.");
+      const msg = "Failed to save. Please check your data and try again.";
+      setSaveError(msg);
+      toast.error(msg);
       return;
     }
   };

@@ -35,11 +35,17 @@ else:
 import gymnasium as gym
 import numpy as np
 import torch
+import mujoco
+import re
+import tempfile
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass, field
+from typing import Any
 
 from lerobot.cameras import opencv  # noqa: F401
 from lerobot.configs import parser
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.envs.configs import HILSerlRobotEnvConfig
+from lerobot.envs.configs import EnvConfig, HILSerlRobotEnvConfig
 from lerobot.model.kinematics import RobotKinematics
 from lerobot.processor import (
     AddBatchDimensionProcessorStep,
@@ -97,6 +103,332 @@ from aiohttp import web
 import base64
 import cv2
 
+
+# ---------------------------------------------------------------------------
+# Custom MuJoCo environment for user-uploaded MJCF / URDF models
+# ---------------------------------------------------------------------------
+
+@dataclass
+class CameraSpec:
+    """Specification for a camera to inject into MuJoCo XML."""
+    name: str
+    pos: list[float]       # [x, y, z]
+    euler: list[float]     # [rx, ry, rz] degrees
+    width: int = 128
+    height: int = 128
+
+
+@dataclass
+class CustomMujocoProcessorConfig:
+    """Lightweight processor config for custom_mujoco envs."""
+    control_mode: str = "keyboard"
+    gripper: Any = None
+    observation: Any = None
+    reset: Any = None
+
+
+@EnvConfig.register_subclass("custom_mujoco")
+@dataclass
+class CustomMujocoEnvConfig(EnvConfig):
+    """Configuration for a generic user-uploaded MuJoCo model."""
+    model_xml: str | None = None
+    model_format: str = "mjcf"
+    cameras: list[CameraSpec] = field(default_factory=list)
+    home_position: list[float] | None = None
+    cartesian_bounds: list[list[float]] | None = None
+    image_obs: bool = True
+    render_mode: str = "rgb_array"
+    reward_type: str = "sparse"
+    control_dt: float = 0.02
+    physics_dt: float = 0.002
+    seed: int = 0
+    processor: CustomMujocoProcessorConfig = field(default_factory=CustomMujocoProcessorConfig)
+
+    @property
+    def gym_kwargs(self) -> dict:
+        return {}
+
+
+class GenericMujocoEnv(gym.Env):
+    """Generic MuJoCo environment for any uploaded MJCF/URDF robot model.
+
+    Provides joint-space control, dynamic joint/actuator discovery,
+    camera injection, and multi-camera rendering.  Mirrors the
+    MujocoGymEnv -> FrankaGymEnv hierarchy from gym_hil but discovers
+    everything dynamically instead of hardcoding robot-specific names.
+    """
+
+    metadata = {"render_modes": ["rgb_array", "human"]}
+
+    def __init__(
+        self,
+        model_xml: str,
+        model_format: str = "mjcf",
+        cameras: list[CameraSpec] | None = None,
+        seed: int = 0,
+        control_dt: float = 0.02,
+        physics_dt: float = 0.002,
+        render_spec_height: int = 128,
+        render_spec_width: int = 128,
+        render_mode: str = "rgb_array",
+        image_obs: bool = True,
+        home_position: np.ndarray | None = None,
+        cartesian_bounds: np.ndarray | None = None,
+    ):
+        super().__init__()
+
+        self._cameras_spec = cameras or []
+        self._control_dt = control_dt
+        self._render_mode = render_mode
+        self._image_obs = image_obs
+        self._cartesian_bounds = cartesian_bounds
+
+        # ----- assemble XML with injected cameras -----
+        assembled_xml = self._assemble_xml(model_xml, model_format)
+
+        # ----- load model -----
+        self._model = mujoco.MjModel.from_xml_string(assembled_xml)
+        self._model.opt.timestep = physics_dt
+        self._model.vis.global_.offwidth = render_spec_width
+        self._model.vis.global_.offheight = render_spec_height
+        self._data = mujoco.MjData(self._model)
+        self._n_substeps = max(1, int(control_dt / physics_dt))
+        self._random = np.random.RandomState(seed)
+
+        # ----- discover joints & actuators dynamically -----
+        all_joints = []
+        for i in range(self._model.njnt):
+            jnt = self._model.joint(i)
+            # Skip free and ball joints – they are not directly controllable
+            if jnt.type in (mujoco.mjtJoint.mjJNT_FREE, mujoco.mjtJoint.mjJNT_BALL):
+                continue
+            all_joints.append((jnt.name, jnt.id))
+
+        self._joint_names = [n for n, _ in all_joints]
+        self._dof_ids = np.array([self._model.joint(n).qposadr[0] for n in self._joint_names], dtype=np.int32)
+
+        all_actuators = []
+        for i in range(self._model.nu):
+            act = self._model.actuator(i)
+            all_actuators.append((act.name, i))
+
+        self._actuator_names = [n for n, _ in all_actuators]
+        self._ctrl_ids = np.array([idx for _, idx in all_actuators], dtype=np.int32)
+
+        # ----- gripper detection -----
+        self._gripper_ctrl_id: int | None = None
+        self._has_gripper = False
+        for name, idx in all_actuators:
+            if re.search(r'gripper|finger', name, re.IGNORECASE):
+                self._gripper_ctrl_id = idx
+                self._has_gripper = True
+                break
+
+        # ----- camera setup -----
+        self._camera_ids: list[int] = []
+        for cs in self._cameras_spec:
+            cid = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_CAMERA, cs.name)
+            if cid >= 0:
+                self._camera_ids.append(cid)
+            else:
+                logging.warning(f"Camera '{cs.name}' not found in model, falling back to free camera")
+                self._camera_ids.append(-1)
+        if not self._camera_ids:
+            self._camera_ids = [-1]  # free camera fallback
+
+        # ----- home position -----
+        num_dofs = len(self._joint_names)
+        if home_position is not None:
+            self._home_position = np.array(home_position[:num_dofs], dtype=np.float64)
+        else:
+            self._home_position = np.zeros(num_dofs, dtype=np.float64)
+
+        # ----- renderer -----
+        self._viewer: mujoco.Renderer | None = None
+        self._render_height = render_spec_height
+        self._render_width = render_spec_width
+
+        # ----- spaces -----
+        self._setup_observation_space()
+        self._setup_action_space()
+
+    # ---- XML assembly ----
+
+    def _assemble_xml(self, model_xml: str, model_format: str) -> str:
+        """Inject camera elements into the XML and handle URDF if needed."""
+        if model_format == "urdf":
+            # Wrap URDF in a MuJoCo XML that uses the compiler directive
+            # Save URDF to temp file since MuJoCo needs a path for URDF
+            tmp = tempfile.NamedTemporaryFile(suffix=".urdf", delete=False, mode="w")
+            tmp.write(model_xml)
+            tmp.close()
+            model_xml = f"""<mujoco>
+  <compiler meshdir="." />
+  <include file="{tmp.name}" />
+</mujoco>"""
+
+        if not self._cameras_spec:
+            return model_xml
+
+        # Parse and inject cameras into <worldbody>
+        try:
+            root = ET.fromstring(model_xml)
+            worldbody = root.find("worldbody")
+            if worldbody is None:
+                worldbody = ET.SubElement(root, "worldbody")
+
+            for cs in self._cameras_spec:
+                cam_elem = ET.SubElement(worldbody, "camera")
+                cam_elem.set("name", cs.name)
+                cam_elem.set("pos", " ".join(str(v) for v in cs.pos))
+                cam_elem.set("euler", " ".join(str(v) for v in cs.euler))
+
+            return ET.tostring(root, encoding="unicode")
+        except ET.ParseError:
+            logging.warning("Failed to parse XML for camera injection; using raw XML")
+            return model_xml
+
+    # ---- spaces ----
+
+    def _setup_observation_space(self) -> None:
+        num_dofs = len(self._joint_names)
+        gripper_dim = 1 if self._has_gripper else 0
+        agent_pos_dim = num_dofs * 2 + gripper_dim  # qpos + qvel + gripper
+
+        obs_spaces: dict[str, gym.spaces.Space] = {
+            "observation.state": gym.spaces.Box(
+                low=-np.inf, high=np.inf, shape=(agent_pos_dim,), dtype=np.float32
+            ),
+        }
+
+        if self._image_obs:
+            for i, cs in enumerate(self._cameras_spec):
+                h = cs.height if cs else self._render_height
+                w = cs.width if cs else self._render_width
+                obs_spaces[f"observation.images.{cs.name}"] = gym.spaces.Box(
+                    low=0, high=255, shape=(h, w, 3), dtype=np.uint8
+                )
+            if not self._cameras_spec:
+                obs_spaces["observation.images.free"] = gym.spaces.Box(
+                    low=0, high=255, shape=(self._render_height, self._render_width, 3), dtype=np.uint8
+                )
+
+        self.observation_space = gym.spaces.Dict(obs_spaces)
+
+    def _setup_action_space(self) -> None:
+        num_ctrl = len(self._ctrl_ids)
+        if num_ctrl == 0:
+            num_ctrl = len(self._joint_names)
+        self.action_space = gym.spaces.Box(
+            low=-1.0, high=1.0, shape=(num_ctrl,), dtype=np.float32
+        )
+
+    # ---- core gym methods ----
+
+    def reset(self, *, seed=None, options=None):
+        super().reset(seed=seed, options=options)
+        self._data.qpos[self._dof_ids] = self._home_position
+        self._data.qvel[:] = 0.0
+        self._data.ctrl[:] = 0.0
+        mujoco.mj_forward(self._model, self._data)
+        obs = self._get_observation()
+        return obs, {}
+
+    def step(self, action):
+        # Apply action to actuators
+        action = np.asarray(action, dtype=np.float64)
+        if len(self._ctrl_ids) > 0:
+            self._data.ctrl[self._ctrl_ids] = action[:len(self._ctrl_ids)]
+        else:
+            # No actuators defined — set qpos directly (limited usefulness)
+            num = min(len(action), len(self._dof_ids))
+            self._data.qpos[self._dof_ids[:num]] = action[:num]
+
+        for _ in range(self._n_substeps):
+            mujoco.mj_step(self._model, self._data)
+
+        obs = self._get_observation()
+        reward = 0.0
+        terminated = False
+        truncated = False
+        return obs, reward, terminated, truncated, {}
+
+    def _get_observation(self) -> dict:
+        qpos = self._data.qpos[self._dof_ids].astype(np.float32)
+        qvel = self._data.qvel[self._dof_ids].astype(np.float32) if len(self._dof_ids) <= self._data.qvel.shape[0] else np.zeros_like(qpos)
+
+        parts = [qpos, qvel]
+        if self._has_gripper and self._gripper_ctrl_id is not None:
+            parts.append(np.array([self._data.ctrl[self._gripper_ctrl_id]], dtype=np.float32))
+
+        agent_pos = np.concatenate(parts)
+        obs: dict[str, Any] = {"observation.state": agent_pos}
+
+        if self._image_obs:
+            frames = self.render()
+            if isinstance(frames, list):
+                for i, frame in enumerate(frames):
+                    if i < len(self._cameras_spec):
+                        cam_name = self._cameras_spec[i].name
+                    else:
+                        cam_name = "free"
+                    obs[f"observation.images.{cam_name}"] = frame
+            elif frames is not None:
+                obs["observation.images.free"] = frames
+
+        return obs
+
+    def render(self):
+        if self._viewer is None:
+            self._viewer = mujoco.Renderer(
+                model=self._model,
+                height=self._render_height,
+                width=self._render_width,
+            )
+
+        rendered_frames = []
+        for cam_id in self._camera_ids:
+            self._viewer.update_scene(self._data, camera=cam_id)
+            rendered_frames.append(self._viewer.render().copy())
+        return rendered_frames
+
+    def get_robot_state(self) -> np.ndarray:
+        qpos = self._data.qpos[self._dof_ids].astype(np.float32)
+        qvel = self._data.qvel[self._dof_ids].astype(np.float32) if len(self._dof_ids) <= self._data.qvel.shape[0] else np.zeros_like(qpos)
+        parts = [qpos, qvel]
+        if self._has_gripper and self._gripper_ctrl_id is not None:
+            parts.append(np.array([self._data.ctrl[self._gripper_ctrl_id]], dtype=np.float32))
+        return np.concatenate(parts)
+
+    def get_raw_joint_positions(self) -> dict[str, float]:
+        return {
+            f"{name}.pos": float(self._data.qpos[self._dof_ids[i]])
+            for i, name in enumerate(self._joint_names)
+        }
+
+    def close(self) -> None:
+        if self._viewer is not None:
+            if hasattr(self._viewer, "close") and callable(self._viewer.close):
+                try:
+                    self._viewer.close()
+                except Exception:
+                    pass
+            self._viewer = None
+
+    # Properties for compatibility
+    @property
+    def model(self) -> mujoco.MjModel:
+        return self._model
+
+    @property
+    def data(self) -> mujoco.MjData:
+        return self._data
+
+
+# ---------------------------------------------------------------------------
+# Socket.IO server setup
+# ---------------------------------------------------------------------------
+
 # Initialize the Socket.IO server
 sio = socketio.AsyncServer(async_mode='aiohttp', cors_allowed_origins='*')
 app = web.Application()
@@ -128,7 +460,7 @@ class DatasetConfig:
 class GymManipulatorConfig:
     """Main configuration for gym manipulator environment."""
 
-    env: HILSerlRobotEnvConfig
+    env: EnvConfig
     dataset: DatasetConfig
     mode: str | None = None  # Either "record", "replay", None
     device: str = "cpu"
@@ -358,7 +690,7 @@ class AsyncGymWrapper(gym.Wrapper):
         return {}
 
 
-def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
+def make_robot_env(cfg: EnvConfig) -> tuple[gym.Env, Any]:
     """Create robot environment from configuration.
 
     Args:
@@ -367,6 +699,39 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
     Returns:
         Tuple of (gym environment, teleoperator device).
     """
+    # Check if this is a custom MuJoCo environment
+    if cfg.name == "custom_mujoco":
+        assert isinstance(cfg, CustomMujocoEnvConfig)
+        assert cfg.model_xml is not None, "model_xml must be provided for custom_mujoco"
+
+        camera_specs = [
+            CameraSpec(
+                name=c.name if isinstance(c, CameraSpec) else c.get("name", f"cam_{i}"),
+                pos=c.pos if isinstance(c, CameraSpec) else c.get("pos", [0, 0, 0]),
+                euler=c.euler if isinstance(c, CameraSpec) else c.get("euler", [0, 0, 0]),
+                width=c.width if isinstance(c, CameraSpec) else c.get("width", 128),
+                height=c.height if isinstance(c, CameraSpec) else c.get("height", 128),
+            )
+            for i, c in enumerate(cfg.cameras)
+        ] if cfg.cameras else []
+
+        env = GenericMujocoEnv(
+            model_xml=cfg.model_xml,
+            model_format=cfg.model_format,
+            cameras=camera_specs,
+            seed=cfg.seed,
+            control_dt=cfg.control_dt,
+            physics_dt=cfg.physics_dt,
+            render_spec_height=camera_specs[0].height if camera_specs else 128,
+            render_spec_width=camera_specs[0].width if camera_specs else 128,
+            render_mode=cfg.render_mode,
+            image_obs=cfg.image_obs,
+            home_position=np.array(cfg.home_position) if cfg.home_position else None,
+            cartesian_bounds=np.array(cfg.cartesian_bounds) if cfg.cartesian_bounds else None,
+        )
+        env = AsyncGymWrapper(env)
+        return env, None
+
     # Check if this is a GymHIL simulation environment
     if cfg.name == "gym_hil":
         assert cfg.robot is None and cfg.teleop is None, "GymHIL environment does not support robot or teleop"
@@ -413,7 +778,7 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
 
 
 def make_processors(
-    env: gym.Env, teleop_device: Teleoperator | None, cfg: HILSerlRobotEnvConfig, device: str = "cpu"
+    env: gym.Env, teleop_device: Teleoperator | None, cfg: EnvConfig, device: str = "cpu"
 ) -> tuple[
     DataProcessorPipeline[EnvTransition, EnvTransition], DataProcessorPipeline[EnvTransition, EnvTransition]
 ]:
@@ -428,6 +793,32 @@ def make_processors(
     Returns:
         Tuple of (environment processor, action processor).
     """
+    # Custom MuJoCo environment — lightweight pipeline (no real robot/teleop)
+    if cfg.name == "custom_mujoco":
+        terminate_on_success = True
+        if hasattr(cfg, 'processor') and cfg.processor is not None:
+            reset_cfg = getattr(cfg.processor, 'reset', None)
+            if reset_cfg is not None:
+                terminate_on_success = getattr(reset_cfg, 'terminate_on_success', True)
+
+        action_pipeline_steps = [
+            InterventionActionProcessorStep(terminate_on_success=terminate_on_success),
+            Torch2NumpyActionProcessorStep(),
+        ]
+
+        env_pipeline_steps = [
+            Numpy2TorchActionProcessorStep(),
+            VanillaObservationProcessorStep(),
+            AddBatchDimensionProcessorStep(),
+            DeviceProcessorStep(device=device),
+        ]
+
+        return DataProcessorPipeline(
+            steps=env_pipeline_steps, to_transition=identity_transition, to_output=identity_transition
+        ), DataProcessorPipeline(
+            steps=action_pipeline_steps, to_transition=identity_transition, to_output=identity_transition
+        )
+
     terminate_on_success = (
         cfg.processor.reset.terminate_on_success if cfg.processor.reset is not None else True
     )

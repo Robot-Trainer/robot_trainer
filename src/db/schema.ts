@@ -16,6 +16,8 @@ export const robotModelsTable = pgTable("robot_models", {
   className: varchar('class_name').notNull(),
   configClassName: varchar('config_class_name').notNull(),
   properties: json('properties').default({}),
+  modelXml: text('model_xml'),
+  modelFormat: varchar('model_format'),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

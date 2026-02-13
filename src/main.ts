@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -6,6 +6,7 @@ import started from 'electron-squirrel-startup';
 import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { JSDOM } from 'jsdom';
 
 import { VideoManager } from './lib/VideoManager';
 
@@ -105,6 +106,50 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
 
   return null;
 };
+
+/**
+ * Parse robot model XML (MJCF or URDF) to extract metadata.
+ * Uses lightweight DOM parsing — no MuJoCo dependency.
+ */
+function parseRobotXmlMetadata(xmlContent: string): {
+  numJoints: number;
+  jointNames: string[];
+  actuatorNames: string[];
+  siteNames: string[];
+  hasGripper: boolean;
+} {
+  const dom = new JSDOM(xmlContent, { contentType: 'text/xml' });
+  const doc = dom.window.document;
+
+  const joints = Array.from(doc.querySelectorAll('joint'));
+  const jointNames = joints
+    .map((j) => j.getAttribute('name'))
+    .filter((n): n is string => !!n);
+
+  const actuators = Array.from(doc.querySelectorAll('actuator > *'));
+  const actuatorNames = actuators
+    .map((a) => a.getAttribute('name'))
+    .filter((n): n is string => !!n);
+
+  const sites = Array.from(doc.querySelectorAll('site'));
+  const siteNames = sites
+    .map((s) => s.getAttribute('name'))
+    .filter((n): n is string => !!n);
+
+  const hasGripper = actuatorNames.some(
+    (n) => /gripper|finger/i.test(n)
+  ) || jointNames.some(
+    (n) => /gripper|finger/i.test(n)
+  );
+
+  return {
+    numJoints: jointNames.length,
+    jointNames,
+    actuatorNames,
+    siteNames,
+    hasGripper,
+  };
+}
 
 // Handle Serial port port scanning from renderer process
 const setupIpcHandlers = () => {
@@ -757,6 +802,31 @@ const setupIpcHandlers = () => {
       videoManagers.delete(id);
     }
     return { ok: true };
+  });
+
+  // Select a model file (MJCF/URDF) via native file dialog
+  ipcMain.handle('select-model-file', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Robot Model File',
+      filters: [
+        { name: 'Robot Models', extensions: ['xml', 'urdf'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  // Read a model file and parse metadata from its XML content
+  ipcMain.handle('read-model-file', async (_event, filePath: string) => {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const ext = path.extname(filePath).toLowerCase();
+    const format = ext === '.urdf' ? 'urdf' : 'mjcf';
+    const baseName = path.basename(filePath, ext);
+    const metadata = parseRobotXmlMetadata(content);
+    return { content, format, baseName, metadata };
   });
 
   // Provide pglite assets to renderer via IPC (renderer can't read node files)

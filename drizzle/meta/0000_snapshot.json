@@ -1,5 +1,5 @@
 {
-  "id": "361bd482-2092-4297-b75d-eebf04fac12c",
+  "id": "cac778d7-aa4f-4b31-a089-5c3bb3c2efeb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -495,6 +495,18 @@
           "notNull": false,
           "default": "'{}'::json"
         },
+        "model_xml": {
+          "name": "model_xml",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_format": {
+          "name": "model_format",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -642,6 +654,26 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "dataset_config": {
+          "name": "dataset_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "robot_config_snapshot": {
+          "name": "robot_config_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "initial_scene_state": {
+          "name": "initial_scene_state",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

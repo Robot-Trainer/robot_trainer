@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
   }],
   build: {
     rollupOptions: {
-      external: ["serialport", "drizzle-orm"],
+      external: ["serialport", "drizzle-orm", "jsdom"],
     },
     watch: mode === 'development' ? {
       // Exclude the Python venv from file watching to avoid ENOSPC errors

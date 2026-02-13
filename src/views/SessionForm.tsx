@@ -14,9 +14,9 @@ import {
 } from '../db/schema';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import TextField from '@mui/material/TextField';
 import Select from '../ui/Select';
 import Badge from '../ui/Badge';
+import { useToast } from '../ui/ToastContext';
 import { Play, CheckCircle, ChevronRight } from '../icons';
 import { VideoPlayer } from '../ui/VideoPlayer';
 
@@ -166,6 +166,7 @@ interface Props {
 }
 
 export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData }) => {
+  const toast = useToast();
   // State
   const [sessionName, setSessionName] = useState('');
   const [configs, setConfigs] = useState<any[]>([]);
@@ -191,6 +192,19 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [singleTask, setSingleTask] = useState('');
   const [fps, setFps] = useState<number>(30);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setSessionName(initialData.name || '');
+      setSelectedSkillId(initialData.skillId || null);
+      if (initialData.robotConfigurationId) setSelectedConfigId(initialData.robotConfigurationId);
+      if (initialData.datasetConfig) {
+        setRepoId(initialData.datasetConfig.repo_id || '');
+        setSingleTask(initialData.datasetConfig.single_task || '');
+        setFps(initialData.datasetConfig.fps || 30);
+      }
+    }
+  }, [initialData]);
 
   // Timers and refs
   const recordingStartTime = useRef<number | null>(null);
@@ -439,83 +453,134 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       const follower = snapshot.robots[0];
       const teleop = snapshot.teleoperators[0];
 
-      const cameras: Record<string, any> = {};
+      const snapshotCameras: Record<string, any> = {};
       snapshot.cameras.forEach((c: any) => {
-        cameras[c.name] = { ...c.data, ...c._snapshot };
+        snapshotCameras[c.name] = { ...c.data, ...c._snapshot };
       });
 
-      const gymManipulatorConfig: any = {
-        "env": {
-          // "type": "gym_manipulator",
-          "name": "gym_hil",
-          "task": "PandaPickCubeKeyboard-v0",
-          "fps": 10,
-          "robot": null,
-          "teleop": null,
-          "processor": {
-            "control_mode": "keyboard",
-            "gripper": {
-              "use_gripper": true,
-              "gripper_penalty": -0.02,
-            },
-            "observation": {
-              "display_cameras": true,
-            },
-            "reset": {
-              "fixed_reset_joint_positions": [0.0, 0.195, 0.0, -2.43, 0.0, 2.62, 0.785],
-              "reset_time_s": 2.0,
-              "control_time_s": 15.0,
-              "terminate_on_success": true
-            }
-          },
-          "features": {
-            "observation.images.front": {
-              "type": "VISUAL",
-              "shape": [3, 128, 128]
-            },
-            "observation.images.wrist": {
-              "type": "VISUAL",
-              "shape": [3, 128, 128]
-            },
-            "observation.state": {
-              "type": "STATE",
-              "shape": [18]
-            },
-            "action": {
-              "type": "ACTION",
-              "shape": [3]
-            }
-          },
-          "features_map": {
-            "observation.images.front": "observation.images.front",
-            "observation.images.wrist": "observation.images.wrist",
-            "observation.state": "observation.state",
-            "action": "action"
-          }
-        },
-        /*any = {
+      // Check if this is a custom simulated robot (has model XML)
+      const isCustomSimulated = follower?.modality === 'simulated'
+        && follower?.model?.className === 'GenericMujocoEnv'
+        && follower?.model?.modelXml;
+
+      let gymManipulatorConfig: any;
+
+      if (isCustomSimulated) {
+        // Build custom_mujoco config for GenericMujocoEnv
+        const cameraSpecs = snapshot.cameras.map((c: any) => ({
+          name: c.name || `camera_${c.id}`,
+          pos: [c.positionX || 0, c.positionY || 0, c.positionZ || 0],
+          euler: [c.rotationX || 0, c.rotationY || 0, c.rotationZ || 0],
+          width: parseInt(c.resolution?.split('x')[0]) || 128,
+          height: parseInt(c.resolution?.split('x')[1]) || 128,
+        }));
+
+        const modelProps: any = follower.model.properties || {};
+
+        gymManipulatorConfig = {
           env: {
-            type: "gym_manipulator",
-            name: "gym_hil",
-            task: "PandaPickCubeGamepad-v0", // singleTask,
+            name: "custom_mujoco",
+            task: null,
             fps: fps,
-            robot: {
-              type: (follower as any)?.model?.configClassName,
+            robot: null,
+            teleop: null,
+            model_xml: follower.model.modelXml,
+            model_format: follower.model.modelFormat || 'mjcf',
+            cameras: cameraSpecs,
+            home_position: modelProps.homePosition || null,
+            cartesian_bounds: modelProps.cartesianBounds || null,
+            image_obs: true,
+            render_mode: "rgb_array",
+            reward_type: "sparse",
+            control_dt: 0.02,
+            physics_dt: 0.002,
+            seed: 0,
+            processor: {
+              control_mode: "keyboard",
+              gripper: {
+                use_gripper: modelProps.hasGripper || false,
+                gripper_penalty: -0.02,
+              },
+              observation: {
+                display_cameras: true,
+              },
+              reset: {
+                reset_time_s: 2.0,
+                control_time_s: 15.0,
+                terminate_on_success: true,
+              },
             },
-            teleop: {
-              type: 'keyboard',
+          },
+          dataset: {
+            repo_id: repoId,
+            root: null,
+            task: singleTask || "manipulation",
+            replay_episode: null,
+            push_to_hub: false,
+          },
+          device: 'cpu',
+        };
+      } else {
+        // Existing gym_hil config path
+        gymManipulatorConfig = {
+          "env": {
+            "name": "gym_hil",
+            "task": "PandaPickCubeKeyboard-v0",
+            "fps": 10,
+            "robot": null,
+            "teleop": null,
+            "processor": {
+              "control_mode": "keyboard",
+              "gripper": {
+                "use_gripper": true,
+                "gripper_penalty": -0.02,
+              },
+              "observation": {
+                "display_cameras": true,
+              },
+              "reset": {
+                "fixed_reset_joint_positions": [0.0, 0.195, 0.0, -2.43, 0.0, 2.62, 0.785],
+                "reset_time_s": 2.0,
+                "control_time_s": 15.0,
+                "terminate_on_success": true
+              }
+            },
+            "features": {
+              "observation.images.front": {
+                "type": "VISUAL",
+                "shape": [3, 128, 128]
+              },
+              "observation.images.wrist": {
+                "type": "VISUAL",
+                "shape": [3, 128, 128]
+              },
+              "observation.state": {
+                "type": "STATE",
+                "shape": [18]
+              },
+              "action": {
+                "type": "ACTION",
+                "shape": [3]
+              }
+            },
+            "features_map": {
+              "observation.images.front": "observation.images.front",
+              "observation.images.wrist": "observation.images.wrist",
+              "observation.state": "observation.state",
+              "action": "action"
             }
-          },*/
-        dataset: {
-          repo_id: repoId,
-          root: null,
-          task: "pick_cube",
-          replay_episode: null,
-          push_to_hub: false
-        },
-        device: 'cpu',
-        // mode: 'record'
-      };
+          },
+          dataset: {
+            repo_id: repoId,
+            root: null,
+            task: "pick_cube",
+            replay_episode: null,
+            push_to_hub: false
+          },
+          device: 'cpu',
+        };
+      }
+
       console.log("Prepared gym manipulator config:", gymManipulatorConfig);
 
       // if (teleop) {
@@ -606,7 +671,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         single_task: singleTask,
         fps: fps,
         // Default other fields that schema requires or we want
-        root: null,
+        root: null as string | null,
         video: true,
         push_to_hub: true
       };
@@ -620,9 +685,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         robotConfigSnapshot: snapshot
       };
 
-      onSaved(payload);
+      await onSaved(payload);
     } catch (e) {
-      console.error('Failed to save session', e);
+      toast.error('Failed to save session: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSaving(false);
     }
@@ -672,11 +737,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       <header className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <TextField
+            <Input
               label="Session Name"
-              variant="standard"
               value={sessionName}
-              onChange={e => setSessionName(e.target.value)}
+              onChange={(e: any) => setSessionName(e.target.value)}
               placeholder="Enter Session Name"
             />
           </div>
@@ -713,36 +777,28 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           {/* Dataset Configuration */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Dataset</h3>
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 mb-1 font-medium">Repo ID</label>
-              <input
-                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full focus:ring-1 focus:ring-blue-500 outline-none"
-                value={repoId}
-                onChange={e => setRepoId(e.target.value)}
-                placeholder="username/dataset-name"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 mb-1 font-medium">Task Description</label>
-              <input
-                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full focus:ring-1 focus:ring-blue-500 outline-none"
-                value={singleTask} // Changed from description to singleTask
-                onChange={e => setSingleTask(e.target.value)}
-                placeholder="e.g. Pick the cube"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 mb-1 font-medium">FPS</label>
-              <select
-                className="px-2 py-1.5 rounded border border-gray-300 text-xs w-full bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                value={fps}
-                onChange={e => setFps(Number(e.target.value))}
-              >
-                <option value={30}>30 FPS</option>
-                <option value={60}>60 FPS</option>
-                <option value={15}>15 FPS</option>
-              </select>
-            </div>
+            <Input
+              label="Repo ID"
+              value={repoId}
+              onChange={e => setRepoId(e.target.value)}
+              placeholder="username/dataset-name"
+            />
+            <Input
+              label="Task Description"
+              value={singleTask}
+              onChange={e => setSingleTask(e.target.value)}
+              placeholder="e.g. Pick the cube"
+            />
+            <Select
+              label="FPS"
+              value={fps}
+              onChange={e => setFps(Number(e.target.value))}
+              options={[
+                { label: '30 FPS', value: 30 },
+                { label: '60 FPS', value: 60 },
+                { label: '15 FPS', value: 15 }
+              ]}
+            />
           </div>
 
           <hr className="border-gray-200" />

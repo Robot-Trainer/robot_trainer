@@ -80,5 +80,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const listener = (_: any, state: any) => cb(state);
     ipcRenderer.on('simulation-state-changed', listener);
     return () => ipcRenderer.removeListener('simulation-state-changed', listener);
-  }
+  },
+  selectModelFile: () => ipcRenderer.invoke('select-model-file'),
+  readModelFile: (filePath: string) => ipcRenderer.invoke('read-model-file', filePath),
 });

@@ -1,1 +1,0 @@
-ALTER TABLE "sessions" ADD COLUMN "initial_scene_state" jsonb;

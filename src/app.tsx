@@ -13,6 +13,7 @@ import { configResource } from './db/resources';
 
 import { Activity, Robot, Session, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import { VideoPlayer } from './ui/VideoPlayer';
+import { ToastProvider } from './ui/ToastContext';
 
 const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: string }>; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
@@ -23,7 +24,7 @@ const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: st
   </button>
 );
 
-const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false }) => {
+const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false }) => {
   const [activeTab, setActiveTab] = useState('robot-configurations');
 
   // Check for popout mode
@@ -371,5 +372,11 @@ const App: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false 
     </div>
   );
 };
+
+const App: React.FC<{ externalLoading?: boolean }> = (props) => (
+  <ToastProvider>
+    <InnerApp {...props} />
+  </ToastProvider>
+);
 
 export default App;

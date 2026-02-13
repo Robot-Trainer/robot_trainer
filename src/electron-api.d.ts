@@ -47,6 +47,19 @@ interface ElectronAPI {
   onInstallLerobotOutput: (cb: (data: string) => void) => () => void;
   getSimulationState: () => Promise<{ running: boolean; wsUrl?: string }>;
   onSimulationStateChanged: (cb: (state: { running: boolean; wsUrl?: string }) => void) => () => void;
+  selectModelFile: () => Promise<string | null>;
+  readModelFile: (filePath: string) => Promise<{
+    content: string;
+    format: string;
+    baseName: string;
+    metadata: {
+      numJoints: number;
+      jointNames: string[];
+      actuatorNames: string[];
+      siteNames: string[];
+      hasGripper: boolean;
+    };
+  }>;
 }
 
 declare global {

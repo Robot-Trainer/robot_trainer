@@ -60,6 +60,8 @@ CREATE TABLE "robot_models" (
 	"class_name" varchar NOT NULL,
 	"config_class_name" varchar NOT NULL,
 	"properties" json DEFAULT '{}'::json,
+	"model_xml" text,
+	"model_format" varchar,
 	"created_at" timestamp with time zone DEFAULT now()
 );
 --> statement-breakpoint
@@ -79,6 +81,9 @@ CREATE TABLE "sessions" (
 	"name" varchar NOT NULL,
 	"skill_id" integer NOT NULL,
 	"robot_configuration_id" integer NOT NULL,
+	"dataset_config" jsonb DEFAULT '{}'::jsonb,
+	"robot_config_snapshot" jsonb DEFAULT '{}'::jsonb,
+	"initial_scene_state" jsonb,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone DEFAULT now()
 );

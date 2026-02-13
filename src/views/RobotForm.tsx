@@ -6,14 +6,22 @@ import {
   Box,
   Alert,
   Paper,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import UsbIcon from '@mui/icons-material/Usb';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import Button from '../ui/Button'; // Keep our wrapper if preferred or swap to MUI Button
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { robotModelsResource } from '../db/resources';
+import { robotModelsResource, robotsResource } from '../db/resources';
+import { db } from '../db/db';
+import {
+  robotModelsTable,
+  robotConfigurationsTable,
+  configRobotsTable
+} from '../db/schema';
 
 interface SerialPort {
   path: string;
@@ -42,6 +50,22 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
   const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Simulated robot model file state
+  const [modelFilePath, setModelFilePath] = useState<string | null>(null);
+  const [modelFileData, setModelFileData] = useState<{
+    content: string;
+    format: string;
+    baseName: string;
+    metadata: {
+      numJoints: number;
+      jointNames: string[];
+      actuatorNames: string[];
+      siteNames: string[];
+      hasGripper: boolean;
+    };
+  } | null>(null);
+  const [modelFileError, setModelFileError] = useState<string | null>(null);
+
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -68,6 +92,63 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
     if (!onSaved) return;
     setSubmitting(true);
     try {
+      if (modality === 'simulated' && modelFileData && !initialData) {
+        // Create a new simulated robot with model file
+        const modelName = name || modelFileData.baseName;
+
+        // 1. Insert into robotModelsTable
+        const [insertedModel] = await db.insert(robotModelsTable).values({
+          name: modelName,
+          dirName: 'custom',
+          className: 'GenericMujocoEnv',
+          configClassName: 'CustomMujocoEnvConfig',
+          modelXml: modelFileData.content,
+          modelFormat: modelFileData.format,
+          properties: modelFileData.metadata,
+        }).returning();
+
+        // 2. Build the robot payload and let onSaved handle insertion via ResourceManager
+        const payload = {
+          name: modelName,
+          notes,
+          modality: 'simulated' as const,
+          serialNumber: '',
+          robotModelId: insertedModel.id,
+          data: { type: 'simulation' },
+          _autoCreateConfig: true,
+          _modelMetadata: modelFileData.metadata,
+        };
+
+        // onSaved will insert into robotsTable and return the created row
+        const createdRobot = await onSaved(payload);
+
+        // 3. Auto-create a default robot configuration
+        if (createdRobot && createdRobot.id) {
+          const [config] = await db.insert(robotConfigurationsTable).values({
+            name: `${modelName} Default Config`,
+          }).returning();
+
+          await db.insert(configRobotsTable).values({
+            configurationId: config.id,
+            robotId: createdRobot.id,
+            snapshot: {
+              id: createdRobot.id,
+              name: modelName,
+              modality: 'simulated',
+              robotModelId: insertedModel.id,
+              model: {
+                name: modelName,
+                modelFormat: modelFileData.format,
+                ...modelFileData.metadata,
+              },
+            },
+          });
+        }
+
+        return; // onSaved already called above
+      }
+
+      // Standard real robot or editing existing
       const parsedModelId = robotModelId ? parseInt(robotModelId, 10) : null;
       const payload = {
         name,
@@ -83,6 +164,21 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       await onSaved(payload);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSelectModelFile = async () => {
+    setModelFileError(null);
+    try {
+      const filePath = await window.electronAPI.selectModelFile();
+      if (!filePath) return;
+      setModelFilePath(filePath);
+      const data = await window.electronAPI.readModelFile(filePath);
+      setModelFileData(data);
+      if (!name) setName(data.baseName);
+    } catch (e) {
+      setModelFileError(e instanceof Error ? e.message : String(e));
+      setModelFileData(null);
     }
   };
 
@@ -212,6 +308,40 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
               placeholder="Select from list above or enter manually"
             />
           </Box>
+        </Box>
+      )}
+
+      {modality === 'simulated' && (
+        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Stack spacing={2}>
+            <Typography variant="h6" fontSize="1rem">Model File (MJCF / URDF)</Typography>
+
+            <Button variant="ghost" onClick={handleSelectModelFile}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <UploadFileIcon fontSize="small" />
+                <span>{modelFilePath ? 'Change File...' : 'Select Model File...'}</span>
+              </Stack>
+            </Button>
+
+            {modelFileError && <Alert severity="error">{modelFileError}</Alert>}
+
+            {modelFileData && (
+              <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  {modelFileData.baseName}.{modelFileData.format === 'urdf' ? 'urdf' : 'xml'}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
+                  <Chip label={modelFileData.format.toUpperCase()} size="small" color="primary" variant="outlined" />
+                  <Chip label={`${modelFileData.metadata.numJoints} joints`} size="small" variant="outlined" />
+                  <Chip label={`${modelFileData.metadata.actuatorNames.length} actuators`} size="small" variant="outlined" />
+                  {modelFileData.metadata.hasGripper && <Chip label="Gripper detected" size="small" color="success" variant="outlined" />}
+                </Stack>
+                <Typography variant="caption" color="textSecondary">
+                  Joints: {modelFileData.metadata.jointNames.join(', ') || 'None'}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
         </Box>
       )}
 

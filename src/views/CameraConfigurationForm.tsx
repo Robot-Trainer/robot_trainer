@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../ui/Button';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
+import { useToast } from '../ui/ToastContext';
 import { camerasResource } from '../db/resources';
 
 interface CameraConfigurationFormProps {
@@ -10,6 +11,7 @@ interface CameraConfigurationFormProps {
 }
 
 const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initialCameras = [], onSave, onCancel }) => {
+  const toast = useToast();
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([]);
   const [availableCameras, setAvailableCameras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,7 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
     const selectedCameras = selectedIds.map(id => availableCameras.find(c => c.id === id)).filter(Boolean);
 
     if (onSave) {
+      toast.success('Configuration saved');
       onSave(selectedCameras);
     }
   };
