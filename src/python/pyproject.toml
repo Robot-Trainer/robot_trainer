@@ -10,6 +10,11 @@ dependencies = [
     "python-socketio>=5.16.1",
 ]
 
+[tool.pytest.ini_options]
+# Prefer "*_test.py" naming convention for tests and limit discovery to src/python
+python_files = ["*_test.py"]
+testpaths = ["src/python"]
+
 [dependency-groups]
 dev = [
 ]
