@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../db/db';
 import { eq } from 'drizzle-orm';
-import { getRobotConfigurationSnapshot } from '../db/selectors';
+import { getSceneSnapshot } from '../db/selectors';
 import {
-  robotConfigurationsTable,
+  scenesTable,
   skillsTable,
-  configRobotsTable,
-  configCamerasTable,
-  configTeleoperatorsTable,
+  sceneRobotsTable,
+  sceneCamerasTable,
+  sceneTeleoperatorsTable,
   camerasTable,
   robotsTable,
   episodesTable
@@ -49,23 +49,8 @@ const ExternalLink = (props: any) => (
   </svg>
 );
 
-const TELEOP_TYPE_MAP: Record<string, string> = {
-  "Phone": "phone",
-  "OmxLeader": "omx_leader",
-  "SO101Leader": "so101_leader",
-  "KeyboardTeleop": "keyboard",
-  "KeyboardEndEffectorTeleop": "keyboard_ee",
-  "KeyboardRoverTeleop": "keyboard_rover",
-  "SO100Leader": "so100_leader",
-  "HomunculusGlove": "homunculus_glove",
-  "HomunculusArm": "homunculus_arm",
-  "KochLeader": "koch_leader",
-  "Reachy2Teleoperator": "reachy2_teleoperator",
-  "BiSO100Leader": "bi_so100_leader",
-  "GamepadTeleop": "gamepad",
-};
 
-type ConfigStatus = {
+type SceneStatus = {
   ready: boolean;
   issues: string[];
   mode: 'sim' | 'real' | 'mixed' | 'unknown';
@@ -74,14 +59,14 @@ type ConfigStatus = {
   teleopCount: number;
 };
 
-interface ConfigDropdownProps {
-  configs: any[];
-  selectedConfigId: number | null;
-  statusMap: Record<number, ConfigStatus>;
+interface SceneDropdownProps {
+  scenes: any[];
+  selectedSceneId: number | null;
+  statusMap: Record<number, SceneStatus>;
   onSelect: (id: number) => void;
 }
 
-const RobotConfigurationDropdown: React.FC<ConfigDropdownProps> = ({ configs, selectedConfigId, statusMap, onSelect }) => {
+const SceneDropdown: React.FC<SceneDropdownProps> = ({ scenes, selectedSceneId, statusMap, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -95,10 +80,10 @@ const RobotConfigurationDropdown: React.FC<ConfigDropdownProps> = ({ configs, se
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedConfig = configs.find(c => c.id === selectedConfigId);
-  const selectedStatus = selectedConfig ? statusMap[selectedConfig.id] : undefined;
+  const selectedScene = scenes.find(c => c.id === selectedSceneId);
+  const selectedStatus = selectedScene ? statusMap[selectedScene.id] : undefined;
 
-  const renderBadges = (status?: ConfigStatus) => {
+  const renderBadges = (status?: SceneStatus) => {
     if (!status) return null;
     const issueText = status.issues.length > 0 ? status.issues.join(', ') : undefined;
     return (
@@ -115,16 +100,16 @@ const RobotConfigurationDropdown: React.FC<ConfigDropdownProps> = ({ configs, se
 
   return (
     <div className="mb-4 relative" ref={dropdownRef}>
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Robot Configuration</label>
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Scene</label>
       <div className="relative cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
         <div className="w-full pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-h-[38px]">
-          {selectedConfig ? (
+          {selectedScene ? (
             <div className="flex items-center flex-wrap gap-1">
-              <span className="font-medium">{selectedConfig.name}</span>
+              <span className="font-medium">{selectedScene.name}</span>
               {renderBadges(selectedStatus)}
             </div>
           ) : (
-            <span className="text-gray-500">Select configuration...</span>
+            <span className="text-gray-500">Select scene...</span>
           )}
         </div>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
@@ -134,22 +119,22 @@ const RobotConfigurationDropdown: React.FC<ConfigDropdownProps> = ({ configs, se
 
       {isOpen && (
         <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-96 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-          {configs.length === 0 && (
-            <div className="px-3 py-2 text-sm text-gray-500">No configurations found</div>
+          {scenes.length === 0 && (
+            <div className="px-3 py-2 text-sm text-gray-500">No scenes found</div>
           )}
-          {configs.map(cfg => {
-            const status = statusMap[cfg.id];
+          {scenes.map(scn => {
+            const status = statusMap[scn.id];
             return (
               <div
-                key={cfg.id}
+                key={scn.id}
                 className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 flex items-center justify-between"
-                onClick={() => { onSelect(cfg.id); setIsOpen(false); }}
+                onClick={() => { onSelect(scn.id); setIsOpen(false); }}
               >
                 <div className="flex items-center flex-wrap gap-1">
-                  <span className="font-normal block truncate">{cfg.name}</span>
+                  <span className="font-normal block truncate">{scn.name}</span>
                   {renderBadges(status)}
                 </div>
-                {selectedConfigId === cfg.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
+                {selectedSceneId === scn.id && <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />}
               </div>
             );
           })}
@@ -169,9 +154,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const toast = useToast();
   // State
   const [sessionName, setSessionName] = useState('');
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
-  const [configStatusMap, setConfigStatusMap] = useState<Record<number, ConfigStatus>>({});
+  const [scenes, setScenes] = useState<any[]>([]);
+  const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
+  const [sceneStatusMap, setSceneStatusMap] = useState<Record<number, SceneStatus>>({});
   const [, setSerialPorts] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
@@ -193,11 +178,14 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [fps, setFps] = useState<number>(30);
   const [saving, setSaving] = useState(false);
 
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<{ message: string; traceback?: string } | null>(null);
+
   useEffect(() => {
     if (initialData) {
       setSessionName(initialData.name || '');
       setSelectedSkillId(initialData.skillId || null);
-      if (initialData.robotConfigurationId) setSelectedConfigId(initialData.robotConfigurationId);
+      if (initialData.sceneId) setSelectedSceneId(initialData.sceneId);
       if (initialData.datasetConfig) {
         setRepoId(initialData.datasetConfig.repo_id || '');
         setSingleTask(initialData.datasetConfig.single_task || '');
@@ -205,6 +193,16 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       }
     }
   }, [initialData]);
+
+  useEffect(() => {
+    if ((window as any).electronAPI) {
+      return (window as any).electronAPI.onSimulationError((error: any) => {
+        setErrorMessage(error);
+        setErrorModalOpen(true);
+        setSimRunning(false);
+      });
+    }
+  }, []);
 
   // Timers and refs
   const recordingStartTime = useRef<number | null>(null);
@@ -229,28 +227,28 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     return Boolean(data.path || data.devicePath || data.rtspUrl || data.url);
   };
 
-  const refreshConfigStatuses = async (configList: any[]) => {
-    if (!configList || configList.length === 0) {
-      setConfigStatusMap({});
+  const refreshSceneStatuses = async (sceneList: any[]) => {
+    if (!sceneList || sceneList.length === 0) {
+      setSceneStatusMap({});
       return;
     }
 
     const ports = await scanSerialPorts();
-    const nextMap: Record<number, ConfigStatus> = {};
+    const nextMap: Record<number, SceneStatus> = {};
 
-    for (const cfg of configList) {
+    for (const scn of sceneList) {
       try {
         const [robotRows, cameraRows, teleopRows] = await Promise.all([
           db.select({ robot: robotsTable })
-            .from(configRobotsTable)
-            .innerJoin(robotsTable, eq(configRobotsTable.robotId, robotsTable.id))
-            .where(eq(configRobotsTable.configurationId, cfg.id)),
+            .from(sceneRobotsTable)
+            .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
+            .where(eq(sceneRobotsTable.sceneId, scn.id)),
           db.select({ camera: camerasTable })
-            .from(configCamerasTable)
-            .innerJoin(camerasTable, eq(configCamerasTable.cameraId, camerasTable.id))
-            .where(eq(configCamerasTable.configurationId, cfg.id)),
-          db.select().from(configTeleoperatorsTable)
-            .where(eq(configTeleoperatorsTable.configurationId, cfg.id))
+            .from(sceneCamerasTable)
+            .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
+            .where(eq(sceneCamerasTable.sceneId, scn.id)),
+          db.select().from(sceneTeleoperatorsTable)
+            .where(eq(sceneTeleoperatorsTable.sceneId, scn.id))
         ]);
 
         const robots = robotRows.map(r => r.robot);
@@ -263,16 +261,16 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         const hasRealItems = robots.some(r => r.modality === 'real') || cameras.some(c => c.modality === 'real');
         const hasSimItems = robots.some(r => r.modality === 'simulated') || cameras.some(c => c.modality === 'simulated');
-        const mode: ConfigStatus['mode'] = hasRealItems && hasSimItems ? 'mixed' : hasRealItems ? 'real' : hasSimItems ? 'sim' : 'unknown';
+        const mode: SceneStatus['mode'] = hasRealItems && hasSimItems ? 'mixed' : hasRealItems ? 'real' : hasSimItems ? 'sim' : 'unknown';
 
         const allRobotsSim = hasRobot && robots.every(r => r.modality === 'simulated');
         const allCamerasSim = hasCameras && cameras.every(c => c.modality === 'simulated');
-        const isSimConfigReady = hasRobot && hasCameras && hasTeleop && allRobotsSim && allCamerasSim;
+        const isSimSceneReady = hasRobot && hasCameras && hasTeleop && allRobotsSim && allCamerasSim;
 
         const issues: string[] = [];
         let ready = false;
 
-        if (isSimConfigReady) {
+        if (isSimSceneReady) {
           ready = true;
         } else {
           if (!hasRobot) issues.push('missing robot');
@@ -307,7 +305,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           }
         }
 
-        nextMap[cfg.id] = {
+        nextMap[scn.id] = {
           ready,
           issues,
           mode,
@@ -316,8 +314,8 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           teleopCount: teleops.length
         };
       } catch (e) {
-        console.error('Failed to compute configuration status', e);
-        nextMap[cfg.id] = {
+        console.error('Failed to compute scene status', e);
+        nextMap[scn.id] = {
           ready: false,
           issues: ['status unavailable'],
           mode: 'unknown',
@@ -328,24 +326,24 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       }
     }
 
-    setConfigStatusMap(nextMap);
+    setSceneStatusMap(nextMap);
   };
 
   // Initial Load
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [loadedConfigs, loadedSkills] = await Promise.all([
-          db.select().from(robotConfigurationsTable),
+        const [loadedScenes, loadedSkills] = await Promise.all([
+          db.select().from(scenesTable),
           db.select().from(skillsTable)
         ]);
-        setConfigs(loadedConfigs);
+        setScenes(loadedScenes);
         setSkills(loadedSkills);
 
         // Pre-select if initialData
         if (initialData) {
           setSessionName(initialData.name);
-          setSelectedConfigId(initialData.robotConfigurationId);
+          setSelectedSceneId(initialData.sceneId);
           setSelectedSkillId(initialData.skillId);
           // Load episodes for session
           if (initialData.id) {
@@ -365,7 +363,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         } else {
           // Defaults if creating new
-          if (loadedConfigs.length > 0) setSelectedConfigId(loadedConfigs[0].id);
+          if (loadedScenes.length > 0) setSelectedSceneId(loadedScenes[0].id);
           if (loadedSkills.length > 0) setSelectedSkillId(loadedSkills[0].id);
 
           const username = await (window as any).electronAPI?.getUsername?.() || 'user';
@@ -396,25 +394,25 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   }, []);
 
   useEffect(() => {
-    if (configs.length === 0) return;
-    refreshConfigStatuses(configs);
-  }, [configs]);
+    if (scenes.length === 0) return;
+    refreshSceneStatuses(scenes);
+  }, [scenes]);
 
-  // Fetch Cameras when Config changes
+  // Fetch Cameras when Scene changes
   useEffect(() => {
-    if (!selectedConfigId) {
+    if (!selectedSceneId) {
       setCameras([]);
       return;
     }
     const fetchCameras = async () => {
       try {
-        // Join configCameras and cameras
+        // Join sceneCameras and cameras
         const result = await db.select({
           camera: camerasTable
         })
-          .from(configCamerasTable)
-          .innerJoin(camerasTable, eq(configCamerasTable.cameraId, camerasTable.id))
-          .where(eq(configCamerasTable.configurationId, selectedConfigId));
+          .from(sceneCamerasTable)
+          .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
+          .where(eq(sceneCamerasTable.sceneId, selectedSceneId));
 
         setCameras(result.map(r => r.camera));
       } catch (e) {
@@ -422,7 +420,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       }
     };
     fetchCameras();
-  }, [selectedConfigId]);
+  }, [selectedSceneId]);
 
 
   // Timer logic
@@ -444,10 +442,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   // Actions
   const handleStartSimulation = async () => {
-    if (!selectedConfigId) return;
+    if (!selectedSceneId) return;
 
     try {
-      const snapshot = await getRobotConfigurationSnapshot(selectedConfigId);
+      const snapshot = await getSceneSnapshot(selectedSceneId);
       if (!snapshot) return;
 
       const follower = snapshot.robots[0];
@@ -458,10 +456,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         snapshotCameras[c.name] = { ...c.data, ...c._snapshot };
       });
 
-      // Check if this is a custom simulated robot (has model XML)
+      // Check if this is a custom simulated robot (has model XML or Path)
       const isCustomSimulated = follower?.modality === 'simulated'
         && follower?.model?.className === 'GenericMujocoEnv'
-        && follower?.model?.modelXml;
+        && (follower?.model?.modelXml || follower?.model?.modelPath);
 
       let gymManipulatorConfig: any;
 
@@ -479,12 +477,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         gymManipulatorConfig = {
           env: {
-            name: "custom_mujoco",
+            type: "custom_mujoco",
             task: null,
             fps: fps,
-            robot: null,
-            teleop: null,
             model_xml: follower.model.modelXml,
+            model_path: follower.model.modelPath,
+            scene_xml_path: snapshot.sceneXmlPath || null,
             model_format: follower.model.modelFormat || 'mjcf',
             cameras: cameraSpecs,
             home_position: modelProps.homePosition || null,
@@ -521,64 +519,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           device: 'cpu',
         };
       } else {
-        // Existing gym_hil config path
-        gymManipulatorConfig = {
-          "env": {
-            "name": "gym_hil",
-            "task": "PandaPickCubeKeyboard-v0",
-            "fps": 10,
-            "robot": null,
-            "teleop": null,
-            "processor": {
-              "control_mode": "keyboard",
-              "gripper": {
-                "use_gripper": true,
-                "gripper_penalty": -0.02,
-              },
-              "observation": {
-                "display_cameras": true,
-              },
-              "reset": {
-                "fixed_reset_joint_positions": [0.0, 0.195, 0.0, -2.43, 0.0, 2.62, 0.785],
-                "reset_time_s": 2.0,
-                "control_time_s": 15.0,
-                "terminate_on_success": true
-              }
-            },
-            "features": {
-              "observation.images.front": {
-                "type": "VISUAL",
-                "shape": [3, 128, 128]
-              },
-              "observation.images.wrist": {
-                "type": "VISUAL",
-                "shape": [3, 128, 128]
-              },
-              "observation.state": {
-                "type": "STATE",
-                "shape": [18]
-              },
-              "action": {
-                "type": "ACTION",
-                "shape": [3]
-              }
-            },
-            "features_map": {
-              "observation.images.front": "observation.images.front",
-              "observation.images.wrist": "observation.images.wrist",
-              "observation.state": "observation.state",
-              "action": "action"
-            }
-          },
-          dataset: {
-            repo_id: repoId,
-            root: null,
-            task: "pick_cube",
-            replay_episode: null,
-            push_to_hub: false
-          },
-          device: 'cpu',
-        };
+        throw new Error("Only custom simulated robots with model XML are supported in this version");
       }
 
       console.log("Prepared gym manipulator config:", gymManipulatorConfig);
@@ -661,10 +602,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   };
 
   const handleSave = async () => {
-    if (!selectedConfigId || !selectedSkillId) return;
+    if (!selectedSceneId) return;
     setSaving(true);
     try {
-      const snapshot = await getRobotConfigurationSnapshot(selectedConfigId);
+      const snapshot = await getSceneSnapshot(selectedSceneId);
 
       const datasetConfig = {
         repo_id: repoId,
@@ -679,10 +620,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       const payload = {
         id: initialData?.id,
         name: sessionName,
-        robotConfigurationId: selectedConfigId,
+        sceneId: selectedSceneId,
         skillId: selectedSkillId,
         datasetConfig,
-        robotConfigSnapshot: snapshot
+        sceneSnapshot: snapshot
       };
 
       await onSaved(payload);
@@ -697,7 +638,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const activeCameras = cameras.filter(c => c.modality === 'real');
   const hasRealCameras = activeCameras.length > 0;
 
-  // Start cameras effect (naive: start all real cameras when config is selected)
+  // Start cameras effect (naive: start all real cameras when scene is selected)
   useEffect(() => {
     const startCams = async () => {
       const newStreams: { [key: number]: string } = {};
@@ -748,11 +689,11 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         <div className="flex items-center gap-4">
           <div className="w-64">
-            <RobotConfigurationDropdown
-              configs={configs}
-              selectedConfigId={selectedConfigId}
-              statusMap={configStatusMap}
-              onSelect={(id) => setSelectedConfigId(id)}
+            <SceneDropdown
+              scenes={scenes}
+              selectedSceneId={selectedSceneId}
+              statusMap={sceneStatusMap}
+              onSelect={(id) => setSelectedSceneId(id)}
             />
           </div>
           <div className="w-64">
@@ -886,7 +827,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
               if (isSim) {
                 return (
                   <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm group">
-                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10">{camLabel}</div>
+                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10 flex items-center gap-1">
+                      {camLabel}
+                      {(cam.data as any)?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
+                    </div>
 
                     <button
                       onClick={() => (window as any).electronAPI.openVideoWindow('simulation')}
@@ -960,6 +904,26 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           <div className="p-8 text-center text-sm text-gray-500">No episodes recorded in this session yet.</div>
         )}
       </div>
+
+      {errorModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-auto flex flex-col gap-4 shadow-xl">
+            <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              Simulation Error
+            </h2>
+            <div className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto text-gray-800">
+              <div className="font-semibold mb-2">{errorMessage?.message}</div>
+              {errorMessage?.traceback && (
+                <div className="text-xs text-gray-500 border-t border-gray-200 pt-2 mt-2">{errorMessage.traceback}</div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button onClick={() => setErrorModalOpen(false)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

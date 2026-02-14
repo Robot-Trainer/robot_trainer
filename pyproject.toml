@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9.0",
     "lerobot[all,docs,hilserl]",
+    "pytest-asyncio>=1.3.0",
     "python-socketio>=5.16.1",
 ]
 
@@ -14,6 +15,7 @@ dependencies = [
 # Prefer "*_test.py" naming convention for tests and limit discovery to src/python
 python_files = ["*_test.py"]
 testpaths = ["src/python"]
+markers = ["asyncio: mark async tests using pytest-asyncio"]
 
 [dependency-groups]
 dev = [

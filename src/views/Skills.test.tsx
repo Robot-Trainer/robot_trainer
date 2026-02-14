@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import SessionsView from './Sessions';
-import { sessionsTable, episodesTable, scenesTable } from '../db/schema';
+import SkillsView from './Skills';
+import { skillsTable, sessionsTable, scenesTable } from '../db/schema';
 import { tableResource } from '../db/tableResource';
 import { migrate } from '../db/migrate';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -20,44 +20,42 @@ vi.mock('../db/db', async () => {
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
 vi.mock('../lib/uiStore', () => ({ default: (cb: any) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
-describe('SessionsView Deletion', () => {
+describe('SkillsView Deletion', () => {
   beforeAll(async () => {
     (window as any).electronAPI = {
-      getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') }),
-      getRobotModels: async () => [],
+      getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') })
     };
     await migrate();
   });
 
   beforeEach(async () => {
-    await db.delete(episodesTable);
     await db.delete(sessionsTable);
+    await db.delete(skillsTable);
     await db.delete(scenesTable);
   });
 
-  it('should delete session and cascade episodes', async () => {
-    const scene = await tableResource(scenesTable).create({ name: 'Scene1' });
+  it('should delete skill and set session skillId to null', async () => {
+    const scene = await tableResource(scenesTable).create({ name: 'Scene' });
+    const skill = await tableResource(skillsTable).create({ name: 'SkillToDelete' });
     const session = await tableResource(sessionsTable).create({
-      name: 'SessionToDelete',
-      sceneId: scene.id
-    });
-    await tableResource(episodesTable).create({
-        name: 'Ep1',
-        sessionId: session.id
+      name: 'SessionWithSkill',
+      sceneId: scene.id,
+      skillId: skill.id
     });
 
-    render(<SessionsView />);
-    await waitFor(() => screen.getByText('SessionToDelete'));
+    render(<SkillsView />);
+    await waitFor(() => screen.getByText('SkillToDelete'));
 
-    const deleteBtns = screen.getAllByText('Delete');
-    fireEvent.click(deleteBtns[0]);
+    fireEvent.click(screen.getByText('Delete'));
 
     await waitFor(async () => {
-      const sessions = await tableResource(sessionsTable).list();
-      expect(sessions).toHaveLength(0);
+      const skills = await tableResource(skillsTable).list();
+      expect(skills).toHaveLength(0);
     });
 
-    const eps = await tableResource(episodesTable).list();
-    expect(eps).toHaveLength(0);
+    const sessions = await tableResource(sessionsTable).list();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].skillId).toBeNull();
   });
 });
+

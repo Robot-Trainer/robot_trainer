@@ -1,0 +1,9 @@
+
+<mujoco>
+  <asset>
+    <mesh name="mesh" file="assets/test.obj"/>
+  </asset>
+  <worldbody>
+     <geom type="mesh" mesh="mesh"/>
+  </worldbody>
+</mujoco>

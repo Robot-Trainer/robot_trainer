@@ -1,5 +1,5 @@
 {
-  "id": "cac778d7-aa4f-4b31-a089-5c3bb3c2efeb",
+  "id": "90261c04-7391-4148-9af9-ba5e18800405",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -126,204 +126,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.config_cameras": {
-      "name": "config_cameras",
-      "schema": "",
-      "columns": {
-        "configuration_id": {
-          "name": "configuration_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "camera_id": {
-          "name": "camera_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "config_cameras_configuration_id_robot_configurations_id_fk": {
-          "name": "config_cameras_configuration_id_robot_configurations_id_fk",
-          "tableFrom": "config_cameras",
-          "tableTo": "robot_configurations",
-          "columnsFrom": [
-            "configuration_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "config_cameras_camera_id_cameras_id_fk": {
-          "name": "config_cameras_camera_id_cameras_id_fk",
-          "tableFrom": "config_cameras",
-          "tableTo": "cameras",
-          "columnsFrom": [
-            "camera_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "config_cameras_configuration_id_camera_id_pk": {
-          "name": "config_cameras_configuration_id_camera_id_pk",
-          "columns": [
-            "configuration_id",
-            "camera_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.config_robots": {
-      "name": "config_robots",
-      "schema": "",
-      "columns": {
-        "configuration_id": {
-          "name": "configuration_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "robot_id": {
-          "name": "robot_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "config_robots_configuration_id_robot_configurations_id_fk": {
-          "name": "config_robots_configuration_id_robot_configurations_id_fk",
-          "tableFrom": "config_robots",
-          "tableTo": "robot_configurations",
-          "columnsFrom": [
-            "configuration_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "config_robots_robot_id_robots_id_fk": {
-          "name": "config_robots_robot_id_robots_id_fk",
-          "tableFrom": "config_robots",
-          "tableTo": "robots",
-          "columnsFrom": [
-            "robot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "config_robots_configuration_id_robot_id_pk": {
-          "name": "config_robots_configuration_id_robot_id_pk",
-          "columns": [
-            "configuration_id",
-            "robot_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.config_teleoperators": {
-      "name": "config_teleoperators",
-      "schema": "",
-      "columns": {
-        "configuration_id": {
-          "name": "configuration_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "teleoperator_id": {
-          "name": "teleoperator_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "config_teleoperators_configuration_id_robot_configurations_id_fk": {
-          "name": "config_teleoperators_configuration_id_robot_configurations_id_fk",
-          "tableFrom": "config_teleoperators",
-          "tableTo": "robot_configurations",
-          "columnsFrom": [
-            "configuration_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "config_teleoperators_teleoperator_id_teleoperator_models_id_fk": {
-          "name": "config_teleoperators_teleoperator_id_teleoperator_models_id_fk",
-          "tableFrom": "config_teleoperators",
-          "tableTo": "teleoperator_models",
-          "columnsFrom": [
-            "teleoperator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "config_teleoperators_configuration_id_teleoperator_id_pk": {
-          "name": "config_teleoperators_configuration_id_teleoperator_id_pk",
-          "columns": [
-            "configuration_id",
-            "teleoperator_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.episodes": {
       "name": "episodes",
       "schema": "",
@@ -384,59 +186,10 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.robot_configurations": {
-      "name": "robot_configurations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "robot_configurations_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -498,6 +251,12 @@
         "model_xml": {
           "name": "model_xml",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_path": {
+          "name": "model_path",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": false
         },
@@ -616,6 +375,259 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.scene_cameras": {
+      "name": "scene_cameras",
+      "schema": "",
+      "columns": {
+        "scene_id": {
+          "name": "scene_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "camera_id": {
+          "name": "camera_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scene_cameras_scene_id_scenes_id_fk": {
+          "name": "scene_cameras_scene_id_scenes_id_fk",
+          "tableFrom": "scene_cameras",
+          "tableTo": "scenes",
+          "columnsFrom": [
+            "scene_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scene_cameras_camera_id_cameras_id_fk": {
+          "name": "scene_cameras_camera_id_cameras_id_fk",
+          "tableFrom": "scene_cameras",
+          "tableTo": "cameras",
+          "columnsFrom": [
+            "camera_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "scene_cameras_scene_id_camera_id_pk": {
+          "name": "scene_cameras_scene_id_camera_id_pk",
+          "columns": [
+            "scene_id",
+            "camera_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scene_robots": {
+      "name": "scene_robots",
+      "schema": "",
+      "columns": {
+        "scene_id": {
+          "name": "scene_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "robot_id": {
+          "name": "robot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scene_robots_scene_id_scenes_id_fk": {
+          "name": "scene_robots_scene_id_scenes_id_fk",
+          "tableFrom": "scene_robots",
+          "tableTo": "scenes",
+          "columnsFrom": [
+            "scene_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scene_robots_robot_id_robots_id_fk": {
+          "name": "scene_robots_robot_id_robots_id_fk",
+          "tableFrom": "scene_robots",
+          "tableTo": "robots",
+          "columnsFrom": [
+            "robot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "scene_robots_scene_id_robot_id_pk": {
+          "name": "scene_robots_scene_id_robot_id_pk",
+          "columns": [
+            "scene_id",
+            "robot_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scene_teleoperators": {
+      "name": "scene_teleoperators",
+      "schema": "",
+      "columns": {
+        "scene_id": {
+          "name": "scene_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "teleoperator_id": {
+          "name": "teleoperator_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scene_teleoperators_scene_id_scenes_id_fk": {
+          "name": "scene_teleoperators_scene_id_scenes_id_fk",
+          "tableFrom": "scene_teleoperators",
+          "tableTo": "scenes",
+          "columnsFrom": [
+            "scene_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scene_teleoperators_teleoperator_id_teleoperator_models_id_fk": {
+          "name": "scene_teleoperators_teleoperator_id_teleoperator_models_id_fk",
+          "tableFrom": "scene_teleoperators",
+          "tableTo": "teleoperator_models",
+          "columnsFrom": [
+            "teleoperator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "scene_teleoperators_scene_id_teleoperator_id_pk": {
+          "name": "scene_teleoperators_scene_id_teleoperator_id_pk",
+          "columns": [
+            "scene_id",
+            "teleoperator_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scenes": {
+      "name": "scenes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "scenes_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scene_xml_path": {
+          "name": "scene_xml_path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.sessions": {
       "name": "sessions",
       "schema": "",
@@ -647,10 +659,10 @@
           "name": "skill_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "robot_configuration_id": {
-          "name": "robot_configuration_id",
+        "scene_id": {
+          "name": "scene_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -662,8 +674,8 @@
           "notNull": false,
           "default": "'{}'::jsonb"
         },
-        "robot_config_snapshot": {
-          "name": "robot_config_snapshot",
+        "scene_snapshot": {
+          "name": "scene_snapshot",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
@@ -702,20 +714,20 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "sessions_robot_configuration_id_robot_configurations_id_fk": {
-          "name": "sessions_robot_configuration_id_robot_configurations_id_fk",
+        "sessions_scene_id_scenes_id_fk": {
+          "name": "sessions_scene_id_scenes_id_fk",
           "tableFrom": "sessions",
-          "tableTo": "robot_configurations",
+          "tableTo": "scenes",
           "columnsFrom": [
-            "robot_configuration_id"
+            "scene_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

@@ -13,10 +13,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   installMiniconda: () => ipcRenderer.invoke('install-miniconda'),
   installLerobot: () => ipcRenderer.invoke('install-lerobot'),
   checkLerobot: () => ipcRenderer.invoke('check-lerobot'),
+  scanMujocoMenagerie: () => ipcRenderer.invoke('scan-mujoco-menagerie'),
   saveRobotConfig: (config: any) =>
     ipcRenderer.invoke("save-robot-config", config),
   setConfig: (config: any) =>
     ipcRenderer.invoke("save-robot-config", config),
+  openAdminWindow: (dbName: string) => ipcRenderer.invoke('open-admin-window', dbName),
   // Main -> Renderer requests: renderer should listen and reply
   onRequestLoadSystemSettings: (cb: () => void) => {
     const listener = (_: any) => cb();
@@ -81,6 +83,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on('simulation-state-changed', listener);
     return () => ipcRenderer.removeListener('simulation-state-changed', listener);
   },
+  onSimulationError: (cb: (error: any) => void) => {
+    const listener = (_: any, error: any) => cb(error);
+    ipcRenderer.on('simulation-error', listener);
+    return () => ipcRenderer.removeListener('simulation-error', listener);
+  },
   selectModelFile: () => ipcRenderer.invoke('select-model-file'),
   readModelFile: (filePath: string) => ipcRenderer.invoke('read-model-file', filePath),
+  saveRobotModelZip: (sourceFilePath: string) => ipcRenderer.invoke('save-robot-model-zip', sourceFilePath),
+  saveRobotModelFile: (sourceFilePath: string) => ipcRenderer.invoke('save-robot-model-file', sourceFilePath),
 });

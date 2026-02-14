@@ -7,6 +7,7 @@ import { SerialPort } from 'serialport';
 import { filterInterestingPorts } from './lib/serial_devices';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { JSDOM } from 'jsdom';
+import AdmZip from 'adm-zip';
 
 import { VideoManager } from './lib/VideoManager';
 
@@ -136,6 +137,11 @@ function parseRobotXmlMetadata(xmlContent: string): {
     .map((s) => s.getAttribute('name'))
     .filter((n): n is string => !!n);
 
+  const cameras = Array.from(doc.querySelectorAll('camera'));
+  const cameraNames = cameras
+    .map((c) => c.getAttribute('name'))
+    .filter((n): n is string => !!n);
+
   const hasGripper = actuatorNames.some(
     (n) => /gripper|finger/i.test(n)
   ) || jointNames.some(
@@ -148,6 +154,7 @@ function parseRobotXmlMetadata(xmlContent: string): {
     actuatorNames,
     siteNames,
     hasGripper,
+    cameras: cameraNames,
   };
 }
 
@@ -443,6 +450,77 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Open the pglite-admin UI in a proper Electron BrowserWindow
+  ipcMain.handle('open-admin-window', async (_event, dbName: string = 'robot-trainer') => {
+    const win = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      autoHideMenuBar: true,
+      webPreferences: {
+        devTools: true,
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    win.webContents.openDevTools();
+
+    // 1. In Development: use the Vite Dev Server URL which is now configured
+    // to serve pglite-admin static files via vite-plugin-static-copy/Vite dev server
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      // While vite-plugin-static-copy is mainly for copying to ./dist, newer versions
+      // expose the served assets at root relative paths in dev server.
+      // So accessing /pglite-admin/index.html should work if user asks for it.
+      const url = `${MAIN_WINDOW_VITE_DEV_SERVER_URL}/pglite-admin/index.html?db=${encodeURIComponent(dbName)}`;
+      try {
+        await win.loadURL(url);
+        win.webContents.once('did-finish-load', () => {
+          win.webContents.send('pglite-admin-init', { dbName });
+        });
+        return { ok: true, url };
+      } catch (e) {
+        console.error('Failed to load admin from dev server', e);
+      }
+    }
+
+    // 2. In Production / Packaged App: 
+    // The files are copied to the renderer output directory by vite-plugin-static-copy.
+    // Structure: resources/app/.vite/renderer/main_window/pglite-admin/index.html
+    // OR if using strict built directory structure:
+    const prodCandidates = [
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/pglite-admin/index.html`),
+      path.join(__dirname, `../renderer/main_window/pglite-admin/index.html`), // explicit name fallback
+      path.join(process.resourcesPath, 'pglite-admin/index.html'),
+    ];
+
+    for (const cand of prodCandidates) {
+      try {
+        await fs.access(cand);
+        await win.loadFile(cand, { search: `db=${dbName}` });
+        win.webContents.once('did-finish-load', () => {
+          win.webContents.send('pglite-admin-init', { dbName });
+        });
+        return { ok: true, path: cand };
+      } catch { /* ignore */ }
+    }
+
+    // 3. Fallback for mixed environments (run from source but no dev server running?)
+    const localFallback = path.resolve(__dirname, '../../pglite-admin/static/index.html');
+    try {
+      await fs.access(localFallback);
+      await win.loadFile(localFallback, { search: `db=${dbName}` });
+      win.webContents.once('did-finish-load', () => {
+        win.webContents.send('pglite-admin-init', { dbName });
+      });
+      return { ok: true, path: localFallback };
+    } catch { /* ignore */ }
+
+    // If we reach here, nothing matched. Close window to avoid showing app index.
+    try { win.close(); } catch (e) { /**/ }
+    return { ok: false, error: 'Could not locate pglite-admin index.html' };
+  });
+
 
   // Check for local Anaconda/conda envs in the user's home directory and via PATH
   ipcMain.handle('check-anaconda', async () => {
@@ -678,7 +756,7 @@ const setupIpcHandlers = () => {
   ipcMain.handle('get-simulation-state', () => {
     const vm = videoManagers.get('simulation');
     if (vm) {
-      return { running: true, wsUrl: `ws://localhost:${vm.getPort()}` };
+      return { running: true, wsUrl: vm.wsUrl };
     }
     return { running: false };
   });
@@ -742,16 +820,33 @@ const setupIpcHandlers = () => {
             clearTimeout(timeout);
             vm.off('simulation-response', onResponse);
             resolve(response.url);
+          } else if (response.type === 'error') {
+            clearTimeout(timeout);
+            vm.off('simulation-response', onResponse);
+            reject(new Error(response.message || 'Simulation error'));
           }
         };
         vm.on('simulation-response', onResponse);
 
+        // Also listen for errors that happen AFTER initialization
+        const onError = (response: any) => {
+          if (response.type === 'error') {
+            BrowserWindow.getAllWindows().forEach(w => w.webContents.send('simulation-error', response));
+          }
+        };
+        vm.on('simulation-response', onError);
+
         // Also reject if process exits early
-        vm.on('exit', (code: number) => {
+        const onExit = (code: number) => {
           clearTimeout(timeout);
           vm.off('simulation-response', onResponse);
+          // If we exit early (during startup), we reject.
+          // If we resolved already, this reject is ignored.
           reject(new Error(`Simulation process exited early with code ${code}`));
-        });
+          // We can remove the error listener since the process is dead
+          vm.off('simulation-response', onError);
+        };
+        vm.once('exit', onExit);
       });
 
       await vm.startSimulation(command, args);
@@ -760,10 +855,12 @@ const setupIpcHandlers = () => {
       let wsUrl = '';
       try {
         wsUrl = await waitForUrl;
+        vm.wsUrl = wsUrl;
       } catch (e) {
         console.warn('Failed to get dynamic URL from simulation, falling back cleanly or erroring:', e);
-        // If we timeout, we might want to kill the process? or just let it be?
-        // For now, let's propagate the error so the UI knows it failed to connect.
+        // If we fail to start properly, clean up the VM so we don't leave zombie processes or stuck listeners?
+        vm.stopAll();
+        videoManagers.delete(id);
         throw e;
       }
 
@@ -804,13 +901,13 @@ const setupIpcHandlers = () => {
     return { ok: true };
   });
 
-  // Select a model file (MJCF/URDF) via native file dialog
+  // Select a model file (MJCF/ZIP) via native file dialog
   ipcMain.handle('select-model-file', async () => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Select Robot Model File',
       filters: [
-        { name: 'Robot Models', extensions: ['xml', 'urdf'] },
+        { name: 'Robot Models', extensions: ['xml', 'zip'] },
         { name: 'All Files', extensions: ['*'] },
       ],
       properties: ['openFile'],
@@ -821,12 +918,153 @@ const setupIpcHandlers = () => {
 
   // Read a model file and parse metadata from its XML content
   ipcMain.handle('read-model-file', async (_event, filePath: string) => {
-    const content = await fs.readFile(filePath, 'utf-8');
     const ext = path.extname(filePath).toLowerCase();
-    const format = ext === '.urdf' ? 'urdf' : 'mjcf';
+
+    if (ext === '.zip') {
+      try {
+        const zip = new AdmZip(filePath);
+        const zipEntries = zip.getEntries();
+        const xmlEntry = zipEntries.find(e => e.entryName.endsWith('.xml') && !e.entryName.startsWith('__MACOSX'));
+
+        if (xmlEntry) {
+          const content = zip.readAsText(xmlEntry);
+          const metadata = parseRobotXmlMetadata(content);
+          const baseName = path.basename(filePath, ext);
+          return { content: '', format: 'zip', baseName, metadata, zipPath: filePath };
+        }
+      } catch (e) {
+        console.error("Error reading zip", e);
+      }
+      return { content: '', format: 'zip', baseName: path.basename(filePath, ext), metadata: {} };
+    }
+
+    if (ext === '.urdf') {
+      throw new Error("URDF files are not supported. Please use MJCF (.xml) files.");
+    }
+
+    const content = await fs.readFile(filePath, 'utf-8');
+    const format = 'mjcf';
     const baseName = path.basename(filePath, ext);
     const metadata = parseRobotXmlMetadata(content);
     return { content, format, baseName, metadata };
+  });
+
+  ipcMain.handle('save-robot-model-zip', async (_event, sourceFilePath: string) => {
+    const userDataPath = app.getPath('userData');
+    const modelsDir = path.join(userDataPath, 'robot_models');
+    // Ensure base directory exists
+    await fs.mkdir(modelsDir, { recursive: true });
+
+    const fileName = path.basename(sourceFilePath);
+    const baseName = path.basename(fileName, path.extname(fileName));
+
+    // Add date_time suffix YYYYMMDD_HHMMSS
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+    const dirName = `${baseName}_${timestamp}`;
+    const targetDir = path.join(modelsDir, dirName);
+
+    const zipPath = path.join(targetDir, fileName);
+    const extractDir = path.join(targetDir, 'extracted');
+
+    await fs.mkdir(targetDir, { recursive: true });
+
+    // Copy zip file to destination
+    await fs.copyFile(sourceFilePath, zipPath);
+
+    // Extract
+    // Note: AdmZip synchronous extraction might freeze UI for large files, but acceptable for now.
+    const zip = new AdmZip(zipPath);
+    // Clear extract dir if exists?
+    await fs.rm(extractDir, { recursive: true, force: true });
+    await fs.mkdir(extractDir, { recursive: true });
+
+    zip.extractAllTo(extractDir, true);
+
+    return { modelPath: extractDir };
+  });
+
+  ipcMain.handle('scan-mujoco-menagerie', async () => {
+    const menageriePath = path.join(process.cwd(), 'mujoco_menagerie');
+    const results = {
+      robots: [] as any[],
+      configurations: [] as any[]
+    };
+
+    try {
+      const dirs = await fs.readdir(menageriePath, { withFileTypes: true });
+      for (const dirent of dirs) {
+        if (!dirent.isDirectory() || dirent.name.startsWith('.')) continue;
+
+        const dirPath = path.join(menageriePath, dirent.name);
+        const files = await fs.readdir(dirPath);
+
+        // Stage 1: Robot Detection
+        for (const file of files) {
+          if (!file.endsWith('.xml') || file.toLowerCase().includes('scene')) continue;
+
+          const content = await fs.readFile(path.join(dirPath, file), 'utf-8');
+          if (content.includes('<actuator>')) {
+            const metadata = parseRobotXmlMetadata(content);
+            results.robots.push({
+              name: dirent.name, // Robot name is directory name
+              dirName: dirent.name,
+              modelPath: path.join('mujoco_menagerie', dirent.name, file),
+              metadata
+            });
+            break; // One robot per folder
+          }
+        }
+
+        // Stage 2: Configuration Detection
+        for (const file of files) {
+          if (!file.endsWith('.xml')) continue;
+          const content = await fs.readFile(path.join(dirPath, file), 'utf-8');
+          // Check for model attribute containing "scene"
+          const modelMatch = content.match(/<mujoco[^>]*model="([^"]*scene[^"]*)"/i);
+          if (modelMatch) {
+            const includeMatches = Array.from(content.matchAll(/<include[^>]*file="([^"]+)"/g));
+            const includedRobots = includeMatches.map(m => {
+              const resolved = path.resolve(dirPath, m[1]);
+              const includeDir = path.dirname(resolved);
+              return path.basename(includeDir);
+            });
+
+            results.configurations.push({
+              name: modelMatch[1],
+              sceneXmlPath: path.join('mujoco_menagerie', dirent.name, file),
+              includedRobots
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error scanning menagerie:", e);
+    }
+    return results;
+  });
+
+  ipcMain.handle('save-robot-model-file', async (_event, sourceFilePath: string) => {
+    const userDataPath = app.getPath('userData');
+    const modelsDir = path.join(userDataPath, 'robot_models');
+    // Ensure base directory exists
+    await fs.mkdir(modelsDir, { recursive: true });
+
+    const fileName = path.basename(sourceFilePath);
+    const baseName = path.basename(fileName, path.extname(fileName));
+
+    // Add date_time suffix YYYYMMDD_HHMMSS
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+    const dirName = `${baseName}_${timestamp}`;
+    const targetDir = path.join(modelsDir, dirName);
+
+    await fs.mkdir(targetDir, { recursive: true });
+
+    const destPath = path.join(targetDir, fileName);
+    await fs.copyFile(sourceFilePath, destPath);
+
+    return { modelPath: destPath };
   });
 
   // Provide pglite assets to renderer via IPC (renderer can't read node files)

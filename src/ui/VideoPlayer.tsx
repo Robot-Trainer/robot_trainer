@@ -77,8 +77,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
         });
 
         socket.on('video_frame', (data: { image: string, camera_name: string }) => {
+          console.log('Received video frame for camera:', data.camera_name);
           if (!canvasRef.current || !mounted) return;
-          if (data.camera_name !== 'observation.images.front') {
+          if (channel && data.camera_name !== channel && data.camera_name !== `observation.images.${channel}`) {
             return; // Skip frames if channel filter is set and doesn't match
           }
 

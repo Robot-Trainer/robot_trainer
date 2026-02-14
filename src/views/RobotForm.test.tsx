@@ -65,20 +65,29 @@ describe('RobotForm', () => {
     fireEvent.change(nameInput, { target: { value: 'My Test Robot' } });
 
     // Select Robot Model using the combobox/select
-    // Wait for options to populate
-    await waitFor(() => expect(screen.getByText('Robot Model A')).not.toBeNull());
+    // 1. Open the dropdown
+    const modelSelectTrigger = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelectTrigger);
 
-    const modelSelect = screen.getByLabelText(/Robot Model/i);
-    fireEvent.change(modelSelect, { target: { value: '1' } }); // ID 1
+    // 2. Wait for options to populate and select one
+    const modelOption = await screen.findByText('Robot Model A');
+    fireEvent.click(modelOption);
 
     // Select Modality
-    const modalitySelect = screen.getByLabelText(/Modality/i);
-    fireEvent.change(modalitySelect, { target: { value: 'real' } });
+    const modalitySelectTrigger = screen.getByLabelText(/Modality/i);
+    fireEvent.mouseDown(modalitySelectTrigger);
+    const modalityOption = await screen.findByText('Real');
+    fireEvent.click(modalityOption);
 
     // Connect Device
-    // This dropdown might dynamically update.
-    const deviceSelect = screen.getByLabelText(/Connected Device/i);
-    fireEvent.change(deviceSelect, { target: { value: 'SerialNumber1' } });
+    // We can select from the scanned list (which we triggered scan for)
+    // or type manually. The scanned list items are clickable.
+    const deviceCard = await screen.findByText(/SerialNumber1/);
+    fireEvent.click(deviceCard);
+    
+    // Or if we want to test manual input:
+    // const deviceInput = screen.getByLabelText(/Connected Device Serial/i);
+    // fireEvent.change(deviceInput, { target: { value: 'SerialNumber1' } });
 
     // Save
     const saveBtn = screen.getByText(/Save Robot/i);

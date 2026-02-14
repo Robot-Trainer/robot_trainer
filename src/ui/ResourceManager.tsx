@@ -7,7 +7,14 @@ import {
   Typography,
   Grid,
   Stack,
-  Alert
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from "@mui/material";
 import { useToast } from "./ToastContext";
 import { Button } from "./Button";
@@ -15,6 +22,12 @@ import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
 
 type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: any };
+
+export type GridCol = {
+  field: string;
+  headerName: string;
+  render?: (row: any) => React.ReactNode;
+};
 
 type ResourceAPI = {
   list: () => Promise<any[]>;
@@ -30,6 +43,7 @@ type Props = {
   // or supply a drizzle `table` to reflect fields and build a resource
   table?: any;
   fields?: Field[];
+  gridCols?: GridCol[];
   renderForm?: (opts: {
     onCancel: () => void;
     onSaved: (item: any) => void;
@@ -51,6 +65,7 @@ export const ResourceManager: React.FC<Props> = ({
   resource,
   table,
   fields,
+  gridCols,
   renderForm,
 }) => {
   const toast = useToast();
@@ -258,8 +273,15 @@ export const ResourceManager: React.FC<Props> = ({
     try {
       if (activeResource) await activeResource.delete(id);
       await load();
-    } catch (e) {
-      setItems(items.filter((i) => i.id !== id));
+    } catch (e: any) {
+      console.error(e);
+      if (toast && toast.error) {
+        toast.error(`Could not delete item: ${e.message}`);
+      } else {
+        alert(`Could not delete item: ${e.message}`);
+      }
+      // Reload to ensure consistency
+      await load();
     }
   };
 
@@ -278,18 +300,47 @@ export const ResourceManager: React.FC<Props> = ({
 
           {loading ? (
             <Typography color="text.secondary">Loading...</Typography>
+          ) : items.length === 0 ? (
+            <Box textAlign="center" py={8} border="1px dashed #ccc" borderRadius={2}>
+              <Typography color="text.secondary" mb={2}>
+                No {title.toLowerCase()} defined
+              </Typography>
+              <Button onClick={onCreate}>
+                Add a {title.replace(/s$/, "")}
+              </Button>
+            </Box>
+          ) : gridCols ? (
+            <TableContainer component={Paper} variant="outlined">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {gridCols.map((c) => (
+                      <TableCell key={c.field}>{c.headerName}</TableCell>
+                    ))}
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {items.map((it) => (
+                    <TableRow key={it.id}>
+                      {gridCols.map((c) => (
+                        <TableCell key={c.field}>
+                          {c.render ? c.render(it) : it[c.field]}
+                        </TableCell>
+                      ))}
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button variant="ghost" onClick={() => onEdit(it)}>Edit</Button>
+                          <Button variant="danger" onClick={() => onDelete(it.id)}>Delete</Button>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           ) : (
             <Stack spacing={2}>
-              {items.length === 0 && (
-                <Box textAlign="center" py={8} border="1px dashed #ccc" borderRadius={2}>
-                  <Typography color="text.secondary" mb={2}>
-                    No {title.toLowerCase()} defined
-                  </Typography>
-                  <Button onClick={onCreate}>
-                    Add a {title.replace(/s$/, "")}
-                  </Button>
-                </Box>
-              )}
               {items.map((it) => (
                 <Card key={it.id} variant="outlined">
                   <Box display="flex" alignItems="center" justifyContent="space-between" p={2}>

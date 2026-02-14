@@ -5,30 +5,34 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { configRobotsTable, configCamerasTable, configTeleoperatorsTable } from '../db/schema';
+import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
-import ConfigForm from './ConfigForm';
-import RobotConfigSchema from '../python/RobotConfig.json';
 
-interface RobotConfigurationFormProps {
+interface SceneFormProps {
   onCancel?: () => void;
   onSaved?: (config: any) => Promise<any> | void;
   initialData?: any;
 }
 
-export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ onCancel, onSaved, initialData }) => {
+export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initialData }) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [configName, setConfigName] = useState('');
+  const [sceneName, setSceneName] = useState('');
+  const [sceneXmlPath, setSceneXmlPath] = useState('');
+  const [xmlContent, setXmlContent] = useState('');
+
   const [leaderType, setLeaderType] = useState<'keyboard' | 'gamepad' | 'real' | 'phone'>('keyboard');
   const [leaderModel, setLeaderModel] = useState<string>('');
   const [leaderConfig, setLeaderConfig] = useState<any>(null);
 
   const [availableRobots, setAvailableRobots] = useState<{ label: string, value: string }[]>([]);
+  const [robotModels, setRobotModels] = useState<any[]>([]);
+  const [xmlCameras, setXmlCameras] = useState<any[]>([]);
+
   const [availableTeleoperators, setAvailableTeleoperators] = useState<{ label: string, value: string }[]>([]);
 
   const [knownRobots, setKnownRobots] = useState<any[]>([]);
@@ -41,6 +45,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
   const fetchData = async () => {
     try {
       const robots = await robotModelsResource.list();
+      setRobotModels(robots);
       const rOpts = robots.map((r: any) => ({ label: r.name, value: String(r.id) }));
       setAvailableRobots(rOpts);
 
@@ -64,11 +69,87 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
     }
   };
 
+  // Helper to generate stable negative IDs for XML cameras
+  const getXmlCameraId = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = ((hash << 5) - hash) + name.charCodeAt(i);
+      hash |= 0;
+    }
+    // Ensure negative and non-zero. Use 10000 offset to avoid small negative conflicts if any
+    return -Math.abs(hash) - 10000;
+  };
+
   // Initialize defaults
   useEffect(() => {
-    console.log('RobotConfigurationForm mounted');
+    console.log('SceneForm mounted');
     fetchData();
   }, []);
+
+  // Update XML cameras list whenever XML content changes or selected Robot changes
+  useEffect(() => {
+    const parseXmlCameras = async () => {
+      const newXmlCameras: any[] = [];
+      const seenNames = new Set<string>();
+
+      // 1. From Scene XML
+      if (xmlContent) {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xmlContent, "text/xml");
+          const cams = Array.from(doc.querySelectorAll("camera"));
+          cams.forEach(c => {
+            const name = c.getAttribute("name");
+            if (name && !seenNames.has(name)) {
+              seenNames.add(name);
+              newXmlCameras.push({
+                id: getXmlCameraId(name),
+                name: name,
+                isXml: true,
+                modality: 'simulated'
+              });
+            }
+          });
+        } catch (e) {
+          console.error("Error parsing scene XML for cameras", e);
+        }
+      }
+
+      // 2. From Robot Model XML
+      if (selectedRobotId) {
+        try {
+          const robot = knownRobots.find(r => r.id === selectedRobotId);
+          if (robot && robot.robotModelId) {
+            const model = robotModels.find(m => m.id === robot.robotModelId);
+            if (model && model.modelPath) {
+              // Read model file to get metadata (cached by main process usually fast)
+              const res = await (window as any).electronAPI.readModelFile(model.modelPath);
+              if (res && res.metadata && res.metadata.cameras) {
+                res.metadata.cameras.forEach((name: string) => {
+                  if (!seenNames.has(name)) {
+                    seenNames.add(name);
+                    newXmlCameras.push({
+                      id: getXmlCameraId(name),
+                      name: name,
+                      isXml: true,
+                      modality: 'simulated'
+                    });
+                  }
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error reading robot model XML for cameras", e);
+        }
+      }
+
+      setXmlCameras(newXmlCameras);
+    };
+
+    parseXmlCameras();
+  }, [xmlContent, selectedRobotId, knownRobots, robotModels]);
+
 
   // If opened for editing, populate simple top-level fields from the initial data
   useEffect(() => {
@@ -76,12 +157,27 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
 
     const hydrate = async () => {
       try {
-        setConfigName(initialData.name || '');
+        setSceneName(initialData.name || '');
+        setSceneXmlPath(initialData.sceneXmlPath || '');
+
+        if (initialData.sceneXmlPath) {
+          try {
+            const res = await (window as any).electronAPI.readModelFile(initialData.sceneXmlPath);
+            // Handle new object return type from readModelFile
+            if (typeof res === 'object' && res.content !== undefined) {
+              setXmlContent(res.content);
+            } else {
+              setXmlContent(res);
+            }
+          } catch (e) {
+            console.error('Failed to read XML file:', e);
+          }
+        }
 
         if (!initialData.id) return;
 
-        // Fetch Config Robots
-        const robotRows = await db.select().from(configRobotsTable).where(eq(configRobotsTable.configurationId, initialData.id));
+        // Fetch Scene Robots
+        const robotRows = await db.select().from(sceneRobotsTable).where(eq(sceneRobotsTable.sceneId, initialData.id));
         if (robotRows.length > 0) {
           const r = robotRows[0];
           setSelectedRobotId(r.robotId);
@@ -92,20 +188,20 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
           }
         }
 
-        // Fetch Config Cameras
-        const cameraRows = await db.select().from(configCamerasTable).where(eq(configCamerasTable.configurationId, initialData.id));
+        // Fetch Scene Cameras
+        const cameraRows = await db.select().from(sceneCamerasTable).where(eq(sceneCamerasTable.sceneId, initialData.id));
         if (cameraRows.length > 0) {
           setCameraSlots(cameraRows.map((c, i) => ({ id: c.cameraId, key: Date.now() + i })));
         }
 
-        // Fetch Config Teleoperators
-        const teleopRows = await db.select().from(configTeleoperatorsTable).where(eq(configTeleoperatorsTable.configurationId, initialData.id));
+        // Fetch Scene Teleoperators
+        const teleopRows = await db.select().from(sceneTeleoperatorsTable).where(eq(sceneTeleoperatorsTable.sceneId, initialData.id));
         if (teleopRows.length > 0) {
           setLeaderModel(teleopRows[0].teleoperatorId.toString());
         }
 
       } catch (e) {
-        console.warn('Failed to hydrate initialData into RobotConfigurationForm', e);
+        console.warn('Failed to hydrate initialData into SceneForm', e);
       }
     };
 
@@ -182,14 +278,25 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
   };
 
   const saveConfiguration = async () => {
-    if (!configName) {
-      alert("Please enter a configuration name.");
+    if (!sceneName) {
+      alert("Please enter a scene name.");
       return;
     }
 
     if (!selectedRobotId) {
       alert("Please select a follower robot.");
       return;
+    }
+
+    // Save XML if in advanced mode or if content available and we have a path
+    if (sceneXmlPath && xmlContent) {
+      try {
+        await (window as any).electronAPI.saveSceneXml(sceneXmlPath, xmlContent);
+      } catch (e) {
+        console.error("Failed to save XML", e);
+        // Continue anyway? Or stop? Let's log and continue but maybe warn user
+        alert("Failed to save XML content to disk. Saving database record only.");
+      }
     }
 
     const selectedCameraIds = cameraSlots
@@ -214,21 +321,19 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
 
     try {
       const parentResult: any = await onSaved({
-        name: configName,
+        name: sceneName,
+        sceneXmlPath
       });
 
       if (!parentResult || !parentResult.id) {
-        // If onSaved failed or didn't return ID (should handle void case just in case, but we patched it)
-        // If we really can't get ID, we can't save children.
-        // Assuming my patch works.
         console.error("No ID returned from save");
         return;
       }
 
-      const configurationId = parentResult.id;
+      const sceneId = parentResult.id;
 
       // 2. Save Follower (Upsert / Replace)
-      const existingRobots = await db.select().from(configRobotsTable).where(eq(configRobotsTable.configurationId, configurationId));
+      const existingRobots = await db.select().from(sceneRobotsTable).where(eq(sceneRobotsTable.sceneId, sceneId));
       const existingRobot = existingRobots[0]; // Assuming 1 to 1 for this wizard
 
       const newRobotSnapshot = {
@@ -241,63 +346,104 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
       if (existingRobot) {
         if (existingRobot.robotId !== selectedRobot.id) {
           // ID changed: Remove old, add new
-          await db.delete(configRobotsTable).where(and(
-            eq(configRobotsTable.configurationId, configurationId),
-            eq(configRobotsTable.robotId, existingRobot.robotId)
+          await db.delete(sceneRobotsTable).where(and(
+            eq(sceneRobotsTable.sceneId, sceneId),
+            eq(sceneRobotsTable.robotId, existingRobot.robotId)
           ));
-          await db.insert(configRobotsTable).values({
-            configurationId,
+          await db.insert(sceneRobotsTable).values({
+            sceneId,
             robotId: selectedRobot.id,
             snapshot: newRobotSnapshot
           });
         } else {
           // ID same: Update snapshot
-          await db.update(configRobotsTable).set({
+          await db.update(sceneRobotsTable).set({
             snapshot: newRobotSnapshot
           }).where(and(
-            eq(configRobotsTable.configurationId, configurationId),
-            eq(configRobotsTable.robotId, selectedRobot.id)
+            eq(sceneRobotsTable.sceneId, sceneId),
+            eq(sceneRobotsTable.robotId, selectedRobot.id)
           ));
         }
       } else {
         // No existing: Insert
-        await db.insert(configRobotsTable).values({
-          configurationId,
+        await db.insert(sceneRobotsTable).values({
+          sceneId,
           robotId: selectedRobot.id,
           snapshot: newRobotSnapshot
         });
       }
 
       // 3. Save Cameras (Diff & Upsert)
-      const existingCameras = await db.select().from(configCamerasTable).where(eq(configCamerasTable.configurationId, configurationId));
+      const existingCameras = await db.select().from(sceneCamerasTable).where(eq(sceneCamerasTable.sceneId, sceneId));
       const existingCamIds = new Set(existingCameras.map(c => c.cameraId));
-      const newCamIds = new Set(selectedCameraIds);
+
+      // Resolve IDs (handle XML cameras)
+      const finalSelectedIds = new Set<number>();
+      for (const id of selectedCameraIds) {
+        if (id < 0) {
+          // It's an XML camera. Check if we need to create a DB entry for it.
+          const xmlCam = xmlCameras.find(c => c.id === id);
+          if (xmlCam) {
+            // Check if exists in DB by name and is simulated
+            const existing = availableCameras.find(c => c.name === xmlCam.name && c.modality === 'simulated');
+            if (existing) {
+              finalSelectedIds.add(existing.id);
+            } else {
+              // Create it
+              try {
+                const created = await camerasResource.create({
+                  name: xmlCam.name,
+                  modality: 'simulated',
+                  data: { source: 'xml', readOnly: true }
+                });
+                if (created && created.id) {
+                  finalSelectedIds.add(created.id);
+                  // Update available cameras locally so we don't recreate next time
+                  setAvailableCameras(prev => [...prev, created]);
+                }
+              } catch (e) {
+                console.error("Failed to create DB entry for XML camera", xmlCam.name, e);
+              }
+            }
+          }
+        } else {
+          finalSelectedIds.add(id);
+        }
+      }
 
       // Remove deleted cameras
       for (const oldId of existingCamIds) {
-        if (!newCamIds.has(oldId)) {
-          await db.delete(configCamerasTable).where(and(
-            eq(configCamerasTable.configurationId, configurationId),
-            eq(configCamerasTable.cameraId, oldId)
+        if (!finalSelectedIds.has(oldId)) {
+          await db.delete(sceneCamerasTable).where(and(
+            eq(sceneCamerasTable.sceneId, sceneId),
+            eq(sceneCamerasTable.cameraId, oldId)
           ));
         }
       }
 
       // Insert or Update active cameras
-      for (const newId of newCamIds) {
-        const cam = availableCameras.find(c => c.id === newId);
+      // We need to refresh availableCameras list logic because we might have just created some
+      // But we can just fetch from DB or use the ID.
+      // Actually we need the snapshot.
+      // If we created it, we can fetch it.
+
+      // Re-fetch cameras to get snapshots for new IDs
+      const allDbCameras = await camerasResource.list();
+
+      for (const newId of finalSelectedIds) {
+        const cam = allDbCameras.find((c: any) => c.id === newId);
         if (!cam) continue;
 
         if (existingCamIds.has(newId)) {
-          await db.update(configCamerasTable).set({
+          await db.update(sceneCamerasTable).set({
             snapshot: cam
           }).where(and(
-            eq(configCamerasTable.configurationId, configurationId),
-            eq(configCamerasTable.cameraId, newId)
+            eq(sceneCamerasTable.sceneId, sceneId),
+            eq(sceneCamerasTable.cameraId, newId)
           ));
         } else {
-          await db.insert(configCamerasTable).values({
-            configurationId,
+          await db.insert(sceneCamerasTable).values({
+            sceneId,
             cameraId: newId,
             snapshot: cam
           });
@@ -305,7 +451,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
       }
 
       // 4. Save Teleoperator (Diff & Upsert)
-      const existingTeleops = await db.select().from(configTeleoperatorsTable).where(eq(configTeleoperatorsTable.configurationId, configurationId));
+      const existingTeleops = await db.select().from(sceneTeleoperatorsTable).where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
       const existingTeleop = existingTeleops[0];
 
       let desiredTeleopId: number | null = null;
@@ -317,35 +463,35 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
       if (existingTeleop) {
         if (desiredTeleopId === null) {
           // Was present, now removed
-          await db.delete(configTeleoperatorsTable).where(and(
-            eq(configTeleoperatorsTable.configurationId, configurationId),
-            eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+          await db.delete(sceneTeleoperatorsTable).where(and(
+            eq(sceneTeleoperatorsTable.sceneId, sceneId),
+            eq(sceneTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
           ));
         } else if (existingTeleop.teleoperatorId !== desiredTeleopId) {
           // Changed model: Delete old, Insert new
-          await db.delete(configTeleoperatorsTable).where(and(
-            eq(configTeleoperatorsTable.configurationId, configurationId),
-            eq(configTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
+          await db.delete(sceneTeleoperatorsTable).where(and(
+            eq(sceneTeleoperatorsTable.sceneId, sceneId),
+            eq(sceneTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
           ));
-          await db.insert(configTeleoperatorsTable).values({
-            configurationId,
+          await db.insert(sceneTeleoperatorsTable).values({
+            sceneId,
             teleoperatorId: desiredTeleopId,
             snapshot: { config: leaderConfig, type: leaderType }
           });
         } else {
           // Same model: Update snapshot
-          await db.update(configTeleoperatorsTable).set({
+          await db.update(sceneTeleoperatorsTable).set({
             snapshot: { config: leaderConfig, type: leaderType }
           }).where(and(
-            eq(configTeleoperatorsTable.configurationId, configurationId),
-            eq(configTeleoperatorsTable.teleoperatorId, desiredTeleopId)
+            eq(sceneTeleoperatorsTable.sceneId, sceneId),
+            eq(sceneTeleoperatorsTable.teleoperatorId, desiredTeleopId)
           ));
         }
       } else {
         // No existing, but have desired
         if (desiredTeleopId !== null) {
-          await db.insert(configTeleoperatorsTable).values({
-            configurationId,
+          await db.insert(sceneTeleoperatorsTable).values({
+            sceneId,
             teleoperatorId: desiredTeleopId,
             snapshot: { config: leaderConfig, type: leaderType }
           });
@@ -354,7 +500,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
 
     } catch (e) {
       console.error(e);
-      alert('Failed to save configuration details');
+      alert('Failed to save scene details');
     }
   };
 
@@ -369,7 +515,24 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             &larr; Back to Basic Config
           </Button>
         </div>
-        <ConfigForm schema={RobotConfigSchema as any} title="Advanced Robot Configuration" />
+
+        <Card className="p-4 bg-white">
+          <h3 className="text-lg font-medium mb-2">Scene XML Editor</h3>
+          <p className="text-sm text-gray-500 mb-2">
+            Edit the MuJoCo XML definition for this scene directly.
+          </p>
+          <textarea
+            className="w-full h-96 font-mono p-2 border rounded text-xs leading-relaxed overflow-auto whitespace-pre"
+            value={xmlContent}
+            onChange={(e) => setXmlContent(e.target.value)}
+          />
+          <div className="mt-4 flex justify-end">
+            <div className="flex gap-2">
+              {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
+              <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -382,20 +545,30 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
             &larr; Back
           </Button>
         )}
-        <h2 className="text-2xl font-semibold text-gray-900">Robot Setup</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Scene Setup</h2>
         <p className="text-gray-500 mt-1">
-          Configure your leader/follower arms and cameras
+          Configure your scene, robot, and leader devices
         </p>
       </div>
 
       <Card className="p-8 space-y-8">
         <section>
           <Input
-            label="Configuration Name"
-            value={configName}
-            onChange={(e) => setConfigName(e.target.value)}
-            placeholder="e.g. Training Station 1"
+            label="Scene Name"
+            value={sceneName}
+            onChange={(e) => setSceneName(e.target.value)}
+            placeholder="e.g. Table Top Manipulation"
           />
+          <div className="mt-4">
+            <Input
+              label="Scene XML Path"
+              value={sceneXmlPath}
+              onChange={(e) => setSceneXmlPath(e.target.value)}
+              placeholder="/path/to/scene.xml"
+              className="font-mono text-sm"
+            />
+          </div>
+
         </section>
         {/* Follower Configuration */}
         <section>
@@ -422,7 +595,7 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
               <CameraSelectionDropdown
                 key={slot.key}
                 label={`Camera ${idx + 1}`}
-                cameras={availableCameras}
+                cameras={[...availableCameras, ...xmlCameras]}
                 selectedCameraId={slot.id}
                 onSelect={(id) => updateCameraSlot(idx, id)}
                 onCamerasChanged={refreshCameras}
@@ -511,4 +684,4 @@ export const RobotConfigurationForm: React.FC<RobotConfigurationFormProps> = ({ 
   );
 };
 
-export default RobotConfigurationForm;
+export default SceneForm;

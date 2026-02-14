@@ -77,7 +77,7 @@ try:
     DatasetRecordConfig = lerobot_record.DatasetRecordConfig
 
     # Import GymManipulatorConfig from local gym_manipulator.py
-    gym_man_path = Path(__file__).parent / "gym_manipulator.py"
+    gym_man_path = Path(__file__).parent.parent / "gym_manipulator.py"
     spec = importlib.util.spec_from_file_location("gym_manipulator", str(gym_man_path))
     gym_manipulator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gym_manipulator)
@@ -203,7 +203,7 @@ for name, cls in patched_roots.items():
         adapter = TypeAdapter(cls)
         schema = adapter.json_schema()
         
-        output_path = f"src/python/{name}.json"
+        output_path = f"src/python/lerobot_json_schemas/json/{name}.json"
         with open(output_path, "w") as f:
             json.dump(schema, f, indent=2)
         print(f"Schema for {name} saved to {output_path}")

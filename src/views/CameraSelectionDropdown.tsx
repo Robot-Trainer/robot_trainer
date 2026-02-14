@@ -165,8 +165,9 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
     }
   };
 
-  const realCameras = cameras.filter(c => c.modality === 'real');
-  const simCameras = cameras.filter(c => c.modality === 'simulated');
+  const xmlCameras = cameras.filter(c => c.isXml);
+  const realCameras = cameras.filter(c => c.modality === 'real' && !c.isXml);
+  const simCameras = cameras.filter(c => c.modality === 'simulated' && !c.isXml);
   const selectedCamera = cameras.find(c => c.id === selectedCameraId);
 
   if (editingId !== null) {
@@ -224,7 +225,11 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
               return (
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   <span className="font-medium">{c.name}</span>
-                  {c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">sim</Badge>}
+                  {c.isXml ? (
+                    <Badge color="purple" tooltip="Defined in XML">xml</Badge>
+                  ) : (
+                    c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">sim</Badge>
+                  )}
                 </Box>
               );
             }
@@ -244,6 +249,13 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
             </MenuItem>
           ))}
 
+          {xmlCameras.length > 0 && <ListSubheader>XML Defined</ListSubheader>}
+          {xmlCameras.map(c => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.name}
+            </MenuItem>
+          ))}
+
           <Divider />
           <MenuItem value="__create_real__" sx={{ color: 'primary.main', gap: 1 }}>
             <Plus className="w-4 h-4" /> Create New Real Camera
@@ -253,7 +265,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
           </MenuItem>
         </TextField>
 
-        {selectedCamera && (
+        {selectedCamera && !selectedCamera.isXml && (
           <IconButton
             onClick={() => setEditingId(selectedCamera.id)}
             size="small"

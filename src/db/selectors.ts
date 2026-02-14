@@ -1,21 +1,21 @@
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import {
-  robotConfigurationsTable,
-  configRobotsTable,
-  configCamerasTable,
-  configTeleoperatorsTable,
+  scenesTable,
+  sceneRobotsTable,
+  sceneCamerasTable,
+  sceneTeleoperatorsTable,
   robotsTable,
   robotModelsTable,
   camerasTable,
   teleoperatorModelsTable
 } from './schema';
 
-export const getRobotConfigurationSnapshot = async (configurationId: number) => {
+export const getSceneSnapshot = async (sceneId: number) => {
   const [config] = await db
     .select()
-    .from(robotConfigurationsTable)
-    .where(eq(robotConfigurationsTable.id, configurationId));
+    .from(scenesTable)
+    .where(eq(scenesTable.id, sceneId));
 
   if (!config) return null;
 
@@ -23,30 +23,30 @@ export const getRobotConfigurationSnapshot = async (configurationId: number) => 
     .select({
       robot: robotsTable,
       model: robotModelsTable,
-      snapshot: configRobotsTable.snapshot
+      snapshot: sceneRobotsTable.snapshot
     })
-    .from(configRobotsTable)
-    .innerJoin(robotsTable, eq(configRobotsTable.robotId, robotsTable.id))
+    .from(sceneRobotsTable)
+    .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
     .leftJoin(robotModelsTable, eq(robotsTable.robotModelId, robotModelsTable.id))
-    .where(eq(configRobotsTable.configurationId, configurationId));
+    .where(eq(sceneRobotsTable.sceneId, sceneId));
 
   const cameras = await db
     .select({
       camera: camerasTable,
-      snapshot: configCamerasTable.snapshot
+      snapshot: sceneCamerasTable.snapshot
     })
-    .from(configCamerasTable)
-    .innerJoin(camerasTable, eq(configCamerasTable.cameraId, camerasTable.id))
-    .where(eq(configCamerasTable.configurationId, configurationId));
+    .from(sceneCamerasTable)
+    .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
+    .where(eq(sceneCamerasTable.sceneId, sceneId));
 
   const teleoperators = await db
     .select({
       teleoperator: teleoperatorModelsTable,
-      snapshot: configTeleoperatorsTable.snapshot
+      snapshot: sceneTeleoperatorsTable.snapshot
     })
-    .from(configTeleoperatorsTable)
-    .innerJoin(teleoperatorModelsTable, eq(configTeleoperatorsTable.teleoperatorId, teleoperatorModelsTable.id))
-    .where(eq(configTeleoperatorsTable.configurationId, configurationId));
+    .from(sceneTeleoperatorsTable)
+    .innerJoin(teleoperatorModelsTable, eq(sceneTeleoperatorsTable.teleoperatorId, teleoperatorModelsTable.id))
+    .where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
 
   // The snapshot structure:
   // Internal Format:

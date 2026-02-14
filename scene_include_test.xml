@@ -1,0 +1,7 @@
+<mujoco>
+  <option timestep="0.002"/>
+  <worldbody>
+    <light pos="0 0 10"/>
+    <geom name="floor" type="plane" size="10 10 0.1"/>
+  </worldbody>
+</mujoco>

@@ -1,0 +1,11 @@
+<mujoco>
+  <asset>
+     <texture name="tex" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".8 .9 .9"/>
+  </asset>
+  <worldbody>
+    <body name="robot_base" pos="0 0 1">
+       <geom type="capsule" size="0.1 0.5"/>
+       <joint name="j1" type="hinge"/>
+    </body>
+  </worldbody>
+</mujoco>

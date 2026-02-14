@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import SessionsView from './Sessions';
-import { sessionsTable, episodesTable, scenesTable } from '../db/schema';
+import RobotsView from './Robots';
+import { robotsTable, sceneRobotsTable, scenesTable } from '../db/schema';
 import { tableResource } from '../db/tableResource';
 import { migrate } from '../db/migrate';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -20,44 +20,37 @@ vi.mock('../db/db', async () => {
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
 vi.mock('../lib/uiStore', () => ({ default: (cb: any) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
-describe('SessionsView Deletion', () => {
+describe('RobotsView Deletion', () => {
   beforeAll(async () => {
     (window as any).electronAPI = {
-      getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') }),
-      getRobotModels: async () => [],
+      getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') })
     };
     await migrate();
   });
 
   beforeEach(async () => {
-    await db.delete(episodesTable);
-    await db.delete(sessionsTable);
+    await db.delete(sceneRobotsTable);
+    await db.delete(robotsTable);
     await db.delete(scenesTable);
   });
 
-  it('should delete session and cascade episodes', async () => {
-    const scene = await tableResource(scenesTable).create({ name: 'Scene1' });
-    const session = await tableResource(sessionsTable).create({
-      name: 'SessionToDelete',
-      sceneId: scene.id
-    });
-    await tableResource(episodesTable).create({
-        name: 'Ep1',
-        sessionId: session.id
+  it('should delete robot and cascade to scene_robots', async () => {
+    const robot = await tableResource(robotsTable).create({ name: 'RoboDelete' });
+    const scene = await tableResource(scenesTable).create({ name: 'SceneDelete' });
+    await tableResource(sceneRobotsTable).create({
+      sceneId: scene.id,
+      robotId: robot.id,
+      snapshot: {}
     });
 
-    render(<SessionsView />);
-    await waitFor(() => screen.getByText('SessionToDelete'));
-
-    const deleteBtns = screen.getAllByText('Delete');
-    fireEvent.click(deleteBtns[0]);
-
+    render(<RobotsView />);
+    await waitFor(() => screen.getByText('RoboDelete'));
+    fireEvent.click(screen.getByText('Delete'));
     await waitFor(async () => {
-      const sessions = await tableResource(sessionsTable).list();
-      expect(sessions).toHaveLength(0);
+      const robots = await tableResource(robotsTable).list();
+      expect(robots).toHaveLength(0);
     });
-
-    const eps = await tableResource(episodesTable).list();
-    expect(eps).toHaveLength(0);
+    const links = await tableResource(sceneRobotsTable).list();
+    expect(links).toHaveLength(0);
   });
 });

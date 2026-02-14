@@ -6,7 +6,7 @@ import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
 import Skills from './views/Skills';
-import RobotConfigurations from './views/RobotConfigurations';
+import Scenes from './views/Scenes';
 import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
@@ -25,7 +25,7 @@ const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: st
 );
 
 const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = false }) => {
-  const [activeTab, setActiveTab] = useState('robot-configurations');
+  const [activeTab, setActiveTab] = useState('scenes');
 
   // Check for popout mode
   const searchParams = new URLSearchParams(window.location.search);
@@ -217,8 +217,8 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
     switch (activeTab) {
       case "sessions":
         return <Sessions />;
-      case "robot-configurations":
-        return <RobotConfigurations />;
+      case "scenes":
+        return <Scenes />;
       case "robots":
         return <Robots />;
       case "skills":
@@ -232,7 +232,7 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
       case "monitoring":
         return <MonitoringView />;
       default:
-        return <RobotConfigurations />;
+        return <Scenes />;
     }
   };
 
@@ -249,9 +249,9 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
             <NavItem
-              id="robot-configurations"
+              id="scenes"
               icon={RobotConfiguration}
-              label="Robot Configurations"
+              label="Scenes"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -359,7 +359,7 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                     onClick={() => {
                       setShowSetupWizard(false);
                       setShowSetupWizardForced(false);
-                    }}
+                    }, ''}
                   >
                     Close
                   </button>
@@ -369,6 +369,19 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
           )}
         </div>
       </main>
+      <button
+        className="fixed bottom-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg"
+        onClick={() => {
+          try {
+            (window as any).electronAPI.openAdminWindow('robot-trainer');
+          } catch (e) {
+            console.error('Failed to open admin window', e);
+          }
+        }}
+        aria-label="Open Admin"
+      >
+        Admin
+      </button>
     </div>
   );
 };

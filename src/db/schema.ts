@@ -17,6 +17,7 @@ export const robotModelsTable = pgTable("robot_models", {
   configClassName: varchar('config_class_name').notNull(),
   properties: json('properties').default({}),
   modelXml: text('model_xml'),
+  modelPath: varchar('model_path'),
   modelFormat: varchar('model_format'),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -43,9 +44,10 @@ export const teleoperatorsTable = pgTable("teleoperators", {
 });
 
 
-export const robotConfigurationsTable = pgTable("robot_configurations", {
+export const scenesTable = pgTable("scenes", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
+  sceneXmlPath: varchar('scene_xml_path'),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -77,28 +79,28 @@ export const teleoperatorModelsTable = pgTable("teleoperator_models", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const configRobotsTable = pgTable("config_robots", {
-  configurationId: integer("configuration_id").references(() => robotConfigurationsTable.id).notNull(),
-  robotId: integer("robot_id").references(() => robotsTable.id, { onDelete: "set null" }).notNull(),
+export const sceneRobotsTable = pgTable("scene_robots", {
+  sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
+  robotId: integer("robot_id").references(() => robotsTable.id, { onDelete: "cascade" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
-  primaryKey({ columns: [t.configurationId, t.robotId] }),
+  primaryKey({ columns: [t.sceneId, t.robotId] }),
 ]);
 
-export const configCamerasTable = pgTable("config_cameras", {
-  configurationId: integer("configuration_id").references(() => robotConfigurationsTable.id).notNull(),
-  cameraId: integer("camera_id").references(() => camerasTable.id, { onDelete: "set null" }).notNull(),
+export const sceneCamerasTable = pgTable("scene_cameras", {
+  sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
+  cameraId: integer("camera_id").references(() => camerasTable.id, { onDelete: "cascade" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
-  primaryKey({ columns: [t.configurationId, t.cameraId] }),
+  primaryKey({ columns: [t.sceneId, t.cameraId] }),
 ]);
 
-export const configTeleoperatorsTable = pgTable("config_teleoperators", {
-  configurationId: integer("configuration_id").references(() => robotConfigurationsTable.id).notNull(),
-  teleoperatorId: integer("teleoperator_id").references(() => teleoperatorModelsTable.id, { onDelete: "set null" }).notNull(),
+export const sceneTeleoperatorsTable = pgTable("scene_teleoperators", {
+  sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
+  teleoperatorId: integer("teleoperator_id").references(() => teleoperatorModelsTable.id, { onDelete: "cascade" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
-  primaryKey({ columns: [t.configurationId, t.teleoperatorId] }),
+  primaryKey({ columns: [t.sceneId, t.teleoperatorId] }),
 ]);
 
 export const skillsTable = pgTable("skills", {
@@ -112,10 +114,10 @@ export const skillsTable = pgTable("skills", {
 export const sessionsTable = pgTable("sessions", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
-  skillId: integer("skill_id").references(() => skillsTable.id).notNull(),
-  robotConfigurationId: integer("robot_configuration_id").references(() => robotConfigurationsTable.id).notNull(),
+  skillId: integer("skill_id").references(() => skillsTable.id, { onDelete: "set null" }),
+  sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
   datasetConfig: jsonb("dataset_config").default({}),
-  robotConfigSnapshot: jsonb("robot_config_snapshot").default({}),
+  sceneSnapshot: jsonb("scene_snapshot").default({}),
   initialSceneState: jsonb("initial_scene_state"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -124,7 +126,7 @@ export const sessionsTable = pgTable("sessions", {
 export const episodesTable = pgTable("episodes", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
-  sessionId: integer("session_id").references(() => sessionsTable.id).notNull(),
+  sessionId: integer("session_id").references(() => sessionsTable.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

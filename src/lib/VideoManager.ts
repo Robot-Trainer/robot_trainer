@@ -14,6 +14,7 @@ export interface SimulationResponse {
 export class VideoManager extends EventEmitter {
   private pythonProcess: ChildProcess | null = null;
   private stderrBuffer: string = '';
+  public wsUrl: string | null = null;
 
   constructor() {
     super();

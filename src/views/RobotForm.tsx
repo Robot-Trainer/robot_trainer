@@ -19,8 +19,8 @@ import { robotModelsResource, robotsResource } from '../db/resources';
 import { db } from '../db/db';
 import {
   robotModelsTable,
-  robotConfigurationsTable,
-  configRobotsTable
+  scenesTable,
+  sceneRobotsTable
 } from '../db/schema';
 
 interface SerialPort {
@@ -95,6 +95,20 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       if (modality === 'simulated' && modelFileData && !initialData) {
         // Create a new simulated robot with model file
         const modelName = name || modelFileData.baseName;
+        
+        let pathForDb: string | undefined = undefined;
+        // Don't save content to DB, per user request
+        const xmlForDb = null;
+
+        if (modelFilePath) {
+            if (modelFileData.format === 'zip') {
+              const result = await window.electronAPI.saveRobotModelZip(modelFilePath);
+              pathForDb = result.modelPath;
+            } else {
+              const result = await window.electronAPI.saveRobotModelFile(modelFilePath);
+              pathForDb = result.modelPath;
+            }
+        }
 
         // 1. Insert into robotModelsTable
         const [insertedModel] = await db.insert(robotModelsTable).values({
@@ -102,7 +116,8 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
           dirName: 'custom',
           className: 'GenericMujocoEnv',
           configClassName: 'CustomMujocoEnvConfig',
-          modelXml: modelFileData.content,
+          modelXml: xmlForDb,
+          modelPath: pathForDb,
           modelFormat: modelFileData.format,
           properties: modelFileData.metadata,
         }).returning();
@@ -122,14 +137,14 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         // onSaved will insert into robotsTable and return the created row
         const createdRobot = await onSaved(payload);
 
-        // 3. Auto-create a default robot configuration
+        // 3. Auto-create a default scene
         if (createdRobot && createdRobot.id) {
-          const [config] = await db.insert(robotConfigurationsTable).values({
-            name: `${modelName} Default Config`,
+          const [scene] = await db.insert(scenesTable).values({
+            name: `${modelName} Scene`,
           }).returning();
 
-          await db.insert(configRobotsTable).values({
-            configurationId: config.id,
+          await db.insert(sceneRobotsTable).values({
+            sceneId: scene.id,
             robotId: createdRobot.id,
             snapshot: {
               id: createdRobot.id,
@@ -314,7 +329,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       {modality === 'simulated' && (
         <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Stack spacing={2}>
-            <Typography variant="h6" fontSize="1rem">Model File (MJCF / URDF)</Typography>
+            <Typography variant="h6" fontSize="1rem">Model File (MJCF)</Typography>
 
             <Button variant="ghost" onClick={handleSelectModelFile}>
               <Stack direction="row" spacing={1} alignItems="center">

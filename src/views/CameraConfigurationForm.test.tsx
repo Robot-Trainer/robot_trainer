@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent, waitFor, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CameraConfigurationForm from './CameraConfigurationForm';
+import { ToastProvider } from '../ui/ToastContext';
 import { camerasResource } from '../db/resources';
 
 // Mock the resources
@@ -32,7 +33,11 @@ describe('CameraConfigurationForm', () => {
   });
 
   it('manages camera slots and saves configuration', async () => {
-    render(<CameraConfigurationForm onSave={mockOnSave} onCancel={mockOnCancel} />);
+    render(
+      <ToastProvider>
+        <CameraConfigurationForm onSave={mockOnSave} onCancel={mockOnCancel} />
+      </ToastProvider>
+    );
 
     // Wait for cameras to load
     await waitFor(() => {
@@ -84,18 +89,36 @@ describe('CameraConfigurationForm', () => {
   });
 
   it('removes a slot', async () => {
-    render(<CameraConfigurationForm onSave={mockOnSave} />);
-    await waitFor(() => expect(camerasResource.list).toHaveBeenCalled());
+    render(
+      <ToastProvider>
+        <CameraConfigurationForm onSave={mockOnSave} onCancel={mockOnCancel} />
+      </ToastProvider>
+    );
+
+    await waitFor(() => {
+      expect(camerasResource.list).toHaveBeenCalled();
+    });
 
     // Add a second slot
-    fireEvent.click(screen.getByText(/\+ Add Another Camera/i));
-    expect(screen.getByText('Camera 2')).not.toBeNull();
+    const addBtn = screen.getByText(/\+ Add Another Camera/i);
+    fireEvent.click(addBtn);
 
-    // Remove the second slot. 
-    // looking for "X" buttons.
+    // Should see Camera 2 label
+    await waitFor(() => {
+      expect(screen.getByText('Camera 2')).not.toBeNull();
+    });
+
+    // Find remove buttons (X)
     const removeBtns = screen.getAllByText('X');
     // Remove the second one (index 1)
     fireEvent.click(removeBtns[1]);
+
+    // Should only have 1 slot now
+    await waitFor(() => {
+      expect(screen.queryByText('Camera 2')).toBeNull();
+    });
+  });
+});
 
     // "Camera 2" label should be gone
     expect(screen.queryByText('Camera 2')).toBeNull();
