@@ -20,7 +20,7 @@ export class VideoManager extends EventEmitter {
     super();
   }
 
-  public async startSimulation(command: string, args: string[]) {
+  public async startSimulation(command: string, args: string[], extraEnv: NodeJS.ProcessEnv = {}) {
     this.stopAll();
 
     // 1. Spawn Python Simulation
@@ -28,7 +28,8 @@ export class VideoManager extends EventEmitter {
     // stdout ignored (or inherited for debugging if needed, but previously piped to ffmpeg)
     console.log('Starting Python simulation with command:', command, 'args:', args);
     this.pythonProcess = spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...extraEnv },
     });
 
     this.pythonProcess.on('error', (err) => {

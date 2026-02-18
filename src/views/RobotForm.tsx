@@ -258,7 +258,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       </Grid>
 
       {modality === 'real' && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" fontSize="1rem">USB Device Selection</Typography>
             <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
@@ -327,7 +327,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       )}
 
       {modality === 'simulated' && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
           <Stack spacing={2}>
             <Typography variant="h6" fontSize="1rem">Model File (MJCF)</Typography>
 

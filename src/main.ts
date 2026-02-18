@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, contentTracing, dialog, ipcMain, Menu, shell } from 'electron';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -16,6 +16,58 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 
 let mainWindow: BrowserWindow | null = null;
 const videoManagers = new Map<string, VideoManager>();
+
+const STARTUP_PROFILE_SWITCH = '--profile-startup';
+const STARTUP_TRACE_STOP_DELAY_MS = 3000;
+const startupProfilingEnabled = process.argv.includes(STARTUP_PROFILE_SWITCH);
+let startupTraceDir: string | null = null;
+let startupTraceStarted = false;
+let startupTraceStopped = false;
+
+const startupTraceTimestamp = () => {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+};
+
+const setupStartupProfiling = async () => {
+  if (!startupProfilingEnabled) return;
+
+  try {
+    const baseDir = path.join(app.getPath('userData'), 'profiles', `startup-${startupTraceTimestamp()}`);
+    await fs.mkdir(baseDir, { recursive: true });
+    startupTraceDir = baseDir;
+
+    await contentTracing.startRecording({
+      included_categories: [
+        'toplevel',
+        'benchmark',
+        'v8',
+        'ipc',
+        'devtools.timeline',
+        'disabled-by-default-v8.cpu_profiler',
+        'disabled-by-default-v8.cpu_profiler.hires',
+      ],
+    });
+
+    startupTraceStarted = true;
+    console.log(`[profiling] startup tracing enabled: ${startupTraceDir}`);
+  } catch (error) {
+    console.error('[profiling] failed to start startup tracing', error);
+  }
+};
+
+const stopStartupProfiling = async (reason: string) => {
+  if (!startupProfilingEnabled || !startupTraceStarted || startupTraceStopped || !startupTraceDir) return;
+
+  startupTraceStopped = true;
+  const tracePath = path.join(startupTraceDir, 'startup.trace.json');
+
+  try {
+    const outPath = await contentTracing.stopRecording(tracePath);
+    console.log(`[profiling] startup trace saved (${reason}): ${outPath || tracePath}`);
+  } catch (error) {
+    console.error('[profiling] failed to stop startup tracing', error);
+  }
+};
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -75,36 +127,6 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
     // ignore
   }
 
-  // 3) Check common home locations for conda installer directories
-  try {
-    const home = app.getPath('home') || os.homedir();
-    const common = [
-      path.join(home, 'miniconda3', 'bin', 'conda'),
-      path.join(home, 'anaconda3', 'bin', 'conda'),
-      '/opt/miniconda3/bin/conda',
-      '/opt/anaconda3/bin/conda'
-    ];
-    for (const c of common) {
-      try {
-        const st = await fs.stat(c as any);
-        if (st.isFile()) return c;
-      } catch (e) {
-        // ignore
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  // 4) Finally, check if `conda` is available on PATH
-  try {
-    const { spawnSync } = await import('node:child_process');
-    const result = spawnSync('conda', ['--version'], { encoding: 'utf8' });
-    if (result && result.status === 0) return 'conda';
-  } catch (e) {
-    // not available
-  }
-
   return null;
 };
 
@@ -118,6 +140,7 @@ function parseRobotXmlMetadata(xmlContent: string): {
   actuatorNames: string[];
   siteNames: string[];
   hasGripper: boolean;
+  cameras: string[];
 } {
   const dom = new JSDOM(xmlContent, { contentType: 'text/xml' });
   const doc = dom.window.document;
@@ -161,8 +184,29 @@ function parseRobotXmlMetadata(xmlContent: string): {
 // Handle Serial port port scanning from renderer process
 const setupIpcHandlers = () => {
 
+  const sanitizeDatasetName = (repoId: string) => {
+    const raw = (repoId || '').split('/').pop() || 'dataset';
+    const sanitized = raw.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[-._]+|[-._]+$/g, '');
+    return sanitized || 'dataset';
+  };
+
   ipcMain.handle('get-username', () => {
     return process.env.USER || process.env.USERNAME || 'user';
+  });
+
+  ipcMain.handle('get-default-dataset-dir', (_event, repoId: string) => {
+    const datasetName = sanitizeDatasetName(repoId);
+    return path.join(app.getPath('userData'), 'datasets', datasetName);
+  });
+
+  ipcMain.handle('select-dataset-directory', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Dataset Directory',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
   });
 
   ipcMain.handle('get-migrations', async () => {
@@ -778,33 +822,91 @@ const setupIpcHandlers = () => {
       // Prefer conda run -n robot_trainer if we have conda available
       const condaExec: string | null = await resolveCondaExecutable();
 
-      // let moduleName = 'lerobot.scripts.lerobot_record';
-      // let scriptArgs = ['-m', moduleName, '--config_path', tempConfigPath];
-
-      // If user selected generic simulation, run our custom simulate.py script
-      // if ((config.robot && config.robot.type === 'simulation') || config.env) {
       const simScriptPath = app.isPackaged
         ? path.join(process.resourcesPath, 'python', 'gym_manipulator.py')
         : path.join(app.getAppPath(), 'src', 'python', 'gym_manipulator.py');
 
       let scriptArgs = [simScriptPath, '--config_path', tempConfigPath];
-      // }
 
       let command = 'python3';
       let args: string[] = scriptArgs;
+      let env = { ...process.env }; // Clone existing environment
 
-      // Use conda run to ensure correct env activation
-      command = condaExec;
-      // if (config.robot && config.robot.type === 'simulation') {
-      args = ['run', '--no-capture-output', '-n', 'robot_trainer', 'python', '-u', ...scriptArgs];
-      // } else {
-      // args = ['run', '-n', 'robot_trainer', 'python', ...scriptArgs];
-      // }
-      // } else if (systemSettings && systemSettings.pythonPath) {
+      if (condaExec) {
+        // Instead of using 'conda run', resolve the python binary in the robot_trainer environment directly
+        // This avoids issues with signal handling and stdout/stderr buffering that 'conda run' introduces
+        let condaRoot = '';
+        if (process.platform === 'win32') {
+          // On Windows, condaExec is in condabin/ (conda.bat) or Scripts/ (conda.exe)
+          // We assume condaRoot is parallel or parent
+          // Actually resolveCondaExecutable logic suggests:
+          // .../Scripts/conda.exe or .../bin/conda
+          // For Windows Scripts/conda.exe -> dirname -> Scripts -> dirname -> Root
+          condaRoot = path.dirname(path.dirname(condaExec));
+        } else {
+          // On Linux/macOS: bin/conda -> dirname -> bin -> dirname -> Root
+          condaRoot = path.dirname(path.dirname(condaExec));
+        }
 
-      // command = systemSettings.pythonPath;
-      // args = scriptArgs;
-      // }
+        const envName = 'robot_trainer';
+        let pythonPathInEnv: string;
+        let envBinDir: string;
+
+        if (process.platform === 'win32') {
+          envBinDir = path.join(condaRoot, 'envs', envName); // Windows python is in root of env usually, but let's check
+          // Actually on Windows default env structure:
+          // <root>/envs/<name>/python.exe
+          // <root>/envs/<name>/Scripts/
+          // <root>/envs/<name>/Library/bin
+          pythonPathInEnv = path.join(condaRoot, 'envs', envName, 'python.exe');
+        } else {
+          envBinDir = path.join(condaRoot, 'envs', envName, 'bin');
+          pythonPathInEnv = path.join(envBinDir, 'python');
+        }
+
+        try {
+          await fs.access(pythonPathInEnv);
+          command = pythonPathInEnv;
+          args = ['-u', ...scriptArgs]; // -u for unbuffered output
+
+          // Update environment variables to simulate activation
+          const pathKey = Object.keys(env).find(k => k.match(/^path$/i)) || 'PATH';
+          const currentPath = env[pathKey] || '';
+
+          if (process.platform === 'win32') {
+             // Windows activation paths are complex, usually:
+             // env; env/Library/mingw-w64/bin; env/Library/usr/bin; env/Library/bin; env/Scripts; env/bin; ...
+             const envPath = path.join(condaRoot, 'envs', envName);
+             const libraryBin = path.join(envPath, 'Library', 'bin');
+             const scripts = path.join(envPath, 'Scripts');
+             const bin = path.join(envPath, 'bin'); // sometimes exists
+             
+             // Prepend these to PATH
+             // But first verify they exist? Usually fine to just add.
+             const newPath = `${envPath}${path.delimiter}${libraryBin}${path.delimiter}${scripts}${path.delimiter}${bin}${path.delimiter}${currentPath}`;
+             env[pathKey] = newPath;
+             // Set CONDA_PREFIX
+             env.CONDA_PREFIX = envPath;
+          } else {
+             // Linux/Mac: env/bin
+             const newPath = `${envBinDir}${path.delimiter}${currentPath}`;
+             env[pathKey] = newPath;
+             // Set CONDA_PREFIX
+             env.CONDA_PREFIX = path.join(condaRoot, 'envs', envName);
+          }
+        } catch (e) {
+             console.warn(`Could not find python in ${pythonPathInEnv}, falling back to 'conda run'`, e);
+             // Fallback to conda run if direct python not found
+             command = condaExec;
+             args = ['run', '--no-capture-output', '-n', 'robot_trainer', 'python', '-u', ...scriptArgs];
+        }
+      } else {
+        // Maybe try fallback python
+        if (systemSettings && systemSettings.pythonPath) {
+           command = systemSettings.pythonPath;
+           args = scriptArgs;
+        }
+      }
 
       const vm = new VideoManager();
       // const recordingPath = path.join(app.getPath('userData'), `simulation_${Date.now()}.mp4`);
@@ -849,7 +951,7 @@ const setupIpcHandlers = () => {
         vm.once('exit', onExit);
       });
 
-      await vm.startSimulation(command, args);
+      await vm.startSimulation(command, args, env);
       videoManagers.set(id, vm);
 
       let wsUrl = '';
@@ -1123,6 +1225,12 @@ const createWindow = () => {
     );
   }
 
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      void stopStartupProfiling('did-finish-load');
+    }, STARTUP_TRACE_STOP_DELAY_MS);
+  });
+
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
 };
@@ -1163,10 +1271,15 @@ const setupAppMenu = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  void setupStartupProfiling();
   loadSystemSettings();
   setupIpcHandlers();
   createWindow();
   setupAppMenu();
+});
+
+app.on('before-quit', () => {
+  void stopStartupProfiling('before-quit');
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

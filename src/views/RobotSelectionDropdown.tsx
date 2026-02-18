@@ -216,7 +216,10 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
           SelectProps={{
             renderValue: (selected) => {
               const r = robots.find(r => r.id === selected);
-              if (!r) return <span className="text-gray-500">Select or create follower...</span>;
+              if (!r) {
+                if (selected) return <span className="text-gray-700 font-medium">Unknown robot (id: {String(selected)})</span>;
+                return <span className="text-gray-500">Select or create follower...</span>;
+              }
               return (
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   <span className="font-medium">{r.name}</span>
@@ -236,8 +239,15 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
                 </Box>
               );
             }
-          }}
+          }} 
         >
+          {/* If the selected robot isn't present in the options, include a disabled placeholder so MUI doesn't warn */}
+          {selectedRobotId !== null && !selectedRobot && (
+            <MenuItem key="__selected_missing_robot__" value={selectedRobotId} disabled sx={{ fontStyle: 'italic' }}>
+              Unknown robot (id: {selectedRobotId})
+            </MenuItem>
+          )}
+
           {/* 1. Real & Connected */}
           {realConnected.length > 0 && <ListSubheader>Real & Connected</ListSubheader>}
           {realConnected.map(r => (

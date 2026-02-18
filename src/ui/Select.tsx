@@ -11,6 +11,8 @@ type Props = {
 };
 
 export const Select: React.FC<Props> = ({ label, value, onChange, options = [], className = '' }) => {
+  const valueExists = options.some(opt => opt.value === value || String(opt.value) === String(value));
+
   return (
     <TextField
       select
@@ -21,6 +23,13 @@ export const Select: React.FC<Props> = ({ label, value, onChange, options = [], 
       variant="standard"
       fullWidth
     >
+      {/* If the current value isn't present in options, render a disabled item so MUI doesn't warn */}
+      {!valueExists && value !== '' && value != null && (
+        <MenuItem key="__missing_value__" value={value} disabled sx={{ fontStyle: 'italic' }}>
+          {`(Selected) ${String(value)}`}
+        </MenuItem>
+      )}
+
       {options.map((opt) => (
         <MenuItem key={String(opt.value)} value={opt.value}>
           {opt.label}

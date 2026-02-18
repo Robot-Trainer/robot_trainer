@@ -59,12 +59,24 @@ export const camerasTable = pgTable("cameras", {
   name: varchar('name').default(''),
   resolution: varchar('resolution').default(''),
   fps: integer('fps').default(0),
-  positionX: real('position_x').default(0),
-  positionY: real('position_y').default(0),
-  positionZ: real('position_z').default(0),
-  rotationX: real('rotation_x').default(0),
-  rotationY: real('rotation_y').default(0),
-  rotationZ: real('rotation_z').default(0),
+  
+  // MJCF variants
+  posX: real('pos_x').default(0),
+  posY: real('pos_y').default(0),
+  posZ: real('pos_z').default(0),
+
+  quatW: real('quat_w').default(1),
+  quatX: real('quat_x').default(0),
+  quatY: real('quat_y').default(0),
+  quatZ: real('quat_z').default(0),
+
+  xyaxesX1: real('xyaxes_x1').default(1),
+  xyaxesY1: real('xyaxes_y1').default(0),
+  xyaxesZ1: real('xyaxes_z1').default(0),
+  xyaxesX2: real('xyaxes_x2').default(0),
+  xyaxesY2: real('xyaxes_y2').default(1),
+  xyaxesZ2: real('xyaxes_z2').default(0),
+
   data: json('data').default({}),
   modality: cameraModalityEnum('modality').default('real'),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -116,6 +128,7 @@ export const sessionsTable = pgTable("sessions", {
   name: varchar("name").notNull(),
   skillId: integer("skill_id").references(() => skillsTable.id, { onDelete: "set null" }),
   sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
+  datasetDir: text("dataset_dir").default(""),
   datasetConfig: jsonb("dataset_config").default({}),
   sceneSnapshot: jsonb("scene_snapshot").default({}),
   initialSceneState: jsonb("initial_scene_state"),

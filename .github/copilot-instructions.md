@@ -1,4 +1,3 @@
-<!-- Copilot / AI agent instructions for contributors to Robot Trainer -->
 # Robot Trainer — Copilot instructions
 
 This file gives focused, actionable guidance for AI coding agents working in this repository.
@@ -16,6 +15,7 @@ This file gives focused, actionable guidance for AI coding agents working in thi
   - IPC pattern: main requests actions from renderer using events and expects replies. Examples: `request-load-system-settings` / `reply-load-system-settings`, `request-save-system-settings` / `reply-save-system-settings`, and `system-settings-changed` broadcasts. Use `window.electronAPI` helpers defined in `preload.ts` in renderer code.
   - The renderer is the single source of truth for settings via Drizzle (`configResource.getAll()` / `configResource.setAll()`). The main process expects the renderer to persist settings and does not fall back to writing `system-settings.json`.
   - Use `configResource` or `ConfigManager` for reading/updating settings; `ConfigManager` deep-merges defaults and writes via `configResource`.
+  - **UI Components**: Use Material UI (MUI) for all UI elements.
   - Long-running native tasks 
      - (ffmpeg, python simulation) are managed in the main process via `VideoManager`
        - ffmpeg process spawns and streams binary frames to WebSocket clients.
@@ -50,3 +50,5 @@ This file gives focused, actionable guidance for AI coding agents working in thi
 
 - **Testing**:
   - `vitest` files should always reside in the same directory as the implementation file (e.g. `src/views/MyComponent.tsx` and `src/views/MyComponent.test.tsx`).
+  - **Always update existing tests** when modifying code to ensure no regressions.
+  - **Add new tests** for any new functionality introduced.

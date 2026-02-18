@@ -1,12 +1,14 @@
 import { db } from "./db";
-import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
+import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable, camerasTable, sceneCamerasTable } from "./schema";
 import { sql, eq, and } from "drizzle-orm";
+// Not strictly required to import type for seeding, but helpful if we want strict typing
+import { MjcfCamera } from "../lib/mujoco_parser";
 
 export const robotModelsData = [
   /** START GENERATED MUJOCO MENAGERIE RECORDS */
   { "id": 1, "name": "agilex_piper", "dirName": "agilex_piper", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/agilex_piper/piper.xml", "modelFormat": "mjcf", "properties": { "numJoints": 8, "jointNames": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7", "joint8"], "actuatorNames": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "gripper"], "siteNames": [], "hasGripper": true } },
   { "id": 2, "name": "agility_cassie", "dirName": "agility_cassie", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/agility_cassie/cassie.xml", "modelFormat": "mjcf", "properties": { "numJoints": 22, "jointNames": ["left-hip-roll", "left-hip-yaw", "left-hip-pitch", "left-achilles-rod", "left-knee", "left-shin", "left-tarsus", "left-heel-spring", "left-foot-crank", "left-plantar-rod", "left-foot", "right-hip-roll", "right-hip-yaw", "right-hip-pitch", "right-achilles-rod", "right-knee", "right-shin", "right-tarsus", "right-heel-spring", "right-foot-crank", "right-plantar-rod", "right-foot"], "actuatorNames": ["left-hip-roll", "left-hip-yaw", "left-hip-pitch", "left-knee", "left-foot", "right-hip-roll", "right-hip-yaw", "right-hip-pitch", "right-knee", "right-foot"], "siteNames": ["imu"], "hasGripper": false } },
-  { "id": 3, "name": "aloha", "dirName": "aloha", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/aloha/filtered_cartesian_actuators.xml", "modelFormat": "mjcf", "properties": { "numJoints": 0, "jointNames": [], "actuatorNames": ["left/X", "left/Y", "left/Z", "left/RX", "left/RY", "left/RZ", "left/finger", "right/X", "right/Y", "right/Z", "right/RX", "right/RY", "right/RZ", "right/finger"], "siteNames": ["left/actuation_center", "right/actuation_center"], "hasGripper": true } },
+  { "id": 3, "name": "aloha", "dirName": "aloha", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/aloha/aloha_cartesian.xml", "modelFormat": "mjcf", "properties": { "numJoints": 14, "jointNames": ["left/waist", "left/shoulder", "left/elbow", "left/forearm_roll", "left/wrist_angle", "left/wrist_rotate", "left/left_finger", "right/waist", "right/shoulder", "right/elbow", "right/forearm_roll", "right/wrist_angle", "right/wrist_rotate", "right/left_finger"], "actuatorNames": ["left/X", "left/Y", "left/Z", "left/RX", "left/RY", "left/RZ", "left/finger", "right/X", "right/Y", "right/Z", "right/RX", "right/RY", "right/RZ", "right/finger"], "siteNames": ["left/actuation_center", "right/actuation_center"], "hasGripper": true } },
   { "id": 4, "name": "anybotics_anymal_b", "dirName": "anybotics_anymal_b", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/anybotics_anymal_b/anymal_b.xml", "modelFormat": "mjcf", "properties": { "numJoints": 12, "jointNames": ["LF_HAA", "LF_HFE", "LF_KFE", "RF_HAA", "RF_HFE", "RF_KFE", "LH_HAA", "LH_HFE", "LH_KFE", "RH_HAA", "RH_HFE", "RH_KFE"], "actuatorNames": ["LF_HAA", "LF_HFE", "LF_KFE", "RF_HAA", "RF_HFE", "RF_KFE", "LH_HAA", "LH_HFE", "LH_KFE", "RH_HAA", "RH_HFE", "RH_KFE"], "siteNames": [], "hasGripper": false } },
   { "id": 5, "name": "anybotics_anymal_c", "dirName": "anybotics_anymal_c", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/anybotics_anymal_c/anymal_c.xml", "modelFormat": "mjcf", "properties": { "numJoints": 12, "jointNames": ["LF_HAA", "LF_HFE", "LF_KFE", "RF_HAA", "RF_HFE", "RF_KFE", "LH_HAA", "LH_HFE", "LH_KFE", "RH_HAA", "RH_HFE", "RH_KFE"], "actuatorNames": ["LF_HAA", "LF_HFE", "LF_KFE", "RF_HAA", "RF_HFE", "RF_KFE", "LH_HAA", "LH_HFE", "LH_KFE", "RH_HAA", "RH_HFE", "RH_KFE"], "siteNames": [], "hasGripper": false } },
   { "id": 6, "name": "apptronik_apollo", "dirName": "apptronik_apollo", "className": "GenericMujocoEnv", "configClassName": "CustomMujocoEnvConfig", "modelPath": "mujoco_menagerie/apptronik_apollo/apptronik_apollo.xml", "modelFormat": "mjcf", "properties": { "numJoints": 33, "jointNames": ["floating_base", "torso_yaw", "torso_roll", "torso_pitch", "neck_yaw", "neck_roll", "neck_pitch", "l_shoulder_aa", "l_shoulder_ie", "l_shoulder_fe", "l_elbow_fe", "l_wrist_roll", "l_wrist_yaw", "l_wrist_pitch", "r_shoulder_aa", "r_shoulder_ie", "r_shoulder_fe", "r_elbow_fe", "r_wrist_roll", "r_wrist_yaw", "r_wrist_pitch", "l_hip_ie", "l_hip_aa", "l_hip_fe", "l_knee_fe", "l_ankle_ie", "l_ankle_pd", "r_hip_ie", "r_hip_aa", "r_hip_fe", "r_knee_fe", "r_ankle_ie", "r_ankle_pd"], "actuatorNames": ["torso_yaw", "torso_roll", "torso_pitch", "neck_yaw", "neck_roll", "neck_pitch", "l_shoulder_aa", "l_shoulder_ie", "l_shoulder_fe", "l_elbow_fe", "l_wrist_roll", "l_wrist_yaw", "l_wrist_pitch", "r_shoulder_aa", "r_shoulder_ie", "r_shoulder_fe", "r_elbow_fe", "r_wrist_roll", "r_wrist_yaw", "r_wrist_pitch", "l_hip_ie", "l_hip_aa", "l_hip_fe", "l_knee_fe", "l_ankle_ie", "l_ankle_pd", "r_hip_ie", "r_hip_aa", "r_hip_fe", "r_knee_fe", "r_ankle_ie", "r_ankle_pd"], "siteNames": ["imu", "l_foot_fr", "l_foot_br", "l_foot_fl", "l_foot_bl", "r_foot_fr", "r_foot_br", "r_foot_fl", "r_foot_bl"], "hasGripper": false } },
@@ -69,92 +71,92 @@ export const robotModelsData = [
 
 export const scenesData = [
   /** START GENERATED MUJOCO MENAGERIE CONFIGURATIONS */
-  { "name": "piper_scene", "sceneXmlPath": "mujoco_menagerie/agilex_piper/scene.xml", "includedRobots": ["agilex_piper"] },
-  { "name": "cassie scene", "sceneXmlPath": "mujoco_menagerie/agility_cassie/scene.xml", "includedRobots": ["agility_cassie"] },
-  { "name": "aloha_scene", "sceneXmlPath": "mujoco_menagerie/aloha/scene.xml", "includedRobots": ["aloha"] },
-  { "name": "anymal_b scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_b/scene.xml", "includedRobots": ["anybotics_anymal_b"] },
-  { "name": "anymal_c scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_c/scene.xml", "includedRobots": ["anybotics_anymal_c"] },
-  { "name": "anymal_c scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_c/scene_mjx.xml", "includedRobots": ["anybotics_anymal_c"] },
-  { "name": "apptronik_apollo scene", "sceneXmlPath": "mujoco_menagerie/apptronik_apollo/scene.xml", "includedRobots": ["apptronik_apollo"] },
-  { "name": "ARX L5 scene", "sceneXmlPath": "mujoco_menagerie/arx_l5/scene.xml", "includedRobots": ["arx_l5"] },
-  { "name": "berkeley humanoid scene", "sceneXmlPath": "mujoco_menagerie/berkeley_humanoid/scene.xml", "includedRobots": ["berkeley_humanoid"] },
-  { "name": "CF2 scene", "sceneXmlPath": "mujoco_menagerie/bitcraze_crazyflie_2/scene.xml", "includedRobots": ["bitcraze_crazyflie_2"] },
-  { "name": "t1 scene", "sceneXmlPath": "mujoco_menagerie/booster_t1/scene.xml", "includedRobots": ["booster_t1"] },
-  { "name": "spot scene", "sceneXmlPath": "mujoco_menagerie/boston_dynamics_spot/scene.xml", "includedRobots": ["boston_dynamics_spot"] },
-  { "name": "spot with arm scene", "sceneXmlPath": "mujoco_menagerie/boston_dynamics_spot/scene_arm.xml", "includedRobots": ["boston_dynamics_spot"] },
-  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/dynamixel_2r/scene.xml", "includedRobots": ["dynamixel_2r"] },
-  { "name": "fruitfly scene", "sceneXmlPath": "mujoco_menagerie/flybody/scene.xml", "includedRobots": ["flybody"] },
-  { "name": "N1 scene", "sceneXmlPath": "mujoco_menagerie/fourier_n1/scene.xml", "includedRobots": ["fourier_n1"] },
-  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/mjx_scene.xml", "includedRobots": ["franka_emika_panda"] },
-  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/mjx_single_cube.xml", "includedRobots": ["franka_emika_panda"] },
-  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/scene.xml", "includedRobots": ["franka_emika_panda"] },
-  { "name": "fr3 scene", "sceneXmlPath": "mujoco_menagerie/franka_fr3/scene.xml", "includedRobots": ["franka_fr3"] },
-  { "name": "fr3v2 scene", "sceneXmlPath": "mujoco_menagerie/franka_fr3_v2/scene.xml", "includedRobots": ["franka_fr3_v2"] },
-  { "name": "barkour v0 scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene.xml", "includedRobots": ["google_barkour_v0"] },
-  { "name": "barkour scene with obstacles", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene_barkour.xml", "includedRobots": ["google_barkour_v0"] },
-  { "name": "barkour v0 scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene_mjx.xml", "includedRobots": ["google_barkour_v0"] },
-  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene.xml", "includedRobots": ["google_barkour_vb"] },
-  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene_hfield_mjx.xml", "includedRobots": ["google_barkour_vb"] },
-  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene_mjx.xml", "includedRobots": ["google_barkour_vb"] },
-  { "name": "robot scene", "sceneXmlPath": "mujoco_menagerie/google_robot/scene.xml", "includedRobots": ["google_robot"] },
-  { "name": "stretch scene", "sceneXmlPath": "mujoco_menagerie/hello_robot_stretch/scene.xml", "includedRobots": ["hello_robot_stretch"] },
-  { "name": "stretch scene", "sceneXmlPath": "mujoco_menagerie/hello_robot_stretch_3/scene.xml", "includedRobots": ["hello_robot_stretch_3"] },
-  { "name": "yam scene", "sceneXmlPath": "mujoco_menagerie/i2rt_yam/scene.xml", "includedRobots": ["i2rt_yam"] },
-  { "name": "softfoot scene", "sceneXmlPath": "mujoco_menagerie/iit_softfoot/scene.xml", "includedRobots": [] },
-  { "name": "gen3 scene", "sceneXmlPath": "mujoco_menagerie/kinova_gen3/scene.xml", "includedRobots": ["kinova_gen3"] },
-  { "name": "iiwa14 scene", "sceneXmlPath": "mujoco_menagerie/kuka_iiwa_14/scene.xml", "includedRobots": ["kuka_iiwa_14"] },
-  { "name": "left leap hand scene", "sceneXmlPath": "mujoco_menagerie/leap_hand/scene_left.xml", "includedRobots": ["leap_hand"] },
-  { "name": "right leap hand scene", "sceneXmlPath": "mujoco_menagerie/leap_hand/scene_right.xml", "includedRobots": ["leap_hand"] },
-  { "name": "low_cost_robot scene", "sceneXmlPath": "mujoco_menagerie/low_cost_robot_arm/scene.xml", "includedRobots": ["low_cost_robot_arm"] },
-  { "name": "talos motor scene", "sceneXmlPath": "mujoco_menagerie/pal_talos/scene_motor.xml", "includedRobots": ["pal_talos"] },
-  { "name": "talos position scene", "sceneXmlPath": "mujoco_menagerie/pal_talos/scene_position.xml", "includedRobots": ["pal_talos"] },
-  { "name": "tiago motor scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_motor.xml", "includedRobots": ["pal_tiago"] },
-  { "name": "tiago position scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_position.xml", "includedRobots": ["pal_tiago"] },
-  { "name": "tiago velocity scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_velocity.xml", "includedRobots": ["pal_tiago"] },
-  { "name": "tiago dual motor scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_motor.xml", "includedRobots": ["pal_tiago_dual"] },
-  { "name": "tiago dual position scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_position.xml", "includedRobots": ["pal_tiago_dual"] },
-  { "name": "tiago dual velocity scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_velocity.xml", "includedRobots": ["pal_tiago_dual"] },
-  { "name": "adam_lite scene", "sceneXmlPath": "mujoco_menagerie/pndbotics_adam_lite/scene.xml", "includedRobots": ["pndbotics_adam_lite"] },
-  { "name": "sawyer scene", "sceneXmlPath": "mujoco_menagerie/rethink_robotics_sawyer/scene.xml", "includedRobots": ["rethink_robotics_sawyer"] },
-  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robot_soccer_kit/scene.xml", "includedRobots": ["robot_soccer_kit"] },
-  { "name": "2f85 scene", "sceneXmlPath": "mujoco_menagerie/robotiq_2f85/scene.xml", "includedRobots": ["robotiq_2f85"] },
-  { "name": "2f85 scene", "sceneXmlPath": "mujoco_menagerie/robotiq_2f85_v4/scene.xml", "includedRobots": ["robotiq_2f85_v4"] },
-  { "name": "op3 scene", "sceneXmlPath": "mujoco_menagerie/robotis_op3/scene.xml", "includedRobots": ["robotis_op3"] },
-  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robotstudio_so101/scene.xml", "includedRobots": ["robotstudio_so101"] },
-  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robotstudio_so101/scene_box.xml", "includedRobots": ["robotstudio_so101"] },
-  { "name": "shadow dex-ee hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_dexee/scene.xml", "includedRobots": ["shadow_dexee"] },
-  { "name": "left_shadow_hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_hand/scene_left.xml", "includedRobots": ["shadow_hand"] },
-  { "name": "right_shadow_hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_hand/scene_right.xml", "includedRobots": ["shadow_hand"] },
-  { "name": "Skydio X2 scene", "sceneXmlPath": "mujoco_menagerie/skydio_x2/scene.xml", "includedRobots": ["skydio_x2"] },
-  { "name": "tidybot scene", "sceneXmlPath": "mujoco_menagerie/stanford_tidybot/scene.xml", "includedRobots": ["stanford_tidybot"] },
-  { "name": "base scene", "sceneXmlPath": "mujoco_menagerie/stanford_tidybot/scene_base.xml", "includedRobots": ["stanford_tidybot"] },
-  { "name": "tetheria_aero_hand_open_right_scene", "sceneXmlPath": "mujoco_menagerie/tetheria_aero_hand_open/scene_right.xml", "includedRobots": ["tetheria_aero_hand_open"] },
-  { "name": "toddlerbot_2xc_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene.xml", "includedRobots": ["toddlerbot_2xc"] },
-  { "name": "toddlerbot_2xc_mjx_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene_mjx.xml", "includedRobots": ["toddlerbot_2xc"] },
-  { "name": "toddlerbot_2xc_pos_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene_pos.xml", "includedRobots": ["toddlerbot_2xc"] },
-  { "name": "toddlerbot_2xm_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene.xml", "includedRobots": ["toddlerbot_2xm"] },
-  { "name": "toddlerbot_2xm_mjx_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene_mjx.xml", "includedRobots": ["toddlerbot_2xm"] },
-  { "name": "toddlerbot_2xm_pos_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene_pos.xml", "includedRobots": ["toddlerbot_2xm"] },
-  { "name": "vx300s scene", "sceneXmlPath": "mujoco_menagerie/trossen_vx300s/scene.xml", "includedRobots": ["trossen_vx300s"] },
-  { "name": "wx250s scene", "sceneXmlPath": "mujoco_menagerie/trossen_wx250s/scene.xml", "includedRobots": ["trossen_wx250s"] },
-  { "name": "trossen_wxai_scene", "sceneXmlPath": "mujoco_menagerie/trossen_wxai/scene.xml", "includedRobots": ["trossen_wxai"] },
-  { "name": "so_arm100 scene", "sceneXmlPath": "mujoco_menagerie/trs_so_arm100/scene.xml", "includedRobots": ["trs_so_arm100"] },
-  { "name": "lite6 scene", "sceneXmlPath": "mujoco_menagerie/ufactory_lite6/scene.xml", "includedRobots": ["ufactory_lite6"] },
-  { "name": "xarm7 scene", "sceneXmlPath": "mujoco_menagerie/ufactory_xarm7/scene.xml", "includedRobots": ["ufactory_xarm7"] },
-  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/umi_gripper/scene.xml", "includedRobots": ["umi_gripper"] },
-  { "name": "a1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_a1/scene.xml", "includedRobots": ["unitree_a1"] },
-  { "name": "g1_29dof_rev_1_0 scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene.xml", "includedRobots": ["unitree_g1"] },
-  { "name": "g1 mjx flat terrain scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene_mjx.xml", "includedRobots": ["unitree_g1"] },
-  { "name": "g1_29dof_with_hand_rev_1_0 scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene_with_hands.xml", "includedRobots": ["unitree_g1"] },
-  { "name": "go1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go1/scene.xml", "includedRobots": ["unitree_go1"] },
-  { "name": "go2 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go2/scene.xml", "includedRobots": ["unitree_go2"] },
-  { "name": "go2 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go2/scene_mjx.xml", "includedRobots": ["unitree_go2"] },
-  { "name": "h1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_h1/scene.xml", "includedRobots": ["unitree_h1"] },
-  { "name": "z1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_z1/scene.xml", "includedRobots": ["unitree_z1"] },
-  { "name": "ur10e scene", "sceneXmlPath": "mujoco_menagerie/universal_robots_ur10e/scene.xml", "includedRobots": ["universal_robots_ur10e"] },
-  { "name": "ur5e scene", "sceneXmlPath": "mujoco_menagerie/universal_robots_ur5e/scene.xml", "includedRobots": ["universal_robots_ur5e"] },
-  { "name": "left_allegro_hand scene", "sceneXmlPath": "mujoco_menagerie/wonik_allegro/scene_left.xml", "includedRobots": ["wonik_allegro"] },
-  { "name": "right_allegro_hand scene", "sceneXmlPath": "mujoco_menagerie/wonik_allegro/scene_right.xml", "includedRobots": ["wonik_allegro"] }
+  { "name": "piper_scene", "sceneXmlPath": "mujoco_menagerie/agilex_piper/scene.xml", "includedRobots": ["agilex_piper"], "cameras": [] },
+  { "name": "cassie scene", "sceneXmlPath": "mujoco_menagerie/agility_cassie/scene.xml", "includedRobots": ["agility_cassie"], "cameras": [] },
+  { "name": "aloha_scene", "sceneXmlPath": "mujoco_menagerie/aloha/scene.xml", "includedRobots": ["aloha"], "cameras": [{ "name": "overhead_cam", "pos": [0, -0.303794, 1.02524], "quat": [0.976332, 0.216277, 0, 0] }, { "name": "worms_eye_cam", "pos": [0, -0.377167, 0.0316055], "quat": [0.672659, 0.739953, 0, 0] }] },
+  { "name": "anymal_b scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_b/scene.xml", "includedRobots": ["anybotics_anymal_b"], "cameras": [] },
+  { "name": "anymal_c scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_c/scene.xml", "includedRobots": ["anybotics_anymal_c"], "cameras": [] },
+  { "name": "anymal_c scene", "sceneXmlPath": "mujoco_menagerie/anybotics_anymal_c/scene_mjx.xml", "includedRobots": ["anybotics_anymal_c"], "cameras": [] },
+  { "name": "apptronik_apollo scene", "sceneXmlPath": "mujoco_menagerie/apptronik_apollo/scene.xml", "includedRobots": ["apptronik_apollo"], "cameras": [] },
+  { "name": "ARX L5 scene", "sceneXmlPath": "mujoco_menagerie/arx_l5/scene.xml", "includedRobots": ["arx_l5"], "cameras": [] },
+  { "name": "berkeley humanoid scene", "sceneXmlPath": "mujoco_menagerie/berkeley_humanoid/scene.xml", "includedRobots": ["berkeley_humanoid"], "cameras": [] },
+  { "name": "CF2 scene", "sceneXmlPath": "mujoco_menagerie/bitcraze_crazyflie_2/scene.xml", "includedRobots": ["bitcraze_crazyflie_2"], "cameras": [] },
+  { "name": "t1 scene", "sceneXmlPath": "mujoco_menagerie/booster_t1/scene.xml", "includedRobots": ["booster_t1"], "cameras": [] },
+  { "name": "spot scene", "sceneXmlPath": "mujoco_menagerie/boston_dynamics_spot/scene.xml", "includedRobots": ["boston_dynamics_spot"], "cameras": [] },
+  { "name": "spot with arm scene", "sceneXmlPath": "mujoco_menagerie/boston_dynamics_spot/scene_arm.xml", "includedRobots": ["boston_dynamics_spot"], "cameras": [] },
+  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/dynamixel_2r/scene.xml", "includedRobots": ["dynamixel_2r"], "cameras": [] },
+  { "name": "fruitfly scene", "sceneXmlPath": "mujoco_menagerie/flybody/scene.xml", "includedRobots": ["flybody"], "cameras": [] },
+  { "name": "N1 scene", "sceneXmlPath": "mujoco_menagerie/fourier_n1/scene.xml", "includedRobots": ["fourier_n1"], "cameras": [] },
+  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/mjx_scene.xml", "includedRobots": ["franka_emika_panda"], "cameras": [] },
+  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/mjx_single_cube.xml", "includedRobots": ["franka_emika_panda"], "cameras": [] },
+  { "name": "panda scene", "sceneXmlPath": "mujoco_menagerie/franka_emika_panda/scene.xml", "includedRobots": ["franka_emika_panda"], "cameras": [] },
+  { "name": "fr3 scene", "sceneXmlPath": "mujoco_menagerie/franka_fr3/scene.xml", "includedRobots": ["franka_fr3"], "cameras": [] },
+  { "name": "fr3v2 scene", "sceneXmlPath": "mujoco_menagerie/franka_fr3_v2/scene.xml", "includedRobots": ["franka_fr3_v2"], "cameras": [] },
+  { "name": "barkour v0 scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene.xml", "includedRobots": ["google_barkour_v0"], "cameras": [{ "name": "default", "pos": [0.846, -1.465, 0.916], "xyaxes": [0.866, 0.5, 0, -0.171, 0.296, 0.94] }] },
+  { "name": "barkour scene with obstacles", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene_barkour.xml", "includedRobots": ["google_barkour_v0"], "cameras": [{ "name": "default", "pos": [-1.947, -0.59, 5.008], "xyaxes": [-0.351, -0.936, 0, 0.728, -0.273, 0.628] }] },
+  { "name": "barkour v0 scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_v0/scene_mjx.xml", "includedRobots": ["google_barkour_v0"], "cameras": [{ "name": "default", "pos": [0.846, -1.465, 0.916], "xyaxes": [0.866, 0.5, 0, -0.171, 0.296, 0.94] }] },
+  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene.xml", "includedRobots": ["google_barkour_vb"], "cameras": [{ "name": "default", "pos": [0.846, -1.465, 0.916], "xyaxes": [0.866, 0.5, 0, -0.171, 0.296, 0.94] }] },
+  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene_hfield_mjx.xml", "includedRobots": ["google_barkour_vb"], "cameras": [{ "name": "default", "pos": [0.846, -1.465, 0.916], "xyaxes": [0.866, 0.5, 0, -0.171, 0.296, 0.94] }] },
+  { "name": "barkour vB scene", "sceneXmlPath": "mujoco_menagerie/google_barkour_vb/scene_mjx.xml", "includedRobots": ["google_barkour_vb"], "cameras": [{ "name": "default", "pos": [0.846, -1.465, 0.916], "xyaxes": [0.866, 0.5, 0, -0.171, 0.296, 0.94] }] },
+  { "name": "robot scene", "sceneXmlPath": "mujoco_menagerie/google_robot/scene.xml", "includedRobots": ["google_robot"], "cameras": [] },
+  { "name": "stretch scene", "sceneXmlPath": "mujoco_menagerie/hello_robot_stretch/scene.xml", "includedRobots": ["hello_robot_stretch"], "cameras": [] },
+  { "name": "stretch scene", "sceneXmlPath": "mujoco_menagerie/hello_robot_stretch_3/scene.xml", "includedRobots": ["hello_robot_stretch_3"], "cameras": [] },
+  { "name": "yam scene", "sceneXmlPath": "mujoco_menagerie/i2rt_yam/scene.xml", "includedRobots": ["i2rt_yam"], "cameras": [] },
+  { "name": "softfoot scene", "sceneXmlPath": "mujoco_menagerie/iit_softfoot/scene.xml", "includedRobots": [], "cameras": [] },
+  { "name": "gen3 scene", "sceneXmlPath": "mujoco_menagerie/kinova_gen3/scene.xml", "includedRobots": ["kinova_gen3"], "cameras": [] },
+  { "name": "iiwa14 scene", "sceneXmlPath": "mujoco_menagerie/kuka_iiwa_14/scene.xml", "includedRobots": ["kuka_iiwa_14"], "cameras": [] },
+  { "name": "left leap hand scene", "sceneXmlPath": "mujoco_menagerie/leap_hand/scene_left.xml", "includedRobots": ["leap_hand"], "cameras": [] },
+  { "name": "right leap hand scene", "sceneXmlPath": "mujoco_menagerie/leap_hand/scene_right.xml", "includedRobots": ["leap_hand"], "cameras": [] },
+  { "name": "low_cost_robot scene", "sceneXmlPath": "mujoco_menagerie/low_cost_robot_arm/scene.xml", "includedRobots": ["low_cost_robot_arm"], "cameras": [] },
+  { "name": "talos motor scene", "sceneXmlPath": "mujoco_menagerie/pal_talos/scene_motor.xml", "includedRobots": ["pal_talos"], "cameras": [] },
+  { "name": "talos position scene", "sceneXmlPath": "mujoco_menagerie/pal_talos/scene_position.xml", "includedRobots": ["pal_talos"], "cameras": [] },
+  { "name": "tiago motor scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_motor.xml", "includedRobots": ["pal_tiago"], "cameras": [] },
+  { "name": "tiago position scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_position.xml", "includedRobots": ["pal_tiago"], "cameras": [] },
+  { "name": "tiago velocity scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago/scene_velocity.xml", "includedRobots": ["pal_tiago"], "cameras": [] },
+  { "name": "tiago dual motor scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_motor.xml", "includedRobots": ["pal_tiago_dual"], "cameras": [] },
+  { "name": "tiago dual position scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_position.xml", "includedRobots": ["pal_tiago_dual"], "cameras": [] },
+  { "name": "tiago dual velocity scene", "sceneXmlPath": "mujoco_menagerie/pal_tiago_dual/scene_velocity.xml", "includedRobots": ["pal_tiago_dual"], "cameras": [] },
+  { "name": "adam_lite scene", "sceneXmlPath": "mujoco_menagerie/pndbotics_adam_lite/scene.xml", "includedRobots": ["pndbotics_adam_lite"], "cameras": [] },
+  { "name": "sawyer scene", "sceneXmlPath": "mujoco_menagerie/rethink_robotics_sawyer/scene.xml", "includedRobots": ["rethink_robotics_sawyer"], "cameras": [] },
+  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robot_soccer_kit/scene.xml", "includedRobots": ["robot_soccer_kit"], "cameras": [] },
+  { "name": "2f85 scene", "sceneXmlPath": "mujoco_menagerie/robotiq_2f85/scene.xml", "includedRobots": ["robotiq_2f85"], "cameras": [] },
+  { "name": "2f85 scene", "sceneXmlPath": "mujoco_menagerie/robotiq_2f85_v4/scene.xml", "includedRobots": ["robotiq_2f85_v4"], "cameras": [] },
+  { "name": "op3 scene", "sceneXmlPath": "mujoco_menagerie/robotis_op3/scene.xml", "includedRobots": ["robotis_op3"], "cameras": [] },
+  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robotstudio_so101/scene.xml", "includedRobots": ["robotstudio_so101"], "cameras": [] },
+  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/robotstudio_so101/scene_box.xml", "includedRobots": ["robotstudio_so101"], "cameras": [] },
+  { "name": "shadow dex-ee hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_dexee/scene.xml", "includedRobots": ["shadow_dexee"], "cameras": [] },
+  { "name": "left_shadow_hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_hand/scene_left.xml", "includedRobots": ["shadow_hand"], "cameras": [] },
+  { "name": "right_shadow_hand scene", "sceneXmlPath": "mujoco_menagerie/shadow_hand/scene_right.xml", "includedRobots": ["shadow_hand"], "cameras": [] },
+  { "name": "Skydio X2 scene", "sceneXmlPath": "mujoco_menagerie/skydio_x2/scene.xml", "includedRobots": ["skydio_x2"], "cameras": [] },
+  { "name": "tidybot scene", "sceneXmlPath": "mujoco_menagerie/stanford_tidybot/scene.xml", "includedRobots": ["stanford_tidybot"], "cameras": [] },
+  { "name": "base scene", "sceneXmlPath": "mujoco_menagerie/stanford_tidybot/scene_base.xml", "includedRobots": ["stanford_tidybot"], "cameras": [] },
+  { "name": "tetheria_aero_hand_open_right_scene", "sceneXmlPath": "mujoco_menagerie/tetheria_aero_hand_open/scene_right.xml", "includedRobots": ["tetheria_aero_hand_open"], "cameras": [{ "name": "side", "pos": [-0.183, 0.396, 0.296], "xyaxes": [-0.783, -0.622, 0, 0.332, -0.419, 0.845] }] },
+  { "name": "toddlerbot_2xc_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene.xml", "includedRobots": ["toddlerbot_2xc"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "toddlerbot_2xc_mjx_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene_mjx.xml", "includedRobots": ["toddlerbot_2xc"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "toddlerbot_2xc_pos_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xc/scene_pos.xml", "includedRobots": ["toddlerbot_2xc"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "toddlerbot_2xm_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene.xml", "includedRobots": ["toddlerbot_2xm"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "toddlerbot_2xm_mjx_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene_mjx.xml", "includedRobots": ["toddlerbot_2xm"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "toddlerbot_2xm_pos_scene", "sceneXmlPath": "mujoco_menagerie/toddlerbot_2xm/scene_pos.xml", "includedRobots": ["toddlerbot_2xm"], "cameras": [{ "name": "perspective", "pos": [0.7, -0.7, 0.7], "xyaxes": [1, 1, 0, -1, 1, 3] }, { "name": "side", "pos": [0, -1, 0.6], "xyaxes": [1, 0, 0, 0, 1, 3] }, { "name": "top", "pos": [0, 0, 1], "xyaxes": [0, 1, 0, -1, 0, 0] }, { "name": "front", "pos": [1, 0, 0.6], "xyaxes": [0, 1, 0, -1, 0, 3] }] },
+  { "name": "vx300s scene", "sceneXmlPath": "mujoco_menagerie/trossen_vx300s/scene.xml", "includedRobots": ["trossen_vx300s"], "cameras": [] },
+  { "name": "wx250s scene", "sceneXmlPath": "mujoco_menagerie/trossen_wx250s/scene.xml", "includedRobots": ["trossen_wx250s"], "cameras": [] },
+  { "name": "trossen_wxai_scene", "sceneXmlPath": "mujoco_menagerie/trossen_wxai/scene.xml", "includedRobots": ["trossen_wxai"], "cameras": [] },
+  { "name": "so_arm100 scene", "sceneXmlPath": "mujoco_menagerie/trs_so_arm100/scene.xml", "includedRobots": ["trs_so_arm100"], "cameras": [] },
+  { "name": "lite6 scene", "sceneXmlPath": "mujoco_menagerie/ufactory_lite6/scene.xml", "includedRobots": ["ufactory_lite6"], "cameras": [] },
+  { "name": "xarm7 scene", "sceneXmlPath": "mujoco_menagerie/ufactory_xarm7/scene.xml", "includedRobots": ["ufactory_xarm7"], "cameras": [] },
+  { "name": "scene", "sceneXmlPath": "mujoco_menagerie/umi_gripper/scene.xml", "includedRobots": ["umi_gripper"], "cameras": [] },
+  { "name": "a1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_a1/scene.xml", "includedRobots": ["unitree_a1"], "cameras": [] },
+  { "name": "g1_29dof_rev_1_0 scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene.xml", "includedRobots": ["unitree_g1"], "cameras": [] },
+  { "name": "g1 mjx flat terrain scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene_mjx.xml", "includedRobots": ["unitree_g1"], "cameras": [] },
+  { "name": "g1_29dof_with_hand_rev_1_0 scene", "sceneXmlPath": "mujoco_menagerie/unitree_g1/scene_with_hands.xml", "includedRobots": ["unitree_g1"], "cameras": [] },
+  { "name": "go1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go1/scene.xml", "includedRobots": ["unitree_go1"], "cameras": [] },
+  { "name": "go2 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go2/scene.xml", "includedRobots": ["unitree_go2"], "cameras": [] },
+  { "name": "go2 scene", "sceneXmlPath": "mujoco_menagerie/unitree_go2/scene_mjx.xml", "includedRobots": ["unitree_go2"], "cameras": [] },
+  { "name": "h1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_h1/scene.xml", "includedRobots": ["unitree_h1"], "cameras": [] },
+  { "name": "z1 scene", "sceneXmlPath": "mujoco_menagerie/unitree_z1/scene.xml", "includedRobots": ["unitree_z1"], "cameras": [] },
+  { "name": "ur10e scene", "sceneXmlPath": "mujoco_menagerie/universal_robots_ur10e/scene.xml", "includedRobots": ["universal_robots_ur10e"], "cameras": [] },
+  { "name": "ur5e scene", "sceneXmlPath": "mujoco_menagerie/universal_robots_ur5e/scene.xml", "includedRobots": ["universal_robots_ur5e"], "cameras": [] },
+  { "name": "left_allegro_hand scene", "sceneXmlPath": "mujoco_menagerie/wonik_allegro/scene_left.xml", "includedRobots": ["wonik_allegro"], "cameras": [] },
+  { "name": "right_allegro_hand scene", "sceneXmlPath": "mujoco_menagerie/wonik_allegro/scene_right.xml", "includedRobots": ["wonik_allegro"], "cameras": [] }
   /** END GENERATED MUJOCO MENAGERIE CONFIGURATIONS */
 ];
 
@@ -240,6 +242,58 @@ export async function seedRobotModels() {
                   snapshot: robot
                 }).onConflictDoNothing();
               }
+            }
+          }
+        }
+
+        // Link cameras
+        if (c.cameras && Array.isArray(c.cameras)) {
+          for (const cam of c.cameras as MjcfCamera[]) {
+            const existingCameras = await db.select().from(camerasTable).where(
+              and(
+                eq(camerasTable.name, cam.name),
+                eq(camerasTable.modality, 'simulated')
+              )
+            );
+
+            let cameraId: number | null = null;
+
+            if (existingCameras.length > 0) {
+              cameraId = existingCameras[0].id;
+            } else {
+              const [insertedCamera] = await db.insert(camerasTable).values({
+                name: cam.name,
+                modality: 'simulated',
+                data: cam, 
+                // Map MJCF properties to columns
+                posX: cam.pos ? cam.pos[0] : 0,
+                posY: cam.pos ? cam.pos[1] : 0,
+                posZ: cam.pos ? cam.pos[2] : 0,
+
+                quatW: cam.quat ? cam.quat[0] : 1, // MuJoCo w,x,y,z
+                quatX: cam.quat ? cam.quat[1] : 0,
+                quatY: cam.quat ? cam.quat[2] : 0,
+                quatZ: cam.quat ? cam.quat[3] : 0,
+
+                xyaxesX1: cam.xyaxes ? cam.xyaxes[0] : 1,
+                xyaxesY1: cam.xyaxes ? cam.xyaxes[1] : 0,
+                xyaxesZ1: cam.xyaxes ? cam.xyaxes[2] : 0,
+                xyaxesX2: cam.xyaxes ? cam.xyaxes[3] : 0,
+                xyaxesY2: cam.xyaxes ? cam.xyaxes[4] : 1,
+                xyaxesZ2: cam.xyaxes ? cam.xyaxes[5] : 0,
+
+              }).returning();
+              cameraId = insertedCamera.id;
+            }
+
+            if (cameraId) {
+
+
+              await db.insert(sceneCamerasTable).values({
+                sceneId: configId,
+                cameraId: cameraId,
+                snapshot: cam // Store the specific configuration (pos, quat, fovy) for this scene
+              }).onConflictDoNothing();
             }
           }
         }

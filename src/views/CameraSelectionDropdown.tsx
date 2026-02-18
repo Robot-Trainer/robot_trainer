@@ -19,13 +19,22 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
   const [resolution, setResolution] = useState(camera.resolution || '1280x720');
   const [fps, setFps] = useState<number>(camera.fps || 30);
 
-  // Simulation params
-  const [posX, setPosX] = useState<number>(camera.positionX || 0);
-  const [posY, setPosY] = useState<number>(camera.positionY || 0);
-  const [posZ, setPosZ] = useState<number>(camera.positionZ || 0);
-  const [rotX, setRotX] = useState<number>(camera.rotationX || 0);
-  const [rotY, setRotY] = useState<number>(camera.rotationY || 0);
-  const [rotZ, setRotZ] = useState<number>(camera.rotationZ || 0);
+  // Simulation params (MJCF)
+  const [posX, setPosX] = useState<number>(camera.posX || 0);
+  const [posY, setPosY] = useState<number>(camera.posY || 0);
+  const [posZ, setPosZ] = useState<number>(camera.posZ || 0);
+  
+  const [quatW, setQuatW] = useState<number>(camera.quatW !== undefined ? camera.quatW : 1);
+  const [quatX, setQuatX] = useState<number>(camera.quatX || 0);
+  const [quatY, setQuatY] = useState<number>(camera.quatY || 0);
+  const [quatZ, setQuatZ] = useState<number>(camera.quatZ || 0);
+
+  const [xyaxesX1, setXyaxesX1] = useState<number>(camera.xyaxesX1 !== undefined ? camera.xyaxesX1 : 1);
+  const [xyaxesY1, setXyaxesY1] = useState<number>(camera.xyaxesY1 || 0);
+  const [xyaxesZ1, setXyaxesZ1] = useState<number>(camera.xyaxesZ1 || 0);
+  const [xyaxesX2, setXyaxesX2] = useState<number>(camera.xyaxesX2 || 0);
+  const [xyaxesY2, setXyaxesY2] = useState<number>(camera.xyaxesY2 !== undefined ? camera.xyaxesY2 : 1);
+  const [xyaxesZ2, setXyaxesZ2] = useState<number>(camera.xyaxesZ2 || 0);
 
   const isReal = camera.modality === 'real';
 
@@ -40,12 +49,22 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
       if (!isReal) {
         updates.resolution = resolution;
         updates.fps = fps;
-        updates.positionX = posX;
-        updates.positionY = posY;
-        updates.positionZ = posZ;
-        updates.rotationX = rotX;
-        updates.rotationY = rotY;
-        updates.rotationZ = rotZ;
+        
+        updates.posX = posX;
+        updates.posY = posY;
+        updates.posZ = posZ;
+
+        updates.quatW = quatW;
+        updates.quatX = quatX;
+        updates.quatY = quatY;
+        updates.quatZ = quatZ;
+
+        updates.xyaxesX1 = xyaxesX1;
+        updates.xyaxesY1 = xyaxesY1;
+        updates.xyaxesZ1 = xyaxesZ1;
+        updates.xyaxesX2 = xyaxesX2;
+        updates.xyaxesY2 = xyaxesY2;
+        updates.xyaxesZ2 = xyaxesZ2;
       }
       // For real cameras, we preserve existing values or set defaults if needed, 
       // but UI doesn't allow changing them as requested.
@@ -104,7 +123,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700">Position (X, Y, Z)</label>
+            <label className="block text-xs font-medium text-gray-700">POS (x, y, z)</label>
             <div className="grid grid-cols-3 gap-2">
               <Input placeholder="X" type="number" step="0.01" value={posX} onChange={(e: any) => setPosX(parseFloat(e.target.value))} />
               <Input placeholder="Y" type="number" step="0.01" value={posY} onChange={(e: any) => setPosY(parseFloat(e.target.value))} />
@@ -113,11 +132,24 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700">Rotation (Roll, Pitch, Yaw)</label>
-            <div className="grid grid-cols-3 gap-2">
-              <Input placeholder="X (Roll)" type="number" step="0.01" value={rotX} onChange={(e: any) => setRotX(parseFloat(e.target.value))} />
-              <Input placeholder="Y (Pitch)" type="number" step="0.01" value={rotY} onChange={(e: any) => setRotY(parseFloat(e.target.value))} />
-              <Input placeholder="Z (Yaw)" type="number" step="0.01" value={rotZ} onChange={(e: any) => setRotZ(parseFloat(e.target.value))} />
+            <label className="block text-xs font-medium text-gray-700">QUAT (w, x, y, z) <span className="font-light text-gray-400">Optional</span></label>
+            <div className="grid grid-cols-4 gap-2">
+              <Input placeholder="W" type="number" step="0.01" value={quatW} onChange={(e: any) => setQuatW(parseFloat(e.target.value))} />
+              <Input placeholder="X" type="number" step="0.01" value={quatX} onChange={(e: any) => setQuatX(parseFloat(e.target.value))} />
+              <Input placeholder="Y" type="number" step="0.01" value={quatY} onChange={(e: any) => setQuatY(parseFloat(e.target.value))} />
+              <Input placeholder="Z" type="number" step="0.01" value={quatZ} onChange={(e: any) => setQuatZ(parseFloat(e.target.value))} />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700">XYAXES (x1, y1, z1, x2, y2, z2) <span className="font-light text-gray-400">Optional</span></label>
+            <div className="grid grid-cols-6 gap-1">
+              <Input placeholder="X1" type="number" step="0.01" value={xyaxesX1} onChange={(e: any) => setXyaxesX1(parseFloat(e.target.value))} />
+              <Input placeholder="Y1" type="number" step="0.01" value={xyaxesY1} onChange={(e: any) => setXyaxesY1(parseFloat(e.target.value))} />
+              <Input placeholder="Z1" type="number" step="0.01" value={xyaxesZ1} onChange={(e: any) => setXyaxesZ1(parseFloat(e.target.value))} />
+              <Input placeholder="X2" type="number" step="0.01" value={xyaxesX2} onChange={(e: any) => setXyaxesX2(parseFloat(e.target.value))} />
+              <Input placeholder="Y2" type="number" step="0.01" value={xyaxesY2} onChange={(e: any) => setXyaxesY2(parseFloat(e.target.value))} />
+              <Input placeholder="Z2" type="number" step="0.01" value={xyaxesZ2} onChange={(e: any) => setXyaxesZ2(parseFloat(e.target.value))} />
             </div>
           </div>
         </>
@@ -221,7 +253,10 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
           SelectProps={{
             renderValue: (selected) => {
               const c = cameras.find(c => c.id === selected);
-              if (!c) return <span className="text-gray-500">Select or create camera...</span>;
+              if (!c) {
+                if (selected) return <span className="text-gray-700 font-medium">Unknown camera (id: {String(selected)})</span>;
+                return <span className="text-gray-500">Select or create camera...</span>;
+              }
               return (
                 <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                   <span className="font-medium">{c.name}</span>
@@ -235,12 +270,19 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
             }
           }}
         >
+          {/* If the selected camera isn't present in the options (e.g. DB entry not loaded), show a disabled placeholder so MUI doesn't warn */}
+          {selectedCameraId !== null && !selectedCamera && (
+            <MenuItem key="__selected_missing_camera__" value={selectedCameraId} disabled sx={{ fontStyle: 'italic' }}>
+              Unknown camera (id: {selectedCameraId})
+            </MenuItem>
+          )}
+
           {realCameras.length > 0 && <ListSubheader>Real</ListSubheader>}
           {realCameras.map(c => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}
             </MenuItem>
-          ))}
+          ))} 
 
           {simCameras.length > 0 && <ListSubheader>Simulated</ListSubheader>}
           {simCameras.map(c => (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Tabs, Tab, Box, Grid, Typography } from '@mui/material';
 import { db } from '../db/db';
 import { eq } from 'drizzle-orm';
 import { getSceneSnapshot } from '../db/selectors';
@@ -58,6 +59,10 @@ type SceneStatus = {
   robotCount: number;
   teleopCount: number;
 };
+
+const TAB_SETTINGS = 0;
+const TAB_RECORD = 1;
+const TAB_EPISODES = 2;
 
 interface SceneDropdownProps {
   scenes: any[];
@@ -171,12 +176,15 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const [tabValue, setTabValue] = useState(TAB_SETTINGS);
 
   // Dataset Config
   const [repoId, setRepoId] = useState('');
+  const [datasetDir, setDatasetDir] = useState('');
   const [singleTask, setSingleTask] = useState('');
   const [fps, setFps] = useState<number>(30);
   const [saving, setSaving] = useState(false);
+  const [datasetDirManuallySet, setDatasetDirManuallySet] = useState(false);
 
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<{ message: string; traceback?: string } | null>(null);
@@ -191,8 +199,41 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         setSingleTask(initialData.datasetConfig.single_task || '');
         setFps(initialData.datasetConfig.fps || 30);
       }
+      setDatasetDir(initialData.datasetDir || '');
+      setDatasetDirManuallySet(Boolean(initialData.datasetDir));
     }
   }, [initialData]);
+
+  const resolveDefaultDatasetDir = async (nextRepoId: string) => {
+    if (!(window as any).electronAPI?.getDefaultDatasetDir) return;
+    if (!nextRepoId || !nextRepoId.trim()) return;
+    try {
+      const defaultDir = await (window as any).electronAPI.getDefaultDatasetDir(nextRepoId);
+      if (defaultDir) {
+        setDatasetDir(defaultDir);
+      }
+    } catch (e) {
+      console.error('Failed to resolve default dataset directory', e);
+    }
+  };
+
+  const handleChooseDatasetDir = async () => {
+    try {
+      const selected = await (window as any).electronAPI?.selectDatasetDirectory?.();
+      if (selected) {
+        setDatasetDir(selected);
+        setDatasetDirManuallySet(true);
+      }
+    } catch (e) {
+      console.error('Failed to choose dataset directory', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!repoId) return;
+    if (datasetDirManuallySet && datasetDir) return;
+    resolveDefaultDatasetDir(repoId);
+  }, [repoId, datasetDirManuallySet]);
 
   useEffect(() => {
     if ((window as any).electronAPI) {
@@ -208,6 +249,10 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const recordingStartTime = useRef<number | null>(null);
   const [recordingDuration, setRecordingDuration] = useState('00:00');
   const timerRef = useRef<any>(null);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const scanSerialPorts = async () => {
     try {
@@ -230,7 +275,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const refreshSceneStatuses = async (sceneList: any[]) => {
     if (!sceneList || sceneList.length === 0) {
       setSceneStatusMap({});
-      return;
+      return {};
     }
 
     const ports = await scanSerialPorts();
@@ -273,9 +318,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         if (isSimSceneReady) {
           ready = true;
         } else {
-          if (!hasRobot) issues.push('missing robot');
-          if (!hasCameras) issues.push('missing cameras');
-          if (!hasTeleop) issues.push('missing teleoperator');
+          if (!hasRobot) issues.push('This scene is missing a robot.');
+          if (!hasCameras) issues.push('This scene is missing cameras.');
+          if (!hasTeleop) issues.push('This scene is missing a teleoperator mode.');
 
           const realRobotDisconnected = robots
             .filter(r => r.modality === 'real')
@@ -327,6 +372,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     }
 
     setSceneStatusMap(nextMap);
+    return nextMap;
   };
 
   // Initial Load
@@ -360,6 +406,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           setRepoId(ds.repo_id || '');
           setSingleTask(ds.single_task || '');
           if (typeof ds.fps === 'number') setFps(ds.fps);
+          if (initialData.datasetDir) {
+            setDatasetDir(initialData.datasetDir);
+            setDatasetDirManuallySet(true);
+          } else if (ds.repo_id) {
+            resolveDefaultDatasetDir(ds.repo_id);
+          }
 
         } else {
           // Defaults if creating new
@@ -367,7 +419,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           if (loadedSkills.length > 0) setSelectedSkillId(loadedSkills[0].id);
 
           const username = await (window as any).electronAPI?.getUsername?.() || 'user';
-          setRepoId(`${username}/new-dataset`);
+          const defaultRepoId = `${username}/new-dataset`;
+          setRepoId(defaultRepoId);
+          resolveDefaultDatasetDir(defaultRepoId);
           // Try to set single task from skill if selected
           if (loadedSkills.length > 0) setSingleTask(loadedSkills[0].name);
         }
@@ -424,26 +478,56 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
 
   // Timer logic
+
   useEffect(() => {
     if (recording) {
-      recordingStartTime.current = Date.now();
+      if (!recordingStartTime.current) {
+        recordingStartTime.current = Date.now();
+      }
+
+      clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
-        const diff = Date.now() - (recordingStartTime.current || 0);
-        const secs = Math.floor(diff / 1000);
-        const m = Math.floor(secs / 60).toString().padStart(2, '0');
-        const s = (secs % 60).toString().padStart(2, '0');
-        setRecordingDuration(`${m}:${s}`);
+        if (!recordingStartTime.current) return;
+        const elapsedMs = Date.now() - recordingStartTime.current;
+        const totalSeconds = Math.floor(elapsedMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        setRecordingDuration(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
       }, 1000);
     } else {
       clearInterval(timerRef.current);
+      timerRef.current = null;
+      recordingStartTime.current = null;
       setRecordingDuration('00:00');
     }
+
+    return () => {
+      clearInterval(timerRef.current);
+    };
   }, [recording]);
 
-  // Actions
-  const handleStartSimulation = async () => {
-    if (!selectedSceneId) return;
+  const checkSceneReadiness = async () => {
+    if (!selectedSceneId) {
+       toast.error('No scene selected');
+       return false;
+    }
 
+    const currentMap = await refreshSceneStatuses(scenes);
+    const status = currentMap && currentMap[selectedSceneId];
+    if (!status || !status.ready) {
+      setErrorMessage({
+        message: 'Scene is not ready',
+        traceback: status?.issues?.join('\n') || 'Status unavailable'
+      });
+      setErrorModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleStartSimulation = async () => {
+    if (!(await checkSceneReadiness())) return;
+    if (!selectedSceneId) return;
     try {
       const snapshot = await getSceneSnapshot(selectedSceneId);
       if (!snapshot) return;
@@ -465,13 +549,40 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
       if (isCustomSimulated) {
         // Build custom_mujoco config for GenericMujocoEnv
-        const cameraSpecs = snapshot.cameras.map((c: any) => ({
-          name: c.name || `camera_${c.id}`,
-          pos: [c.positionX || 0, c.positionY || 0, c.positionZ || 0],
-          euler: [c.rotationX || 0, c.rotationY || 0, c.rotationZ || 0],
-          width: parseInt(c.resolution?.split('x')[0]) || 128,
-          height: parseInt(c.resolution?.split('x')[1]) || 128,
-        }));
+        // Build camera specs solely from snapshot.cameras
+        const cameraSpecs = snapshot.cameras.map((c: any) => {
+          const rawData = c.data?.mujoco || c.data || {};
+
+          // Extract MJCF properties, preferring DB columns if present
+          const hasDbPos = typeof c.posX === 'number' && typeof c.posY === 'number' && typeof c.posZ === 'number';
+          const pos = hasDbPos ? [c.posX, c.posY, c.posZ] : (rawData.pos || [0, 0, 0]);
+
+          const hasDbQuat = typeof c.quatW === 'number';
+          const quat = hasDbQuat ? [c.quatW, c.quatX, c.quatY, c.quatZ] : rawData.quat;
+
+          const hasDbXyaxes = typeof c.xyaxesX1 === 'number';
+          const xyaxes = hasDbXyaxes ? [c.xyaxesX1, c.xyaxesY1, c.xyaxesZ1, c.xyaxesX2, c.xyaxesY2, c.xyaxesZ2] : rawData.xyaxes;
+
+          return {
+            name: c.name || `camera_${c.id}`,
+            
+            pos,
+            quat,
+            xyaxes,
+            
+            // Optional MJCF properties from raw data if NOT overridden by DB columns
+            // If DB has columns, we used them above.
+            axis: rawData.axis,
+            target: rawData.target,
+            zaxis: rawData.zaxis,
+            euler: rawData.euler, // Prioritize quat/xyaxes if present? Python side handles it.
+
+            fovy: rawData.fovy,
+            // Resolution
+            width: parseInt(c.resolution?.split('x')[0]) || 128,
+            height: parseInt(c.resolution?.split('x')[1]) || 128,
+          };
+        });
 
         const modelProps: any = follower.model.properties || {};
 
@@ -482,6 +593,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
             fps: fps,
             model_xml: follower.model.modelXml,
             model_path: follower.model.modelPath,
+            robot_xml_path: follower.model.modelPath,
             scene_xml_path: snapshot.sceneXmlPath || null,
             model_format: follower.model.modelFormat || 'mjcf',
             cameras: cameraSpecs,
@@ -511,12 +623,13 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           },
           dataset: {
             repo_id: repoId,
-            root: null,
+            root: datasetDir || null,
             task: singleTask || "manipulation",
             replay_episode: null,
             push_to_hub: false,
           },
           device: 'cpu',
+          mode: "record",
         };
       } else {
         throw new Error("Only custom simulated robots with model XML are supported in this version");
@@ -524,13 +637,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
       console.log("Prepared gym manipulator config:", gymManipulatorConfig);
 
-      // if (teleop) {
-      //   gymManipulatorConfig.env.teleop = {
-      //     type: TELEOP_TYPE_MAP[(teleop as any).className],
-      //     ...(teleop?.data || {}),
-      //     ...(teleop?._snapshot || {})
-      //   };
-      // }
+      if (teleop) {
+        void teleop;
+      }
 
       const res = await (window as any).electronAPI?.startSimulation(gymManipulatorConfig);
       if (res && res.ok) {
@@ -556,7 +665,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     setTimeout(handleStartSimulation, 500);
   };
 
-  const handleRecordToggle = () => {
+  const handleRecordToggle = async () => {
     if (recording) {
       // Stop
       setRecording(false);
@@ -572,6 +681,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       setEpisodes(prev => [...prev, newEp]);
     } else {
       // Start
+      if (!(await checkSceneReadiness())) return;
       setRecording(true);
     }
   };
@@ -612,7 +722,8 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         single_task: singleTask,
         fps: fps,
         // Default other fields that schema requires or we want
-        root: null as string | null,
+        root: datasetDir || null,
+        dataset_dir: datasetDir,
         video: true,
         push_to_hub: true
       };
@@ -622,8 +733,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         name: sessionName,
         sceneId: selectedSceneId,
         skillId: selectedSkillId,
+        datasetDir: datasetDir,
         datasetConfig,
-        sceneSnapshot: snapshot
+        sceneSnapshot: snapshot,
       };
 
       await onSaved(payload);
@@ -637,6 +749,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   // Logic to start real cameras if available
   const activeCameras = cameras.filter(c => c.modality === 'real');
   const hasRealCameras = activeCameras.length > 0;
+  const cameraCount = cameras.length;
+  const videoGridClass = cameraCount <= 1
+    ? 'grid-cols-1'
+    : cameraCount <= 4
+      ? 'grid-cols-2'
+      : 'grid-cols-3';
 
   // Start cameras effect (naive: start all real cameras when scene is selected)
   useEffect(() => {
@@ -675,7 +793,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Top Bar */}
-      <header className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4">
+      <header className="bg-white px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <Input
@@ -688,220 +806,269 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="w-64">
-            <SceneDropdown
-              scenes={scenes}
-              selectedSceneId={selectedSceneId}
-              statusMap={sceneStatusMap}
-              onSelect={(id) => setSelectedSceneId(id)}
-            />
-          </div>
-          <div className="w-64">
-            <Select
-              label="Skill"
-              value={selectedSkillId ? String(selectedSkillId) : ''}
-              onChange={(e) => setSelectedSkillId(Number(e.target.value))}
-              options={skills.map(s => ({ label: s.name, value: String(s.id) }))}
-            />
-          </div>
           <Button variant="primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving...' : 'Save Session'}
           </Button>
         </div>
       </header>
 
+      <Box className="px-4 bg-white">
+        <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="Settings" />
+          <Tab label="Record / Simulate" />
+          <Tab label="Session Episodes" />
+        </Tabs>
+      </Box>
+
       {/* Main Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="flex-1 overflow-hidden bg-gray-50">
+        {tabValue === TAB_SETTINGS && (
+          <Box className="h-full overflow-y-auto p-4">
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <SceneDropdown
+                  scenes={scenes}
+                  selectedSceneId={selectedSceneId}
+                  statusMap={sceneStatusMap}
+                  onSelect={(id) => setSelectedSceneId(id)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Select
+                  label="Skill"
+                  value={selectedSkillId ? String(selectedSkillId) : ''}
+                  onChange={(e) => setSelectedSkillId(Number(e.target.value))}
+                  options={skills.map(s => ({ label: s.name, value: String(s.id) }))}
+                />
+              </Grid>
 
-          {/* Dataset Configuration */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Dataset</h3>
-            <Input
-              label="Repo ID"
-              value={repoId}
-              onChange={e => setRepoId(e.target.value)}
-              placeholder="username/dataset-name"
-            />
-            <Input
-              label="Task Description"
-              value={singleTask}
-              onChange={e => setSingleTask(e.target.value)}
-              placeholder="e.g. Pick the cube"
-            />
-            <Select
-              label="FPS"
-              value={fps}
-              onChange={e => setFps(Number(e.target.value))}
-              options={[
-                { label: '30 FPS', value: 30 },
-                { label: '60 FPS', value: 60 },
-                { label: '15 FPS', value: 15 }
-              ]}
-            />
-          </div>
+              <Grid size={12}>
+                <Typography variant="subtitle2" color="text.secondary">Dataset Configuration</Typography>
+              </Grid>
 
-          <hr className="border-gray-200" />
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Input
+                  label="Repo ID"
+                  value={repoId}
+                  onChange={e => {
+                    setRepoId(e.target.value);
+                    if (!datasetDirManuallySet) {
+                      setDatasetDir('');
+                    }
+                  }}
+                  placeholder="username/dataset-name"
+                />
+              </Grid>
 
-          {/* Simulation Controls */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Simulation</h3>
-            <Button
-              variant={simRunning ? "ghost" : "primary"}
-              className="w-full justify-center gap-2"
-              onClick={simRunning ? handleStopSimulation : handleStartSimulation}
-            >
-              {simRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              {simRunning ? "Pause Sim" : "Start Sim"}
-            </Button>
-
-            <Button
-              variant="ghost"
-              className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900"
-              onClick={handleResetSimulation}
-              disabled={!simRunning}
-            >
-              <RefreshCw className="w-4 h-4" /> Reset Sim
-            </Button>
-          </div>
-
-          <hr className="border-gray-200" />
-
-          {/* Recording Controls */}
-          <div className={`space-y-3 p-4 rounded-lg border text-center transition-colors ${recording ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Recording</h3>
-            <div className="text-2xl font-mono font-bold text-gray-900 mb-2">
-              {recordingDuration}
-            </div>
-            <Button
-              variant={recording ? "danger" : "danger"}
-              className="w-full justify-center gap-2"
-              onClick={handleRecordToggle}
-            >
-              {recording ? <Stop className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-              {recording ? "Stop Rec" : "Record"}
-            </Button>
-          </div>
-
-          {/* Annotation Controls */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Episode Annotation</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="ghost"
-                className="bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 border border-green-200"
-                onClick={() => annotateEpisode('success')}
-              >
-                <CheckCircle className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-xs">Success</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border border-red-200"
-                onClick={() => annotateEpisode('failure')}
-              >
-                <XCircle className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-xs">Failure</span>
-              </Button>
-            </div>
-            <p className="text-xs text-gray-400 text-center">Annotate last episode</p>
-          </div>
-
-        </div>
-
-        {/* Right Area: Camera Views */}
-        <div className="flex-1 bg-gray-100 p-4">
-          {cameras.length === 0 && !simStreamUrl && (
-            <div className="h-full flex items-center justify-center text-gray-400">
-              No cameras configured or simulation stopped.
-            </div>
-          )}
-
-          <div className={`grid gap-4 h-full ${cameras.length <= 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {cameras.map(cam => {
-              const isSim = cam.modality === 'simulated';
-              const camLabel = cam.name || `Camera ${cam.id}`;
-              const camPath = (cam.data as any)?.path || (cam.data as any)?.devicePath || (cam.data as any)?.rtspUrl || (cam.data as any)?.url;
-
-              if (isSim) {
-                return (
-                  <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm group">
-                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10 flex items-center gap-1">
-                      {camLabel}
-                      {(cam.data as any)?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
-                    </div>
-
-                    <button
-                      onClick={() => (window as any).electronAPI.openVideoWindow('simulation')}
-                      className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded shadow-sm backdrop-blur-sm transition-opacity opacity-0 group-hover:opacity-100 z-20"
-                      title="Open in new window"
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Grid container spacing={1}>
+                  <Grid size={12}>
+                    <Input
+                      label="Dataset Directory"
+                      value={datasetDir}
+                      onChange={e => {
+                        setDatasetDir(e.target.value);
+                        setDatasetDirManuallySet(true);
+                      }}
+                      placeholder="Select local dataset directory"
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-center"
+                      onClick={handleChooseDatasetDir}
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
+                      Browse Directory
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Grid>
 
-                    {simStreamUrl ? (
-                      <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" channel={cam.name} />
-                    ) : (
-                      <div className="text-white/50 text-sm">Simulation not running</div>
-                    )}
-                  </div>
-                );
-              }
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Input
+                  label="Task Description"
+                  value={singleTask}
+                  onChange={e => setSingleTask(e.target.value)}
+                  placeholder="e.g. Pick the cube"
+                />
+              </Grid>
 
-              return (
-                <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
-                  <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
-                  {cameraStreams[cam.id] ? (
-                    <VideoPlayer url={cameraStreams[cam.id]} className="w-full h-full object-contain" />
-                  ) : camPath ? (
-                    <div className="text-white/50 text-sm">Connecting...</div>
-                  ) : (
-                    <div className="text-white/50 text-sm">No device path</div>
-                  )}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Select
+                  label="FPS"
+                  value={fps}
+                  onChange={e => setFps(Number(e.target.value))}
+                  options={[
+                    { label: '30 FPS', value: 30 },
+                    { label: '60 FPS', value: 60 },
+                    { label: '15 FPS', value: 15 }
+                  ]}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {tabValue === TAB_RECORD && (
+          <div className="h-full flex overflow-hidden">
+            <div className="w-72 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 overflow-y-auto">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Simulation</h3>
+                <Button
+                  variant={simRunning ? "ghost" : "primary"}
+                  className="w-full justify-center gap-2"
+                  onClick={simRunning ? handleStopSimulation : handleStartSimulation}
+                >
+                  {simRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {simRunning ? "Pause Sim" : "Start Sim"}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900"
+                  onClick={handleResetSimulation}
+                  disabled={!simRunning}
+                >
+                  <RefreshCw className="w-4 h-4" /> Reset Sim
+                </Button>
+              </div>
+
+              <hr className="border-gray-200" />
+
+              <div className={`space-y-3 p-4 rounded-lg border text-center transition-colors ${recording ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Recording</h3>
+                <div className="text-2xl font-mono font-bold text-gray-900 mb-2">
+                  {recordingDuration}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+                <Button
+                  variant="danger"
+                  className="w-full justify-center gap-2"
+                  onClick={handleRecordToggle}
+                >
+                  {recording ? <Stop className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  {recording ? "Stop Rec" : "Record"}
+                </Button>
+              </div>
 
-      {/* Bottom Area: Episodes */}
-      <div className="h-64 bg-white border-t border-gray-200 overflow-y-auto flex flex-col">
-        <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between sticky top-0">
-          <h3 className="font-semibold text-gray-700 text-sm">Session Episodes</h3>
-          <span className="text-xs text-gray-500">{episodes.length} episodes</span>
-        </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {episodes.map((ep, idx) => (
-              <tr key={ep.id || idx}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ep.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ep.timestamp || ep.createdAt}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ep.duration}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ep.status === 'success' ? 'bg-green-100 text-green-800' :
-                    ep.status === 'failure' ? 'bg-red-100 text-red-800' :
-                      ep.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                    }`}>
-                    {ep.status || 'Unknown'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {episodes.length === 0 && (
-          <div className="p-8 text-center text-sm text-gray-500">No episodes recorded in this session yet.</div>
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Episode Annotation</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    className="bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 border border-green-200"
+                    onClick={() => annotateEpisode('success')}
+                  >
+                    <CheckCircle className="w-5 h-5 mx-auto mb-1" />
+                    <span className="text-xs">Success</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border border-red-200"
+                    onClick={() => annotateEpisode('failure')}
+                  >
+                    <XCircle className="w-5 h-5 mx-auto mb-1" />
+                    <span className="text-xs">Failure</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400 text-center">Annotate last episode</p>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
+              {cameras.length === 0 && !simStreamUrl && (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  No cameras configured or simulation stopped.
+                </div>
+              )}
+
+              <div className={`grid gap-4 h-full ${videoGridClass}`}>
+                {cameras.map(cam => {
+                  const isSim = cam.modality === 'simulated';
+                  const camLabel = cam.name || `Camera ${cam.id}`;
+                  const camPath = (cam.data as any)?.path || (cam.data as any)?.devicePath || (cam.data as any)?.rtspUrl || (cam.data as any)?.url;
+
+                  if (isSim) {
+                    return (
+                      <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm group">
+                        <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10 flex items-center gap-1">
+                          {camLabel}
+                          {(cam.data as any)?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
+                        </div>
+
+                        <button
+                          onClick={() => (window as any).electronAPI.openVideoWindow('simulation')}
+                          className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded shadow-sm backdrop-blur-sm transition-opacity opacity-0 group-hover:opacity-100 z-20"
+                          title="Open in new window"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+
+                        {simStreamUrl ? (
+                          <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" channel={cam.name} />
+                        ) : (
+                          <div className="text-white/50 text-sm">Simulation not running</div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
+                      <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
+                      {cameraStreams[cam.id] ? (
+                        <VideoPlayer url={cameraStreams[cam.id]} className="w-full h-full object-contain" />
+                      ) : camPath ? (
+                        <div className="text-white/50 text-sm">Connecting...</div>
+                      ) : (
+                        <div className="text-white/50 text-sm">No device path</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tabValue === TAB_EPISODES && (
+          <div className="h-full bg-white overflow-y-auto flex flex-col">
+            <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between sticky top-0">
+              <h3 className="font-semibold text-gray-700 text-sm">Session Episodes</h3>
+              <span className="text-xs text-gray-500">{episodes.length} episodes</span>
+            </div>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {episodes.map((ep, idx) => (
+                  <tr key={ep.id || idx}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ep.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ep.timestamp || ep.createdAt}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ep.duration}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ep.status === 'success' ? 'bg-green-100 text-green-800' :
+                        ep.status === 'failure' ? 'bg-red-100 text-red-800' :
+                          ep.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
+                        {ep.status || 'Unknown'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {episodes.length === 0 && (
+              <div className="p-8 text-center text-sm text-gray-500">No episodes recorded in this session yet.</div>
+            )}
+          </div>
         )}
       </div>
 
@@ -910,7 +1077,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-auto flex flex-col gap-4 shadow-xl">
             <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              Simulation Error
+              {errorMessage?.message === 'Scene is not ready' ? 'Cannot Start Recording' : 'Simulation Error'}
             </h2>
             <div className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto text-gray-800">
               <div className="font-semibold mb-2">{errorMessage?.message}</div>

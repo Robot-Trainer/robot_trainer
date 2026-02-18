@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { JSDOM } from 'jsdom';
+import { parseMujocoCameras } from '../src/lib/mujoco_parser';
 
 const MENAGERIE_PATH = path.join(process.cwd(), 'mujoco_menagerie');
 const TARGET_FILE = path.join(process.cwd(), 'src/db/seed_robot_models.ts');
@@ -120,10 +121,13 @@ async function scanMenagerie() {
             return path.basename(includeDir);
           });
 
+          const cameras = parseMujocoCameras(content);
+
           results.configurations.push({
             name: modelMatch[1],
             sceneXmlPath: path.join('mujoco_menagerie', dirent.name, file),
-            includedRobots
+            includedRobots,
+            cameras
           });
         }
       }

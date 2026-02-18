@@ -43,6 +43,7 @@ npm run browser
 - `npm run build-python` — Build the Python helper into a single executable using PyInstaller (runs in `src/python`).
 - `npm run package` — Create a packaged app (runs `prepackage` first to build Python).
 - `npm run make` — Produce OS installers using electron-forge makers.
+- `npm run release` — Generate DB assets and publish Electron Forge binaries to GitHub Releases.
 
 **Project Structure (high level)**
 

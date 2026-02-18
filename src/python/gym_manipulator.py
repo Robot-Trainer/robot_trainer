@@ -24,6 +24,8 @@ import traceback
 import sys
 import os
 import ctypes.util
+import shutil
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
 
@@ -92,6 +94,8 @@ from lerobot.teleoperators import (
 )
 from lerobot.teleoperators.teleoperator import Teleoperator
 from lerobot.teleoperators.utils import TeleopEvents
+from lerobot.teleoperators.keyboard.configuration_keyboard import KeyboardTeleopConfig
+from lerobot.teleoperators.gamepad.configuration_gamepad import GamepadTeleopConfig
 from lerobot.utils.constants import ACTION, DONE, OBS_IMAGES, OBS_STATE, REWARD
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
@@ -382,6 +386,220 @@ class AsyncGymWrapper(gym.Wrapper):
         return {}
 
 
+def _get_action_space_dim(env: gym.Env) -> int:
+    if hasattr(env, "action_space") and hasattr(env.action_space, "shape") and env.action_space.shape is not None:
+        return int(env.action_space.shape[0])
+    if (
+        hasattr(env, "unwrapped")
+        and hasattr(env.unwrapped, "action_space")
+        and hasattr(env.unwrapped.action_space, "shape")
+        and env.unwrapped.action_space.shape is not None
+    ):
+        return int(env.unwrapped.action_space.shape[0])
+    return 0
+
+
+def _custom_mujoco_action_features(env: gym.Env) -> dict[str, Any]:
+    action_dim = _get_action_space_dim(env)
+    if action_dim <= 0:
+        return {
+            "dtype": "float32",
+            "shape": (0,),
+            "names": {},
+        }
+
+    unwrapped = env.unwrapped if hasattr(env, "unwrapped") else env
+    actuator_names = list(getattr(unwrapped, "_actuator_names", []) or [])
+    joint_names = list(getattr(unwrapped, "_joint_names", []) or [])
+
+    if actuator_names and len(actuator_names) == action_dim:
+        names = {name: idx for idx, name in enumerate(actuator_names)}
+    elif joint_names and len(joint_names) == action_dim:
+        names = {name: idx for idx, name in enumerate(joint_names)}
+    else:
+        names = {f"actuator_{idx}": idx for idx in range(action_dim)}
+
+    return {
+        "dtype": "float32",
+        "shape": (action_dim,),
+        "names": names,
+    }
+
+
+def _fit_action_to_env_space(action: Any, env: gym.Env) -> np.ndarray:
+    target_dim = _get_action_space_dim(env)
+    if target_dim <= 0:
+        return np.asarray(action, dtype=np.float32).reshape(-1)
+
+    action_np = np.asarray(action, dtype=np.float32).reshape(-1)
+    if action_np.shape[0] == target_dim:
+        return action_np
+
+    out = np.zeros(target_dim, dtype=np.float32)
+    count = min(action_np.shape[0], target_dim)
+    out[:count] = action_np[:count]
+
+    unwrapped = env.unwrapped if hasattr(env, "unwrapped") else env
+    if action_np.shape[0] >= 4 and target_dim > 4:
+        gripper_ctrl_id = getattr(unwrapped, "_gripper_ctrl_id", None)
+        ctrl_ids = getattr(unwrapped, "_ctrl_ids", None)
+        if gripper_ctrl_id is not None and ctrl_ids is not None:
+            try:
+                ctrl_ids_list = list(ctrl_ids)
+                if gripper_ctrl_id in ctrl_ids_list:
+                    gripper_idx = ctrl_ids_list.index(gripper_ctrl_id)
+                    out[gripper_idx] = action_np[3]
+            except Exception:
+                pass
+
+    return out
+
+
+def _remove_batch_dim(value: Any) -> Any:
+    if isinstance(value, torch.Tensor):
+        if value.dim() > 0 and value.shape[0] == 1:
+            return value.squeeze(0)
+        return value
+    if isinstance(value, np.ndarray):
+        if value.ndim > 0 and value.shape[0] == 1:
+            return value[0]
+        return value
+    return value
+
+
+def _to_torch_cpu_float32(value: Any) -> torch.Tensor:
+    if isinstance(value, torch.Tensor):
+        return value.detach().to(dtype=torch.float32).cpu()
+    return torch.as_tensor(value, dtype=torch.float32).cpu()
+
+
+def _to_torch_cpu(value: Any) -> torch.Tensor:
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu()
+    return torch.as_tensor(value).cpu()
+
+
+def _features_compatible(existing: dict[str, Any], desired: dict[str, Any]) -> tuple[bool, str]:
+    existing_keys = set(existing.keys())
+    desired_keys = set(desired.keys())
+
+    missing_keys = desired_keys - existing_keys
+    extra_keys = existing_keys - desired_keys
+    if missing_keys or extra_keys:
+        return (
+            False,
+            f"feature keys mismatch (missing={sorted(missing_keys)}, extra={sorted(extra_keys)})",
+        )
+
+    for key in desired_keys:
+        existing_spec = existing.get(key, {})
+        desired_spec = desired.get(key, {})
+        if existing_spec.get("dtype") != desired_spec.get("dtype"):
+            return (
+                False,
+                f"feature '{key}' dtype mismatch (existing={existing_spec.get('dtype')}, desired={desired_spec.get('dtype')})",
+            )
+        if tuple(existing_spec.get("shape", ())) != tuple(desired_spec.get("shape", ())):
+            return (
+                False,
+                f"feature '{key}' shape mismatch (existing={existing_spec.get('shape')}, desired={desired_spec.get('shape')})",
+            )
+
+    return True, ""
+
+
+def _sanitize_dataset_name(repo_id: str) -> str:
+    name = repo_id.split("/")[-1].strip()
+    if not name:
+        name = "dataset"
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", name)
+    name = name.strip("-._")
+    return name or "dataset"
+
+
+def _default_app_user_data_dir() -> Path:
+    home = Path.home()
+    if sys.platform == "darwin":
+        return home / "Library" / "Application Support" / "robot_trainer"
+    if sys.platform.startswith("win"):
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "robot_trainer"
+        return home / "AppData" / "Roaming" / "robot_trainer"
+    return home / ".config" / "robot_trainer"
+
+
+def _resolve_local_dataset_storage(cfg: GymManipulatorConfig) -> tuple[str, str, Path]:
+    explicit_dataset_dir = (cfg.dataset.root or "").strip() if cfg.dataset.root is not None else ""
+    if explicit_dataset_dir:
+        dataset_dir = Path(explicit_dataset_dir).expanduser().resolve()
+        dataset_name = _sanitize_dataset_name(dataset_dir.name or cfg.dataset.repo_id)
+        datasets_root = dataset_dir.parent
+        dataset_dir = datasets_root / dataset_name
+    else:
+        dataset_name = _sanitize_dataset_name(cfg.dataset.repo_id)
+        user_data_dir = _default_app_user_data_dir()
+        datasets_root = user_data_dir / "datasets"
+        dataset_dir = datasets_root / dataset_name
+
+    datasets_root.mkdir(parents=True, exist_ok=True)
+
+    cfg.dataset.repo_id = dataset_name
+    cfg.dataset.root = str(dataset_dir)
+
+    return dataset_name, str(dataset_dir), dataset_dir
+
+
+def _has_valid_local_dataset(dataset_dir: Path) -> bool:
+    required_files = [
+        dataset_dir / "meta" / "info.json",
+        dataset_dir / "meta" / "tasks.parquet",
+        dataset_dir / "meta" / "stats.json",
+    ]
+    return all(path.exists() for path in required_files)
+
+
+def _init_record_dataset(cfg: GymManipulatorConfig, features: dict[str, Any]) -> LeRobotDataset:
+    local_repo_id, local_root, dataset_dir = _resolve_local_dataset_storage(cfg)
+
+    if dataset_dir.exists() and not _has_valid_local_dataset(dataset_dir):
+        logging.warning("Found incomplete local dataset at %s, recreating it.", dataset_dir)
+        shutil.rmtree(dataset_dir, ignore_errors=True)
+
+    if _has_valid_local_dataset(dataset_dir):
+        dataset = LeRobotDataset(
+            local_repo_id,
+            root=local_root,
+            download_videos=False,
+        )
+        compatible, reason = _features_compatible(dataset.features, features)
+        if not compatible:
+            raise ValueError(
+                "Existing dataset schema is incompatible with current recording schema: "
+                f"{reason}. Please choose a different dataset name or clear the existing dataset folder."
+            )
+        dataset.start_image_writer(num_processes=0, num_threads=4)
+        logging.info(
+            "Appending to local dataset '%s' at %s (episodes=%s, frames=%s)",
+            local_repo_id,
+            dataset_dir,
+            dataset.num_episodes,
+            dataset.num_frames,
+        )
+        return dataset
+
+    logging.info("Creating local dataset '%s' at %s", local_repo_id, dataset_dir)
+    return LeRobotDataset.create(
+        local_repo_id,
+        cfg.env.fps,
+        root=local_root,
+        use_videos=True,
+        image_writer_threads=4,
+        image_writer_processes=0,
+        features=features,
+    )
+
+
 def make_robot_env(cfg: EnvConfig) -> tuple[gym.Env, Any]:
     """Create robot environment from configuration.
 
@@ -395,16 +613,30 @@ def make_robot_env(cfg: EnvConfig) -> tuple[gym.Env, Any]:
     if cfg.type == "custom_mujoco":
         assert isinstance(cfg, CustomMujocoEnvConfig)
         
-        camera_specs = [
-            CameraSpec(
-                name=c.name if isinstance(c, CameraSpec) else c.get("name", f"cam_{i}"),
-                pos=c.pos if isinstance(c, CameraSpec) else c.get("pos", [0, 0, 0]),
-                euler=c.euler if isinstance(c, CameraSpec) else c.get("euler", [0, 0, 0]),
-                width=c.width if isinstance(c, CameraSpec) else c.get("width", 128),
-                height=c.height if isinstance(c, CameraSpec) else c.get("height", 128),
-            )
-            for i, c in enumerate(cfg.cameras)
-        ] if cfg.cameras else []
+        camera_specs = []
+        if cfg.cameras:
+            for i, c in enumerate(cfg.cameras):
+                # Helper to get attribute or dict item
+                def get_val(obj, key, default=None):
+                    if isinstance(obj, dict):
+                        return obj.get(key, default)
+                    return getattr(obj, key, default)
+
+                camera_specs.append(
+                    CameraSpec(
+                        name=get_val(c, "name", f"cam_{i}"),
+                        pos=get_val(c, "pos", None),
+                        quat=get_val(c, "quat", None),
+                        axis=get_val(c, "axis", None),
+                        target=get_val(c, "target", None),
+                        xyaxes=get_val(c, "xyaxes", None),
+                        zaxis=get_val(c, "zaxis", None),
+                        euler=get_val(c, "euler", None),
+                        fovy=get_val(c, "fovy", None),
+                        width=get_val(c, "width", 128),
+                        height=get_val(c, "height", 128),
+                    )
+                )
 
         env = GenericMujocoEnv(
             model_xml=cfg.model_xml,
@@ -424,7 +656,22 @@ def make_robot_env(cfg: EnvConfig) -> tuple[gym.Env, Any]:
             cartesian_bounds=np.array(cfg.cartesian_bounds) if cfg.cartesian_bounds else None,
         )
         env = AsyncGymWrapper(env)
-        return env, None
+
+        # Initialize teleoperator if control mode is set
+        teleop = None
+        teleop_config = None
+        if cfg.processor and cfg.processor.control_mode:
+            control_mode = cfg.processor.control_mode
+            if control_mode == "keyboard":
+                teleop_config = keyboard.KeyboardTeleopConfig()
+            elif control_mode == "gamepad":
+                teleop_config = gamepad.GamepadTeleopConfig()
+
+        if teleop_config:
+            teleop = make_teleoperator_from_config(teleop_config)
+            teleop.connect()
+
+        return env, teleop
 
     # Check if this is a GymHIL simulation environment
     if cfg.name == "gym_hil":
@@ -668,7 +915,7 @@ async def emit_observation_frames(observation: dict) -> None:
 
         if isinstance(value, torch.Tensor):
             # Remove batch dimension if present and move to CPU
-            img = value.squeeze(0).cpu()
+            img = _remove_batch_dim(value).cpu()
             # Handle CHW -> HWC conversion if needed
             if img.dim() == 3 and img.shape[0] in (1, 3):
                 img = img.permute(1, 2, 0)
@@ -727,6 +974,8 @@ async def step_env_and_process_transition(
     )
     processed_action_transition = action_processor(transition)
     processed_action = processed_action_transition[TransitionKey.ACTION]
+    if hasattr(env, "unwrapped") and isinstance(env.unwrapped, GenericMujocoEnv):
+        processed_action = _fit_action_to_env_space(processed_action, env)
 
     obs, reward, terminated, truncated, info = await env.step(processed_action)
 
@@ -793,7 +1042,18 @@ async def control_loop(
 
     dataset = None
     if cfg.mode == "record":
-        action_features = teleop_device.action_features
+        if cfg.env.type == "custom_mujoco":
+            action_features = _custom_mujoco_action_features(env)
+        else:
+            try:
+                action_features = teleop_device.action_features
+            except AttributeError:
+                logging.warning(
+                    "Teleoperator does not expose action_features correctly; "
+                    "falling back to environment action-space schema."
+                )
+                action_features = _custom_mujoco_action_features(env)
+
         features = {
             ACTION: action_features,
             REWARD: {"dtype": "float32", "shape": (1,), "names": None},
@@ -807,29 +1067,21 @@ async def control_loop(
             }
 
         for key, value in transition[TransitionKey.OBSERVATION].items():
+            value_unbatched = _remove_batch_dim(value)
             if key == OBS_STATE:
                 features[key] = {
                     "dtype": "float32",
-                    "shape": value.squeeze(0).shape,
+                    "shape": value_unbatched.shape,
                     "names": None,
                 }
             if "image" in key:
                 features[key] = {
                     "dtype": "video",
-                    "shape": value.squeeze(0).shape,
+                    "shape": value_unbatched.shape,
                     "names": ["channels", "height", "width"],
                 }
 
-        # Create dataset
-        dataset = LeRobotDataset.create(
-            cfg.dataset.repo_id,
-            cfg.env.fps,
-            root=cfg.dataset.root,
-            use_videos=True,
-            image_writer_threads=4,
-            image_writer_processes=0,
-            features=features,
-        )
+        dataset = _init_record_dataset(cfg, features)
 
     episode_idx = 0
     episode_step = 0
@@ -864,18 +1116,21 @@ async def control_loop(
         truncated = transition.get(TransitionKey.TRUNCATED, False)
 
         if cfg.mode == "record":
-            observations = {
-                k: v.squeeze(0).cpu()
-                for k, v in transition[TransitionKey.OBSERVATION].items()
-                if isinstance(v, torch.Tensor)
-            }
-            # Use teleop_action if available, otherwise use the action from the transition
-            action_to_record = transition[TransitionKey.COMPLEMENTARY_DATA].get(
-                "teleop_action", transition[TransitionKey.ACTION]
-            )
+            observations: dict[str, Any] = {}
+            for key, value in transition[TransitionKey.OBSERVATION].items():
+                value_unbatched = _remove_batch_dim(value)
+                if isinstance(value_unbatched, (torch.Tensor, np.ndarray)):
+                    observations[key] = _to_torch_cpu(value_unbatched)
+            # For custom MuJoCo, always store actions in environment action-space dimensions.
+            if cfg.env.type == "custom_mujoco":
+                action_to_record = _fit_action_to_env_space(transition[TransitionKey.ACTION], env)
+            else:
+                action_to_record = transition[TransitionKey.COMPLEMENTARY_DATA].get(
+                    "teleop_action", transition[TransitionKey.ACTION]
+                )
             frame = {
                 **observations,
-                ACTION: action_to_record.cpu(),
+                ACTION: _to_torch_cpu_float32(action_to_record),
                 REWARD: np.array([transition[TransitionKey.REWARD]], dtype=np.float32),
                 DONE: np.array([terminated or truncated], dtype=bool),
             }
@@ -922,9 +1177,14 @@ async def control_loop(
         await asyncio.sleep(max(dt - (time.perf_counter() - step_start_time), 0.0))
         await sio.sleep(0)  # Yield to asyncio loop
 
+    if dataset is not None:
+        logging.info("Dataset saved locally at %s", dataset.root)
     if dataset is not None and cfg.dataset.push_to_hub:
-        logging.info("Pushing dataset to hub")
-        dataset.push_to_hub()
+        try:
+            logging.info("Pushing dataset to hub")
+            dataset.push_to_hub()
+        except Exception as error:
+            logging.warning("Skipping push_to_hub due to authentication/repository issue: %s", error)
 
 
 async def replay_trajectory(

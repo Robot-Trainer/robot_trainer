@@ -14,8 +14,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from "@mui/material";
+import { Edit, Delete } from "@mui/icons-material";
 import { useToast } from "./ToastContext";
 import { Button } from "./Button";
 import useUIStore from "../lib/uiStore";
@@ -73,6 +81,8 @@ export const ResourceManager: React.FC<Props> = ({
   const [editing, setEditing] = useState<any | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
 
   // build a resource from table when provided (memoized)
   const fullTableResource = useMemo(() => {
@@ -269,10 +279,13 @@ export const ResourceManager: React.FC<Props> = ({
     }
   };
 
-  const onDelete = async (id: string) => {
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      if (activeResource) await activeResource.delete(id);
+      if (activeResource) await activeResource.delete(itemToDelete.id);
       await load();
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
     } catch (e: any) {
       console.error(e);
       if (toast && toast.error) {
@@ -285,13 +298,28 @@ export const ResourceManager: React.FC<Props> = ({
     }
   };
 
+  // Helper to prevent row click when clicking actions
+  const stopProp = (e: any) => e.stopPropagation();
+
   return (
     <Box>
       {!showForm && (
         <>
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-            <Typography variant="h5" fontWeight="600">{title}</Typography>
-            <Button onClick={onCreate} variant="primary" pulse={items.length === 0}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+            mb={3}
+            px={2}
+          >
+            <Typography variant="h5" fontWeight="600">
+              {title}
+            </Typography>
+            <Button
+              onClick={onCreate}
+              variant="primary"
+              pulse={items.length === 0}
+            >
               <Box display="flex" alignItems="center" gap={1}>
                 <span>Add {title.replace(/s$/, "")}</span>
               </Box>
@@ -299,9 +327,11 @@ export const ResourceManager: React.FC<Props> = ({
           </Box>
 
           {loading ? (
-            <Typography color="text.secondary">Loading...</Typography>
+            <Typography color="text.secondary" px={2}>
+              Loading...
+            </Typography>
           ) : items.length === 0 ? (
-            <Box textAlign="center" py={8} border="1px dashed #ccc" borderRadius={2}>
+            <Box textAlign="center" py={8}>
               <Typography color="text.secondary" mb={2}>
                 No {title.toLowerCase()} defined
               </Typography>
@@ -309,29 +339,85 @@ export const ResourceManager: React.FC<Props> = ({
                 Add a {title.replace(/s$/, "")}
               </Button>
             </Box>
-          ) : gridCols ? (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
+          ) : (
+            <TableContainer component={Paper} elevation={0}>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    {gridCols.map((c) => (
-                      <TableCell key={c.field}>{c.headerName}</TableCell>
-                    ))}
-                    <TableCell align="right">Actions</TableCell>
+                    {(gridCols || [{ field: "name", headerName: "Name" }]).map(
+                      (c) => (
+                        <TableCell
+                          key={c.field}
+                          sx={{
+                            fontWeight: "bold",
+                            color: "text.secondary",
+                            pl: 2,
+                            borderBottom: "none",
+                          }}
+                        >
+                          {c.headerName}
+                        </TableCell>
+                      ),
+                    )}
+                    <TableCell
+                      align="right"
+                      sx={{ borderBottom: "none" }}
+                    ></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {items.map((it) => (
-                    <TableRow key={it.id}>
-                      {gridCols.map((c) => (
-                        <TableCell key={c.field}>
-                          {c.render ? c.render(it) : it[c.field]}
+                    <TableRow
+                      key={it.id}
+                      hover
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.04) !important",
+                        },
+                        "&:hover .actions-cell": { opacity: 1 },
+                        "&:focus-within .actions-cell": { opacity: 1 },
+                      }}
+                      onClick={() => onEdit(it)}
+                    >
+                      {(
+                        gridCols || [{ field: "name", headerName: "Name" }]
+                      ).map((c: any, idx) => (
+                        <TableCell
+                          key={c.field}
+                          sx={{ pl: 2, borderBottom: "none" }}
+                        >
+                          {c.render
+                            ? c.render(it)
+                            : it[c.field] ||
+                              (c.field === "name" && "(unnamed)")}
                         </TableCell>
                       ))}
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button variant="ghost" onClick={() => onEdit(it)}>Edit</Button>
-                          <Button variant="danger" onClick={() => onDelete(it.id)}>Delete</Button>
+                      <TableCell align="right" onClick={stopProp} sx={{ borderBottom: "none" }}>
+                        <Stack
+                          className="actions-cell"
+                          direction="row"
+                          spacing={0}
+                          justifyContent="flex-end"
+                          sx={{
+                            opacity: 0,
+                            transition: "opacity 0.2s",
+                          }}
+                        >
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => onEdit(it)}>
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => requestDelete(it)}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -339,26 +425,12 @@ export const ResourceManager: React.FC<Props> = ({
                 </TableBody>
               </Table>
             </TableContainer>
-          ) : (
-            <Stack spacing={2}>
-              {items.map((it) => (
-                <Card key={it.id} variant="outlined">
-                  <Box display="flex" alignItems="center" justifyContent="space-between" p={2}>
-                    <Typography fontWeight="500">{it.name || "(unnamed)"}</Typography>
-                    <Stack direction="row" spacing={1}>
-                      <Button variant="ghost" onClick={() => onEdit(it)}>Edit</Button>
-                      <Button variant="danger" onClick={() => onDelete(it.id)}>Delete</Button>
-                    </Stack>
-                  </Box>
-                </Card>
-              ))}
-            </Stack>
           )}
         </>
       )}
 
       {showForm && (
-        <Card variant="outlined">
+        <Card elevation={0}>
           <CardContent>
             {typeof renderForm === "function" ? (
               renderForm({
@@ -379,31 +451,48 @@ export const ResourceManager: React.FC<Props> = ({
 
                 {editing && (
                   <Box mb={3} display="flex" flexWrap="wrap" gap={2}>
-                    {['createdAt', 'created_at'].map(k => editing[k] && (
-                      <Typography key={k} variant="caption" color="text.secondary">
-                        Created: {new Date(editing[k]).toLocaleString()}
-                      </Typography>
-                    ))}
-                    {['updatedAt', 'updated_at'].map(k => editing[k] && (
-                      <Typography key={k} variant="caption" color="text.secondary">
-                        Updated: {new Date(editing[k]).toLocaleString()}
-                      </Typography>
-                    ))}
+                    {["createdAt", "created_at"].map(
+                      (k) =>
+                        editing[k] && (
+                          <Typography
+                            key={k}
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            Created: {new Date(editing[k]).toLocaleString()}
+                          </Typography>
+                        ),
+                    )}
+                    {["updatedAt", "updated_at"].map(
+                      (k) =>
+                        editing[k] && (
+                          <Typography
+                            key={k}
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            Updated: {new Date(editing[k]).toLocaleString()}
+                          </Typography>
+                        ),
+                    )}
                   </Box>
                 )}
 
                 <Grid container spacing={2} mb={3}>
                   {inferredFields.map((f) => {
-                    const options = (f.options || []).map(o => ({ label: o, value: o }));
-                    if (!f.required && f.type === 'select') {
-                      options.unshift({ label: 'Select...', value: '' });
+                    const options = (f.options || []).map((o) => ({
+                      label: o,
+                      value: o,
+                    }));
+                    if (!f.required && f.type === "select") {
+                      options.unshift({ label: "Select...", value: "" });
                     }
 
                     return (
                       <Grid item xs={12} md={6} key={f.name}>
                         {f.type === "select" ? (
                           <Select
-                            label={`${f.label}${f.required ? ' *' : ''}`}
+                            label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
                               setForm((prev) => ({
@@ -415,7 +504,7 @@ export const ResourceManager: React.FC<Props> = ({
                           />
                         ) : (
                           <Input
-                            label={`${f.label}${f.required ? ' *' : ''}`}
+                            label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
                               setForm((prev) => ({
@@ -423,11 +512,15 @@ export const ResourceManager: React.FC<Props> = ({
                                 [f.name]: e.target.value,
                               }))
                             }
-                            type={f.type || 'text'}
+                            type={f.type || "text"}
                           />
                         )}
                         {errors[f.name] && (
-                          <Typography color="error" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                          <Typography
+                            color="error"
+                            variant="caption"
+                            sx={{ mt: 0.5, display: "block" }}
+                          >
                             {errors[f.name]}
                           </Typography>
                         )}
@@ -437,7 +530,9 @@ export const ResourceManager: React.FC<Props> = ({
                 </Grid>
 
                 {saveError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {saveError}
+                  </Alert>
                 )}
 
                 <Stack direction="row" spacing={2} justifyContent="flex-end">
@@ -451,13 +546,43 @@ export const ResourceManager: React.FC<Props> = ({
                   >
                     Cancel
                   </Button>
-                  <Button onClick={() => onSave()}>{editing ? "Save" : "Create"}</Button>
+                  <Button onClick={() => onSave()}>
+                    {editing ? "Save" : "Create"}
+                  </Button>
                 </Stack>
               </>
             )}
           </CardContent>
         </Card>
       )}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this{" "}
+            {title.replace(/s$/, "").toLowerCase()}?
+            {itemToDelete && (
+              <Box fontWeight="bold" mt={1}>
+                {itemToDelete.name || "(unnamed)"}
+              </Box>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="secondary"
+            onClick={() => setDeleteConfirmOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

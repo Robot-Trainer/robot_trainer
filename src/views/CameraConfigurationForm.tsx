@@ -79,10 +79,10 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+      <div className="flex items-center justify-between pb-4 mb-4">
         <div>
-          <h3 className="text-lg font-medium">Cameras</h3>
-          <p className="text-sm text-gray-500">Configure cameras. You can select existing cameras or create new ones.</p>
+          <h3 className="text-lg font-medium text-left">Cameras</h3>
+          <p className="text-sm text-gray-500 text-left">Configure cameras. You can select existing cameras or create new ones.</p>
         </div>
       </div>
 

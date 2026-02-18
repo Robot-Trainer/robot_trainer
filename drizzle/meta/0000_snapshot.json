@@ -1,5 +1,5 @@
 {
-  "id": "90261c04-7391-4148-9af9-ba5e18800405",
+  "id": "b175435e-2dd6-4784-a303-095fa21b58a6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -53,43 +53,92 @@
           "notNull": false,
           "default": 0
         },
-        "position_x": {
-          "name": "position_x",
+        "pos_x": {
+          "name": "pos_x",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "position_y": {
-          "name": "position_y",
+        "pos_y": {
+          "name": "pos_y",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "position_z": {
-          "name": "position_z",
+        "pos_z": {
+          "name": "pos_z",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "rotation_x": {
-          "name": "rotation_x",
+        "quat_w": {
+          "name": "quat_w",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "quat_x": {
+          "name": "quat_x",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "rotation_y": {
-          "name": "rotation_y",
+        "quat_y": {
+          "name": "quat_y",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
           "default": 0
         },
-        "rotation_z": {
-          "name": "rotation_z",
+        "quat_z": {
+          "name": "quat_z",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "xyaxes_x1": {
+          "name": "xyaxes_x1",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "xyaxes_y1": {
+          "name": "xyaxes_y1",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "xyaxes_z1": {
+          "name": "xyaxes_z1",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "xyaxes_x2": {
+          "name": "xyaxes_x2",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "xyaxes_y2": {
+          "name": "xyaxes_y2",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "xyaxes_z2": {
+          "name": "xyaxes_z2",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
@@ -666,6 +715,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "dataset_dir": {
+          "name": "dataset_dir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
         },
         "dataset_config": {
           "name": "dataset_config",

@@ -4,6 +4,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld("electronAPI", {
   getUsername: () => ipcRenderer.invoke('get-username'),
+  getDefaultDatasetDir: (repoId: string) => ipcRenderer.invoke('get-default-dataset-dir', repoId),
+  selectDatasetDirectory: () => ipcRenderer.invoke('select-dataset-directory'),
   scanSerialPorts: () => ipcRenderer.invoke("scan-serial-ports"),
   saveSystemSettings: (settings: any) =>
     ipcRenderer.invoke("save-system-settings", settings),

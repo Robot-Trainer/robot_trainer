@@ -14,6 +14,7 @@ import { configResource } from './db/resources';
 import { Activity, Robot, Session, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import { VideoPlayer } from './ui/VideoPlayer';
 import { ToastProvider } from './ui/ToastContext';
+import { AdminControl } from './ui/AdminControl';
 
 const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: string }>; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
@@ -369,19 +370,7 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
           )}
         </div>
       </main>
-      <button
-        className="fixed bottom-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg"
-        onClick={() => {
-          try {
-            (window as any).electronAPI.openAdminWindow('robot-trainer');
-          } catch (e) {
-            console.error('Failed to open admin window', e);
-          }
-        }}
-        aria-label="Open Admin"
-      >
-        Admin
-      </button>
+      <AdminControl />
     </div>
   );
 };

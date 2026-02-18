@@ -25,8 +25,8 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ schema, formData, onSubmit, tit
 
   return (
     <div className="p-4 w-full max-w-4xl mx-auto">
-      <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-6">{title}</h2>
+      <Card className="p-6 shadow-none border-0">
+        <h2 className="text-2xl font-bold mb-6 text-left">{title}</h2>
         <Form
           schema={schema}
           formData={formData}

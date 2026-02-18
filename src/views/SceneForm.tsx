@@ -5,8 +5,12 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable } from '../db/schema';
+import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, sessionsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
+import { useToast } from '../ui/ToastContext';
+import { parseMujocoCameras, MjcfCamera } from '../lib/mujoco_parser';
+import SessionForm from './SessionForm';
+import { Dialog, DialogContent } from '@mui/material';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
@@ -41,6 +45,10 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
   const [availableCameras, setAvailableCameras] = useState<any[]>([]);
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
+
+  const toast = useToast();
+  const [openSessionDialog, setOpenSessionDialog] = useState(false);
+  const [sessionInitialData, setSessionInitialData] = useState<any | null>(null);
 
   const fetchData = async () => {
     try {
@@ -95,18 +103,16 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       // 1. From Scene XML
       if (xmlContent) {
         try {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(xmlContent, "text/xml");
-          const cams = Array.from(doc.querySelectorAll("camera"));
-          cams.forEach(c => {
-            const name = c.getAttribute("name");
-            if (name && !seenNames.has(name)) {
-              seenNames.add(name);
+          const parsedCams = parseMujocoCameras(xmlContent);
+          parsedCams.forEach(cam => {
+            if (cam.name && !seenNames.has(cam.name)) {
+              seenNames.add(cam.name);
               newXmlCameras.push({
-                id: getXmlCameraId(name),
-                name: name,
+                id: getXmlCameraId(cam.name),
+                name: cam.name,
                 isXml: true,
-                modality: 'simulated'
+                modality: 'simulated',
+                attributes: cam // Store full attributes for later DB saving
               });
             }
           });
@@ -385,21 +391,50 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           const xmlCam = xmlCameras.find(c => c.id === id);
           if (xmlCam) {
             // Check if exists in DB by name and is simulated
-            const existing = availableCameras.find(c => c.name === xmlCam.name && c.modality === 'simulated');
+            const existing = availableCameras.find((c: any) => c.name === xmlCam.name && c.modality === 'simulated');
             if (existing) {
               finalSelectedIds.add(existing.id);
             } else {
               // Create it
               try {
+                const camAttrs = (xmlCam as any).attributes || {};
+                // MJCF attributes
+                const pos = camAttrs.pos || [0, 0, 0];
+                const quat = camAttrs.quat || [1, 0, 0, 0];
+                const xyaxes = camAttrs.xyaxes || [1, 0, 0, 0, 1, 0];
+
                 const created = await camerasResource.create({
                   name: xmlCam.name,
                   modality: 'simulated',
-                  data: { source: 'xml', readOnly: true }
+                  
+                  // Map MJCF properties
+                  posX: pos[0],
+                  posY: pos[1],
+                  posZ: pos[2],
+
+                  quatW: quat[0],
+                  quatX: quat[1],
+                  quatY: quat[2],
+                  quatZ: quat[3],
+
+                  xyaxesX1: xyaxes[0],
+                  xyaxesY1: xyaxes[1],
+                  xyaxesZ1: xyaxes[2],
+                  xyaxesX2: xyaxes[3],
+                  xyaxesY2: xyaxes[4],
+                  xyaxesZ2: xyaxes[5],
+
+                  data: {
+                    source: 'xml',
+                    readOnly: true,
+                    mujoco: camAttrs
+                  }
                 });
                 if (created && created.id) {
                   finalSelectedIds.add(created.id);
                   // Update available cameras locally so we don't recreate next time
-                  setAvailableCameras(prev => [...prev, created]);
+                  // Note: check type compatibility
+                  setAvailableCameras((prev: any[]) => [...prev, created]);
                 }
               } catch (e) {
                 console.error("Failed to create DB entry for XML camera", xmlCam.name, e);
@@ -498,9 +533,48 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         }
       }
 
+      // return parentResult so callers (like "Create Session" flow) can continue
+      return parentResult;
+
     } catch (e) {
       console.error(e);
       alert('Failed to save scene details');
+      return;
+    }
+  };
+
+  // Open SessionForm for the current scene. If the scene isn't persisted yet, attempt to save first.
+  const handleCreateSessionForScene = async () => {
+    // If scene already has an id (editing existing), use it; otherwise save first
+    let sceneId = initialData?.id || null;
+    if (!sceneId) {
+      const saved = await saveConfiguration();
+      if (!saved || !saved.id) {
+        // saveConfiguration already alerts on validation errors
+        return;
+      }
+      sceneId = saved.id;
+    }
+
+    setSessionInitialData({ sceneId });
+    setOpenSessionDialog(true);
+  };
+
+  const handleSessionSavedFromDialog = async (payload: any) => {
+    try {
+      const [saved] = await db.insert(sessionsTable).values({
+        name: payload.name || `Session - ${new Date().toLocaleString()}`,
+        sceneId: payload.sceneId,
+        skillId: payload.skillId || null,
+        data: payload
+      }).returning();
+      toast?.success?.('Session created');
+      setOpenSessionDialog(false);
+      return saved;
+    } catch (e) {
+      console.error('Failed to create session', e);
+      toast?.error?.('Failed to create session');
+      throw e;
     }
   };
 
@@ -539,19 +613,20 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-8 text-center relative">
-        {onCancel && (
-          <Button variant="ghost" className="absolute left-0 top-0" onClick={onCancel}>
-            &larr; Back
-          </Button>
-        )}
-        <h2 className="text-2xl font-semibold text-gray-900">Scene Setup</h2>
-        <p className="text-gray-500 mt-1">
-          Configure your scene, robot, and leader devices
-        </p>
-      </div>
+      <Card className="p-8 space-y-8 shadow-none border-0">
+        <div className="mb-6 flex items-start gap-4">
+          {onCancel && (
+            <Button variant="ghost" onClick={onCancel} className="mr-4">
+              &larr; Back
+            </Button>
+          )}
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 text-left">Scene Setup</h2>
+            <p className="text-gray-500 mt-1 text-left">Configure your scene, robot, and leader devices</p>
+          </div>
+        </div>
 
-      <Card className="p-8 space-y-8">
+        
         <section>
           <Input
             label="Scene Name"
@@ -675,11 +750,30 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         <div className="flex justify-between pt-4">
           <Button onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</Button>
           <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleCreateSessionForScene}
+              disabled={!initialData?.id && !sceneName}
+              title={!initialData?.id ? 'Save the scene first or click Save then create a session' : 'Create a new session for this scene'}
+            >
+              Create Session
+            </Button>
             {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
             <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
           </div>
         </div>
       </Card>
+
+      {/* SessionForm dialog (create a new Session preselected to this Scene) */}
+      <Dialog open={openSessionDialog} onClose={() => setOpenSessionDialog(false)} maxWidth="lg" fullWidth>
+        <DialogContent dividers>
+          <SessionForm
+            initialData={sessionInitialData || { sceneId: initialData?.id }}
+            onCancel={() => setOpenSessionDialog(false)}
+            onSaved={handleSessionSavedFromDialog}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

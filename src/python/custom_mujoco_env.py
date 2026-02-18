@@ -43,10 +43,20 @@ if "MUJOCO_GL" not in os.environ:
 class CameraSpec:
     """Specification for a camera to inject into MuJoCo XML."""
     name: str
-    pos: list[float]       # [x, y, z]
-    euler: list[float]     # [rx, ry, rz] degrees
+    # Positioning attributes (optional, if overriding or injecting)
+    pos: list[float] | None = None       # [x, y, z]
+    quat: list[float] | None = None      # [w, x, y, z]
+    axis: list[float] | None = None      # [x, y, z] target position relative to camera
+    target: str | None = None            # target body name
+    xyaxes: list[float] | None = None    # [x1, y1, z1, x2, y2, z2]
+    zaxis: list[float] | None = None     # [x, y, z]
+    euler: list[float] | None = None     # [rx, ry, rz] degrees in 'xyz' convention (usually)
+
+    # Rendering properties
     width: int = 128
     height: int = 128
+    fovy: float | None = None
+
 
 
 @dataclass
@@ -143,7 +153,7 @@ class GenericMujocoEnv(gym.Env):
             # so that relative assets in the scene are resolved correctly.
             logging.info(f"Merging scene: {scene_xml_path} and robot: {robot_xml_path}")
             merged_content = self._merge_xmls_via_include(scene_xml_path, robot_xml_path)
-            
+            print("Merged XML content:\n", merged_content)  # Debugging output
             scene_dir = os.path.dirname(os.path.abspath(scene_xml_path))
             import tempfile
             # Create a temp file in the same directory as the scene file
@@ -174,6 +184,37 @@ class GenericMujocoEnv(gym.Env):
             # Direct XML string case
             if "<mujoco" not in model_xml:
                  raise ValueError("Provided model_xml does not look like a valid MJCF file (missing <mujoco> tag).")
+
+            # If camera specs were provided alongside a raw MJCF string, inject
+            # any missing <camera name="..."/> declarations into the model XML
+            # before creating the MjModel so mujoco can find them by name.
+            if self._cameras_spec:
+                # Prefer inserting cameras inside <worldbody> so they are valid MJCF elements.
+                wb_close = model_xml.rfind("</worldbody>")
+                root_close = model_xml.rfind("</mujoco>")
+                if wb_close == -1 and root_close == -1:
+                    logging.warning("Could not find </worldbody> or </mujoco> in provided model_xml — skipping camera injection.")
+                else:
+                    camera_nodes: list[str] = []
+                    for cs in self._cameras_spec:
+                        # skip if camera with same name already present anywhere in XML
+                        if re.search(rf'<camera[^>]*name\s*=\s*["\']{re.escape(cs.name)}["\']', model_xml):
+                            continue
+                        attrs = [f'name="{cs.name}"']
+                        if cs.pos is not None:
+                            attrs.append('pos="' + " ".join(str(x) for x in cs.pos) + '"')
+                        if cs.euler is not None:
+                            attrs.append('euler="' + " ".join(str(x) for x in cs.euler) + '"')
+                        if cs.target is not None:
+                            attrs.append(f'target="{cs.target}"')
+                        # mode/xyaxes/fovy etc. can be added by user if needed
+                        camera_nodes.append(f'    <camera {" ".join(attrs)}/>' )
+
+                    if camera_nodes:
+                        insert_at = wb_close if wb_close != -1 else root_close
+                        # keep indentation consistent with existing <worldbody>
+                        model_xml = model_xml[:insert_at] + "\n" + "\n".join(camera_nodes) + "\n" + model_xml[insert_at:]
+
             self._model = mujoco.MjModel.from_xml_string(model_xml)
             
         else:
@@ -226,11 +267,11 @@ class GenericMujocoEnv(gym.Env):
                 # Note: Default width/height will be applied.
                 self._cameras_spec.append(CameraSpec(
                     name=cam_name,
-                    pos=[0, 0, 0],  # info only, not used for rendering existing cams
-                    euler=[0, 0, 0],
+                    # We don't populate pos/euler here as we trust the XML for existing cameras.
                     width=render_spec_width,
                     height=render_spec_height
                 ))
+
 
         # ----- camera setup -----
         self._camera_ids: list[int] = []
@@ -292,6 +333,24 @@ class GenericMujocoEnv(gym.Env):
         # We put it in root <mujoco> block so it's a sibling of <worldbody> etc.
         # This allows the robot file to define its own <asset>, <default>, etc. which is valid if scene has child <mujoco> elements?
         # Actually proper MJCF include merges children.
+
+        # If the scene already contains an <include> referencing the same base filename
+        # (for example a relative path to a previous robot file), remove that include so
+        # we can replace it with the provided absolute path.
+        robot_basename = os.path.basename(robot_abs_path)
+        include_pattern = re.compile(r'<include\s+[^>]*file\s*=\s*["\'](?P<file>[^"\']+)["\'][^>]*/?>', re.IGNORECASE)
+
+        def _remove_same_basename_includes(text: str) -> str:
+            def _repl(m):
+                existing = m.group('file')
+                if os.path.basename(existing) == robot_basename:
+                    logging.info(f"Removing existing include for '{existing}' (basename matches '{robot_basename}')")
+                    return ''
+                return m.group(0)
+
+            return include_pattern.sub(_repl, text)
+
+        scene_content = _remove_same_basename_includes(scene_content)
         
         injection = f'  <include file="{robot_abs_path}"/>\n'
         new_content = scene_content[:idx] + injection + scene_content[idx:]
