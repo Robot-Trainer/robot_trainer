@@ -67,6 +67,7 @@ interface ElectronAPI {
   }>;
   saveRobotModelZip: (sourceFilePath: string) => Promise<{ modelPath: string }>;
   saveRobotModelFile: (sourceFilePath: string) => Promise<{ modelPath: string }>;
+  sendInputEvent: (event: any) => Promise<void>;
 }
 
 declare global {

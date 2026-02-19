@@ -153,7 +153,6 @@ class GenericMujocoEnv(gym.Env):
             # so that relative assets in the scene are resolved correctly.
             logging.info(f"Merging scene: {scene_xml_path} and robot: {robot_xml_path}")
             merged_content = self._merge_xmls_via_include(scene_xml_path, robot_xml_path)
-            print("Merged XML content:\n", merged_content)  # Debugging output
             scene_dir = os.path.dirname(os.path.abspath(scene_xml_path))
             import tempfile
             # Create a temp file in the same directory as the scene file

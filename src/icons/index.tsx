@@ -92,6 +92,33 @@ export const Loader = (props: any) => (
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
+export const Pause = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
+);
+export const Stop = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 6h12v12H6z" /></svg>
+);
+export const RefreshCw = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+export const XCircle = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+  </svg>
+);
+export const Circle = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><circle cx="12" cy="12" r="8" /></svg>
+);
+
+export const ExternalLink = (props: any) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
 export const RobotConfiguration = (props: any) => (
   <svg
     viewBox="0 0 24 24"
@@ -156,5 +183,11 @@ export default {
   Settings,
   Robot,
   Camera,
-  Session
+  Session,
+  Pause,
+  Stop,
+  RefreshCw,
+  XCircle,
+  Circle,
+  ExternalLink
 };

@@ -986,6 +986,14 @@ const setupIpcHandlers = () => {
     return { ok: true };
   });
 
+  ipcMain.handle('send-input-event', async (_event, eventData: any) => {
+    const vm = videoManagers.get('simulation');
+    if (vm) {
+      // Send directly to python process via stdin
+      vm.sendCommand({ command: 'input', event: eventData });
+    }
+  });
+
   ipcMain.handle('start-camera', async (_event, devicePath: string) => {
     return { ok: false, message: 'Camera support disabled' };
   });

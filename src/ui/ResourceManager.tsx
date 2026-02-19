@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getTableColumns } from "drizzle-orm";
+import { DataGrid } from '@mui/x-data-grid';
+
 import {
   Box,
   Card,
@@ -8,13 +10,6 @@ import {
   Grid,
   Stack,
   Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   IconButton,
   Tooltip,
   Dialog,
@@ -23,7 +18,7 @@ import {
   DialogContentText,
   DialogActions
 } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
+import { Delete } from "@mui/icons-material";
 import { useToast } from "./ToastContext";
 import { Button } from "./Button";
 import useUIStore from "../lib/uiStore";
@@ -298,6 +293,51 @@ export const ResourceManager: React.FC<Props> = ({
     }
   };
 
+  const requestDelete = (item: any) => {
+    setItemToDelete(item);
+    setDeleteConfirmOpen(true);
+  };
+
+  const columns = useMemo(() => {
+    const cols = (gridCols || [{ field: "name", headerName: "Name" }]).map((c) => ({
+      field: c.field,
+      headerName: c.headerName,
+      flex: 1,
+      minWidth: 150,
+      renderCell: c.render ? (params: any) => c.render!(params.row) : (params: any) => {
+        return params.row[c.field] || (c.field === "name" && "(unnamed)");
+      },
+    }));
+
+    cols.push({
+      field: "actions",
+      headerName: "",
+      width: 60,
+      sortable: false,
+      filterable: false,
+      renderCell: (params: any) => (
+        <Stack
+          direction="row"
+          spacing={0}
+          justifyContent="flex-end"
+          sx={{ width: "100%" }}
+        >
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={(e) => { e.stopPropagation(); requestDelete(params.row); }}
+            >
+              <Delete fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      ),
+    } as any);
+
+    return cols;
+  }, [gridCols, onEdit]);
+
   // Helper to prevent row click when clicking actions
   const stopProp = (e: any) => e.stopPropagation();
 
@@ -340,91 +380,15 @@ export const ResourceManager: React.FC<Props> = ({
               </Button>
             </Box>
           ) : (
-            <TableContainer component={Paper} elevation={0}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    {(gridCols || [{ field: "name", headerName: "Name" }]).map(
-                      (c) => (
-                        <TableCell
-                          key={c.field}
-                          sx={{
-                            fontWeight: "bold",
-                            color: "text.secondary",
-                            pl: 2,
-                            borderBottom: "none",
-                          }}
-                        >
-                          {c.headerName}
-                        </TableCell>
-                      ),
-                    )}
-                    <TableCell
-                      align="right"
-                      sx={{ borderBottom: "none" }}
-                    ></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {items.map((it) => (
-                    <TableRow
-                      key={it.id}
-                      hover
-                      sx={{
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.04) !important",
-                        },
-                        "&:hover .actions-cell": { opacity: 1 },
-                        "&:focus-within .actions-cell": { opacity: 1 },
-                      }}
-                      onClick={() => onEdit(it)}
-                    >
-                      {(
-                        gridCols || [{ field: "name", headerName: "Name" }]
-                      ).map((c: any, idx) => (
-                        <TableCell
-                          key={c.field}
-                          sx={{ pl: 2, borderBottom: "none" }}
-                        >
-                          {c.render
-                            ? c.render(it)
-                            : it[c.field] ||
-                              (c.field === "name" && "(unnamed)")}
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" onClick={stopProp} sx={{ borderBottom: "none" }}>
-                        <Stack
-                          className="actions-cell"
-                          direction="row"
-                          spacing={0}
-                          justifyContent="flex-end"
-                          sx={{
-                            opacity: 0,
-                            transition: "opacity 0.2s",
-                          }}
-                        >
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => onEdit(it)}>
-                              <Edit fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => requestDelete(it)}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Box sx={{ width: '100%' }}>
+              <DataGrid
+                rows={items}
+                columns={columns}
+                onRowClick={(params) => onEdit(params.row)}
+                disableRowSelectionOnClick
+                autoHeight
+              />
+            </Box>
           )}
         </>
       )}
@@ -489,13 +453,13 @@ export const ResourceManager: React.FC<Props> = ({
                     }
 
                     return (
-                      <Grid item xs={12} md={6} key={f.name}>
+                      <Grid size={{ xs: 12, md: 6 }} key={f.name}>
                         {f.type === "select" ? (
                           <Select
                             label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
-                              setForm((prev) => ({
+                              setForm((prev: any) => ({
                                 ...prev,
                                 [f.name]: e.target.value,
                               }))
@@ -507,7 +471,7 @@ export const ResourceManager: React.FC<Props> = ({
                             label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
-                              setForm((prev) => ({
+                              setForm((prev: any) => ({
                                 ...prev,
                                 [f.name]: e.target.value,
                               }))

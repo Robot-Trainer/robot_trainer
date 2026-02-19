@@ -18,38 +18,8 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Badge from '../ui/Badge';
 import { useToast } from '../ui/ToastContext';
-import { Play, CheckCircle, ChevronRight } from '../icons';
+import { Play, CheckCircle, ChevronRight, Pause, Stop, RefreshCw, XCircle, Circle, ExternalLink } from '../icons';
 import { VideoPlayer } from '../ui/VideoPlayer';
-
-// Additional Icons
-const Pause = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
-);
-const Stop = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 6h12v12H6z" /></svg>
-);
-const RefreshCw = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-  </svg>
-);
-const XCircle = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-  </svg>
-);
-const Circle = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}><circle cx="12" cy="12" r="8" /></svg>
-);
-
-const ExternalLink = (props: any) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
-  </svg>
-);
-
 
 type SceneStatus = {
   ready: boolean;
@@ -60,8 +30,8 @@ type SceneStatus = {
   teleopCount: number;
 };
 
-const TAB_SETTINGS = 0;
-const TAB_RECORD = 1;
+const TAB_RECORD = 0;
+const TAB_SETTINGS = 1;
 const TAB_EPISODES = 2;
 
 interface SceneDropdownProps {
@@ -176,7 +146,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
-  const [tabValue, setTabValue] = useState(TAB_SETTINGS);
+  const [tabValue, setTabValue] = useState(TAB_RECORD);
 
   // Dataset Config
   const [repoId, setRepoId] = useState('');
@@ -272,92 +242,113 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     return Boolean(data.path || data.devicePath || data.rtspUrl || data.url);
   };
 
+  const computeSceneStatus = async (
+    sceneId: number,
+    getPorts: () => Promise<any[]>
+  ): Promise<SceneStatus> => {
+    const [robotRows, cameraRows, teleopRows] = await Promise.all([
+      db.select({ robot: robotsTable })
+        .from(sceneRobotsTable)
+        .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
+        .where(eq(sceneRobotsTable.sceneId, sceneId)),
+      db.select({ camera: camerasTable })
+        .from(sceneCamerasTable)
+        .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
+        .where(eq(sceneCamerasTable.sceneId, sceneId)),
+      db.select().from(sceneTeleoperatorsTable)
+        .where(eq(sceneTeleoperatorsTable.sceneId, sceneId))
+    ]);
+
+    const robots = robotRows.map(r => r.robot);
+    const cameras = cameraRows.map(r => r.camera);
+    const teleops = teleopRows;
+
+    const hasRobot = robots.length > 0;
+    const hasCameras = cameras.length > 0;
+    const hasTeleop = teleops.length > 0;
+
+    const hasRealItems = robots.some(r => r.modality === 'real') || cameras.some(c => c.modality === 'real');
+    const hasSimItems = robots.some(r => r.modality === 'simulated') || cameras.some(c => c.modality === 'simulated');
+    const mode: SceneStatus['mode'] = hasRealItems && hasSimItems ? 'mixed' : hasRealItems ? 'real' : hasSimItems ? 'sim' : 'unknown';
+
+    const allRobotsSim = hasRobot && robots.every(r => r.modality === 'simulated');
+    const allCamerasSim = hasCameras && cameras.every(c => c.modality === 'simulated');
+    const isSimSceneReady = hasRobot && hasCameras && hasTeleop && allRobotsSim && allCamerasSim;
+
+    const issues: string[] = [];
+
+    if (isSimSceneReady) {
+      return {
+        ready: true,
+        issues,
+        mode,
+        cameraCount: cameras.length,
+        robotCount: robots.length,
+        teleopCount: teleops.length
+      };
+    }
+
+    if (!hasRobot) issues.push('This scene is missing a robot.');
+    if (!hasCameras) issues.push('This scene is missing cameras.');
+    if (!hasTeleop) issues.push('This scene is missing a teleoperator mode.');
+
+    // Only scan serial ports when we actually need to validate real hardware connectivity.
+    const needsPortCheck =
+      robots.some(r => r.modality === 'real') ||
+      teleops.some((t: any) => (t.snapshot || {}).type === 'real');
+    const ports = needsPortCheck ? await getPorts() : [];
+
+    const realRobotDisconnected = robots
+      .filter(r => r.modality === 'real')
+      .some(r => !r.serialNumber || !ports.some((p: any) => p.serialNumber && r.serialNumber === p.serialNumber));
+    if (realRobotDisconnected) issues.push('real robot not connected');
+
+    const realCameraDisconnected = cameras
+      .filter(c => c.modality === 'real')
+      .some(c => !isCameraConnected(c));
+    if (realCameraDisconnected) issues.push('real camera not connected');
+
+    const teleopDisconnected = teleops.some((t: any) => {
+      const snap = t.snapshot || {};
+      if (snap.type !== 'real') return false;
+      const cfg = snap.config || {};
+      const serial = cfg.serialNumber;
+      const path = cfg.path;
+      if (!serial && !path) return true;
+      if (serial && ports.some((p: any) => p.serialNumber === serial)) return false;
+      if (path && ports.some((p: any) => p.path === path)) return false;
+      return true;
+    });
+    if (teleopDisconnected) issues.push('teleoperator not connected');
+
+    const ready = hasRobot && hasCameras && !realRobotDisconnected && !realCameraDisconnected && !teleopDisconnected;
+
+    return {
+      ready,
+      issues,
+      mode,
+      cameraCount: cameras.length,
+      robotCount: robots.length,
+      teleopCount: teleops.length
+    };
+  };
+
   const refreshSceneStatuses = async (sceneList: any[]) => {
     if (!sceneList || sceneList.length === 0) {
       setSceneStatusMap({});
       return {};
     }
-
-    const ports = await scanSerialPorts();
     const nextMap: Record<number, SceneStatus> = {};
+
+    let portsPromise: Promise<any[]> | null = null;
+    const getPorts = () => {
+      if (!portsPromise) portsPromise = scanSerialPorts();
+      return portsPromise;
+    };
 
     for (const scn of sceneList) {
       try {
-        const [robotRows, cameraRows, teleopRows] = await Promise.all([
-          db.select({ robot: robotsTable })
-            .from(sceneRobotsTable)
-            .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
-            .where(eq(sceneRobotsTable.sceneId, scn.id)),
-          db.select({ camera: camerasTable })
-            .from(sceneCamerasTable)
-            .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
-            .where(eq(sceneCamerasTable.sceneId, scn.id)),
-          db.select().from(sceneTeleoperatorsTable)
-            .where(eq(sceneTeleoperatorsTable.sceneId, scn.id))
-        ]);
-
-        const robots = robotRows.map(r => r.robot);
-        const cameras = cameraRows.map(r => r.camera);
-        const teleops = teleopRows;
-
-        const hasRobot = robots.length > 0;
-        const hasCameras = cameras.length > 0;
-        const hasTeleop = teleops.length > 0;
-
-        const hasRealItems = robots.some(r => r.modality === 'real') || cameras.some(c => c.modality === 'real');
-        const hasSimItems = robots.some(r => r.modality === 'simulated') || cameras.some(c => c.modality === 'simulated');
-        const mode: SceneStatus['mode'] = hasRealItems && hasSimItems ? 'mixed' : hasRealItems ? 'real' : hasSimItems ? 'sim' : 'unknown';
-
-        const allRobotsSim = hasRobot && robots.every(r => r.modality === 'simulated');
-        const allCamerasSim = hasCameras && cameras.every(c => c.modality === 'simulated');
-        const isSimSceneReady = hasRobot && hasCameras && hasTeleop && allRobotsSim && allCamerasSim;
-
-        const issues: string[] = [];
-        let ready = false;
-
-        if (isSimSceneReady) {
-          ready = true;
-        } else {
-          if (!hasRobot) issues.push('This scene is missing a robot.');
-          if (!hasCameras) issues.push('This scene is missing cameras.');
-          if (!hasTeleop) issues.push('This scene is missing a teleoperator mode.');
-
-          const realRobotDisconnected = robots
-            .filter(r => r.modality === 'real')
-            .some(r => !r.serialNumber || !ports.some((p: any) => p.serialNumber && r.serialNumber === p.serialNumber));
-          if (realRobotDisconnected) issues.push('real robot not connected');
-
-          const realCameraDisconnected = cameras
-            .filter(c => c.modality === 'real')
-            .some(c => !isCameraConnected(c));
-          if (realCameraDisconnected) issues.push('real camera not connected');
-
-          const teleopDisconnected = teleops.some((t: any) => {
-            const snap = t.snapshot || {};
-            if (snap.type !== 'real') return false;
-            const cfg = snap.config || {};
-            const serial = cfg.serialNumber;
-            const path = cfg.path;
-            if (!serial && !path) return true;
-            if (serial && ports.some((p: any) => p.serialNumber === serial)) return false;
-            if (path && ports.some((p: any) => p.path === path)) return false;
-            return true;
-          });
-          if (teleopDisconnected) issues.push('teleoperator not connected');
-
-          if (hasRobot && hasCameras && !realRobotDisconnected && !realCameraDisconnected && !teleopDisconnected) {
-            ready = true;
-          }
-        }
-
-        nextMap[scn.id] = {
-          ready,
-          issues,
-          mode,
-          cameraCount: cameras.length,
-          robotCount: robots.length,
-          teleopCount: teleops.length
-        };
+        nextMap[scn.id] = await computeSceneStatus(scn.id, getPorts);
       } catch (e) {
         console.error('Failed to compute scene status', e);
         nextMap[scn.id] = {
@@ -512,8 +503,15 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
        return false;
     }
 
-    const currentMap = await refreshSceneStatuses(scenes);
-    const status = currentMap && currentMap[selectedSceneId];
+    let status: SceneStatus | undefined;
+    try {
+      status = await computeSceneStatus(selectedSceneId, scanSerialPorts);
+      setSceneStatusMap((prev) => ({ ...prev, [selectedSceneId]: status! }));
+    } catch (e) {
+      console.error('Failed to compute selected scene status', e);
+      status = undefined;
+    }
+
     if (!status || !status.ready) {
       setErrorMessage({
         message: 'Scene is not ready',
@@ -620,6 +618,9 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
                 terminate_on_success: true,
               },
             },
+          },
+          teleop: {
+            type: "keyboard",
           },
           dataset: {
             repo_id: repoId,
@@ -789,6 +790,39 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     };
   }, [cameras]);
 
+  // Capture keyboard events for simulation control
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Avoid sending keys while typing in inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      window.electronAPI.sendInputEvent({
+        type: 'keydown',
+        key: e.key,
+        code: e.code
+      });
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      window.electronAPI.sendInputEvent({
+        type: 'keyup',
+        key: e.key,
+        code: e.code
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -814,8 +848,8 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
       <Box className="px-4 bg-white">
         <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label="Settings" />
           <Tab label="Record / Simulate" />
+          <Tab label="Settings" />
           <Tab label="Session Episodes" />
         </Tabs>
       </Box>

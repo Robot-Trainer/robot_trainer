@@ -25,6 +25,8 @@ import sys
 import os
 import ctypes.util
 import shutil
+import queue
+import threading
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
@@ -93,6 +95,7 @@ from lerobot.teleoperators import (
     so_leader,  # noqa: F401
 )
 from lerobot.teleoperators.teleoperator import Teleoperator
+from lerobot.teleoperators.config import TeleoperatorConfig
 from lerobot.teleoperators.utils import TeleopEvents
 from lerobot.teleoperators.keyboard.configuration_keyboard import KeyboardTeleopConfig
 from lerobot.teleoperators.gamepad.configuration_gamepad import GamepadTeleopConfig
@@ -101,6 +104,87 @@ from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
 
 from lerobot.rl.joint_observations_processor import JointVelocityProcessorStep, MotorCurrentProcessorStep
+
+from pynput import keyboard as pynput_keyboard
+
+# Global queue for remote events
+remote_input_queue = queue.Queue()
+
+def stdin_listener():
+    """Reads JSON commands from stdin and pushes them to queue."""
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                cmd = json.loads(line)
+                if cmd.get('command') == 'input':
+                    remote_input_queue.put(cmd.get('event'))
+            except Exception:
+                pass
+        except Exception:
+            break
+
+from lerobot.teleoperators.keyboard import KeyboardEndEffectorTeleop, KeyboardEndEffectorTeleopConfig
+
+# ---------------------------------------------------------------------------
+# Remote Teleoperator (Keyboard via Socket.IO)
+# ---------------------------------------------------------------------------
+
+class RemoteKeyboardTeleop(KeyboardEndEffectorTeleop):
+    def connect(self):
+        logging.info("RemoteKeyboardTeleop connected (pynput listener skipped)")
+        # Set a dummy listener to satisfy potential internal checks
+        self.listener = "remote"
+
+    @property
+    def is_connected(self) -> bool:
+        # Always return True after connect() is called
+        return self.listener is not None
+
+    def get_action(self) -> dict:
+        while not remote_input_queue.empty():
+            event = remote_input_queue.get()
+            key_val = event.get('key')
+            type_val = event.get('type')
+            
+            target_key = None
+            # For single-character keys use the character string so
+            # the original keyboard teleop code (which expects 'w','s', etc.)
+            # works correctly. For named keys (arrows, shift, ctrl) use
+            # the pynput `Key` objects so comparisons like `key == keyboard.Key.up`
+            # continue to function.
+            if key_val and len(key_val) == 1:
+                target_key = key_val.lower()
+            else:
+                if key_val == 'ArrowUp': target_key = pynput_keyboard.Key.up
+                elif key_val == 'ArrowDown': target_key = pynput_keyboard.Key.down
+                elif key_val == 'ArrowLeft': target_key = pynput_keyboard.Key.left
+                elif key_val == 'ArrowRight': target_key = pynput_keyboard.Key.right
+                elif key_val == 'Shift': target_key = pynput_keyboard.Key.shift
+                elif key_val == 'Control': target_key = pynput_keyboard.Key.ctrl_l
+                elif key_val == 'Alt': target_key = pynput_keyboard.Key.alt
+                elif key_val == 'Space': target_key = pynput_keyboard.Key.space
+                elif key_val == 'Enter': target_key = pynput_keyboard.Key.enter
+                elif key_val == 'Escape': target_key = pynput_keyboard.Key.esc
+
+            if target_key is not None:
+                # Store boolean press state (True/False). The lerobot teleop
+                # implementation expects boolean-like values that can be
+                # converted to int (e.g. int(True) == 1, int(False) == 0).
+                if type_val == 'keydown':
+                    self.current_pressed[target_key] = True
+                elif type_val == 'keyup':
+                    # Mark released as False (matching KeyboardTeleop behaviour)
+                    self.current_pressed[target_key] = False
+
+        # Use parent class logic to convert key presses to delta action
+        return super().get_action()
 
 import socketio
 import asyncio
@@ -157,6 +241,7 @@ class GymManipulatorConfig:
     """Main configuration for gym manipulator environment."""
 
     env: EnvConfig
+    teleop: TeleoperatorConfig
     dataset: DatasetConfig
     mode: str | None = None  # Either "record", "replay", None
     device: str = "cpu"
@@ -668,7 +753,10 @@ def make_robot_env(cfg: EnvConfig) -> tuple[gym.Env, Any]:
                 teleop_config = gamepad.GamepadTeleopConfig()
 
         if teleop_config:
-            teleop = make_teleoperator_from_config(teleop_config)
+            if isinstance(teleop_config, keyboard.KeyboardTeleopConfig):
+                teleop = RemoteKeyboardTeleop(teleop_config)
+            else:
+                teleop = make_teleoperator_from_config(teleop_config)
             teleop.connect()
 
         return env, teleop
@@ -737,17 +825,26 @@ def make_processors(
     # Custom MuJoCo environment — lightweight pipeline (no real robot/teleop)
     if cfg.name == "custom_mujoco":
         terminate_on_success = True
+        use_gripper = True
         if hasattr(cfg, 'processor') and cfg.processor is not None:
             reset_cfg = getattr(cfg.processor, 'reset', None)
             if reset_cfg is not None:
                 terminate_on_success = getattr(reset_cfg, 'terminate_on_success', True)
+            
+            gripper_cfg = getattr(cfg.processor, 'gripper', None)
+            if gripper_cfg is not None:
+                use_gripper = getattr(gripper_cfg, 'use_gripper', True)
 
         action_pipeline_steps = []
         if teleop_device is not None:
             action_pipeline_steps.append(AddTeleopActionAsComplimentaryDataStep(teleop_device=teleop_device))
+            action_pipeline_steps.append(AddTeleopEventsAsInfoStep(teleop_device=teleop_device))
 
         action_pipeline_steps.extend([
-            InterventionActionProcessorStep(terminate_on_success=terminate_on_success),
+            InterventionActionProcessorStep(
+                use_gripper=use_gripper,
+                terminate_on_success=terminate_on_success
+            ),
             Torch2NumpyActionProcessorStep(),
         ])
 
@@ -769,10 +866,15 @@ def make_processors(
     )
 
     if cfg.name == "gym_hil":
-        action_pipeline_steps = [
+        action_pipeline_steps = []
+        if teleop_device is not None:
+             action_pipeline_steps.append(AddTeleopActionAsComplimentaryDataStep(teleop_device=teleop_device))
+             action_pipeline_steps.append(AddTeleopEventsAsInfoStep(teleop_device=teleop_device))
+        
+        action_pipeline_steps.extend([
             InterventionActionProcessorStep(terminate_on_success=terminate_on_success),
             Torch2NumpyActionProcessorStep(),
-        ]
+        ])
 
         env_pipeline_steps = [
             Numpy2TorchActionProcessorStep(),
@@ -1091,19 +1193,12 @@ async def control_loop(
         step_start_time = time.perf_counter()
 
         # Create a neutral action (no movement)
-        # Assuming the environment (or wrapper) exposes action_space.
-        # This fixes a crash where rigid 3/4-DOF assumptions conflict with custom robots (e.g. 7-DOF).
-        action_dim = 4
+        neutral_action = torch.zeros(4, dtype=torch.float32) # Default assumption
         if hasattr(env, "action_space") and hasattr(env.action_space, "shape"):
-            action_dim = env.action_space.shape[0]
+             neutral_action = torch.zeros(env.action_space.shape[0], dtype=torch.float32)
         elif hasattr(env, "unwrapped") and hasattr(env.unwrapped, "action_space") and hasattr(env.unwrapped.action_space, "shape"):
-            action_dim = env.unwrapped.action_space.shape[0]
-            
-        neutral_action = torch.zeros(action_dim, dtype=torch.float32)
-        # If strict gripper logic is needed for neutral matching, it should be derived from env metadata.
-        # effectively: if use_gripper and action_dim == 4: neutral_action[-1] = 1.0 (maybe?)
-        # For now, zeros are safer than a shape mismatch.
-
+             neutral_action = torch.zeros(env.unwrapped.action_space.shape[0], dtype=torch.float32)
+       
         # Use the new step function
         transition = await step_env_and_process_transition(
             env=env,
@@ -1218,14 +1313,30 @@ async def replay_trajectory(
 @parser.wrap()
 def main(cfg: GymManipulatorConfig) -> None:
     """Main entry point for gym manipulator script."""
-    logging.info("Starting gym_manipulator...")
-    
+    # Start stdin listener thread for remote commands
+    t = threading.Thread(target=stdin_listener, daemon=True)
+    t.start()
+
     async def run_gym_logic():
         try:
-            env, teleop_device = make_robot_env(cfg.env)
-            env_processor, action_processor = make_processors(env, teleop_device, cfg.env, cfg.device)
+            # Force keyboard teleop to be RemoteKeyboardTeleop
+            if cfg.teleop and cfg.teleop.type == "keyboard":
+                # Convert to KeyboardEndEffectorTeleopConfig to support use_gripper logic
+                ee_config = KeyboardEndEffectorTeleopConfig(
+                    id=getattr(cfg.teleop, "id", None),
+                    calibration_dir=getattr(cfg.teleop, "calibration_dir", None),
+                    use_gripper=True # Default to True for manipulation
+                )
+                teleop_device = RemoteKeyboardTeleop(ee_config)
+                teleop_device.connect()
+                env, _ = make_robot_env(cfg.env)
+            else:
+                env, teleop_device = make_robot_env(cfg.env)
 
-            logging.info("Environment observation space:", env.observation_space)
+            # Initialize processors
+            env_processor, action_processor = make_processors(env, teleop_device, cfg.env)
+
+            logging.info(f"Environment observation space: {env.observation_space}")
             # logging.info("Environment action space:", env.action_space)
             # logging.info("Environment processor:", env_processor)
             # logging.info("Action processor:", action_processor)

@@ -1,11 +1,32 @@
 import { db } from './db';
-import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, camerasTable } from './schema';
+import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, camerasTable, scenesTable, sceneRobotsTable, sceneCamerasTable } from './schema';
 import { tableResource } from './tableResource';
+import { eq, sql } from 'drizzle-orm';
 
 export const robotModelsResource = tableResource(robotModelsTable);
 export const teleoperatorModelsResource = tableResource(teleoperatorModelsTable);
 export const robotsResource = tableResource(robotsTable);
 export const camerasResource = tableResource(camerasTable);
+
+export const scenesResource = {
+  ...tableResource(scenesTable),
+  list: async () => {
+    return await db.select({
+      id: scenesTable.id,
+      name: scenesTable.name,
+      notes: scenesTable.notes,
+      sceneXmlPath: scenesTable.sceneXmlPath,
+      createdAt: scenesTable.createdAt,
+      robotName: robotsTable.name,
+      robotModality: robotsTable.modality,
+      cameraCount: sql<number>`(SELECT count(*) FROM ${sceneCamerasTable} WHERE ${sceneCamerasTable.sceneId} = ${scenesTable.id})`.mapWith(Number)
+    })
+    .from(scenesTable)
+    .leftJoin(sceneRobotsTable, eq(scenesTable.id, sceneRobotsTable.sceneId))
+    .leftJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
+    .execute();
+  }
+};
 
 export const configResource = {
   getAll: async () => {

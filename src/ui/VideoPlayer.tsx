@@ -77,7 +77,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
         });
 
         socket.on('video_frame', (data: { image: string, camera_name: string }) => {
-          console.log('Received video frame for camera:', data.camera_name);
           if (!canvasRef.current || !mounted) return;
           if (channel && data.camera_name !== channel && data.camera_name !== `observation.images.${channel}`) {
             return; // Skip frames if channel filter is set and doesn't match
@@ -95,7 +94,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
               canvasRef.current.height = img.height;
             }
             const ctx = canvasRef.current.getContext('2d');
-            console.log(canvasRef.current);
             ctx?.drawImage(img, 0, 0);
           };
           img.src = 'data:image/jpeg;base64,' + data.image;

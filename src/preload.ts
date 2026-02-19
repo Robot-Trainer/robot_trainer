@@ -94,4 +94,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readModelFile: (filePath: string) => ipcRenderer.invoke('read-model-file', filePath),
   saveRobotModelZip: (sourceFilePath: string) => ipcRenderer.invoke('save-robot-model-zip', sourceFilePath),
   saveRobotModelFile: (sourceFilePath: string) => ipcRenderer.invoke('save-robot-model-file', sourceFilePath),
+  sendInputEvent: (event: any) => ipcRenderer.invoke('send-input-event', event),
 });
