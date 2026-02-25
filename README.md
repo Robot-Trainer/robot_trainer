@@ -1,6 +1,12 @@
 # Robot Trainer
 
-# 🚧 **This project is in its development/pre-aplha phase** 🚧
+<hr>
+
+### 🚧 **This project is in a development/pre-aplha phase.** 🚧
+
+That is, its primary features are being actively implemented. Do not expect it to work out of the box, but do feel free to contribute to its development.
+
+<hr>
 
 **Overview**
 
