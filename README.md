@@ -1,5 +1,7 @@
 # Robot Trainer
 
+# 🚧 **This project is in its development/pre-aplha phase** 🚧
+
 **Overview**
 
 Robot Trainer is an Electron desktop application built with Vite + React (TypeScript) that integrates a bundled Python runtime for robot-related tooling. The project packages a small Python utility (built with PyInstaller) alongside the Electron app so native robot integrations can run as a standalone binary.
