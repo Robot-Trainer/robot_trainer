@@ -64,7 +64,7 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@rjsf/core": "^6.2.5",
-    "@rjsf/utils": "^6.2.5",
+    "@rjsf/utils": "^6.3.1",
     "@rjsf/validator-ajv8": "^6.2.5",
     "@serialport/bindings-cpp": "^13.0.1",
     "@tailwindcss/vite": "^4.1.18",
