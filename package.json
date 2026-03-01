@@ -71,7 +71,7 @@
     "@mui/x-data-grid": "^8.27.1",
     "@mui/x-date-pickers": "^8.27.0",
     "@rjsf/core": "^6.2.5",
-    "@rjsf/utils": "^6.2.5",
+    "@rjsf/utils": "^6.3.1",
     "@rjsf/validator-ajv8": "^6.2.5",
     "@serialport/bindings-cpp": "^13.0.1",
     "@tailwindcss/vite": "^4.1.18",
