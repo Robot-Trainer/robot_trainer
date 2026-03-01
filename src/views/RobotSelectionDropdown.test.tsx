@@ -19,7 +19,7 @@ describe('RobotSelectionDropdown', () => {
       />
     );
 
-    expect(screen.getByText('Unknown robot (id: 999)')).toBeInTheDocument();
+    expect(screen.getByText('Unknown robot (id: 999)')).toBeTruthy();
     expect(consolespy).not.toHaveBeenCalledWith(expect.stringContaining('out-of-range value'));
 
     consolespy.mockRestore();

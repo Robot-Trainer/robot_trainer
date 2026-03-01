@@ -17,7 +17,7 @@ describe('CameraSelectionDropdown', () => {
       />
     );
 
-    expect(screen.getByText('Unknown camera (id: 2)')).toBeInTheDocument();
+    expect(screen.getByText('Unknown camera (id: 2)')).toBeTruthy();
     expect(consolespy).not.toHaveBeenCalledWith(expect.stringContaining('out-of-range value'));
 
     consolespy.mockRestore();

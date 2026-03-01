@@ -45,36 +45,33 @@ describe('CameraConfigurationForm', () => {
     });
 
     // Should start with one empty slot labeled "Camera 1"
-    const label1 = screen.getByText('Camera 1');
-    expect(label1).not.toBeNull();
+    const labels = screen.getAllByText('Camera 1');
+    expect(labels.length).toBeGreaterThan(0);
 
-    // Find the dropdown trigger by its placeholder text
-    // Use getAllByText in case multiple exist (should be one initially)
-    const trigger1 = screen.getByText('Select or create camera...');
-    fireEvent.click(trigger1);
+    // Open first camera selector
+    const firstCameraSelect = screen.getByLabelText('Camera 1');
+    fireEvent.mouseDown(firstCameraSelect);
 
     // Dropdown should be open, showing camera options
-    const cam1Option = screen.getByText('Cam 1');
+    const cam1Option = await screen.findByRole('option', { name: 'Cam 1' });
     fireEvent.click(cam1Option);
 
     // Now trigger should show "Cam 1"
-    expect(screen.getByText('Cam 1')).not.toBeNull();
+    expect(screen.getAllByText('Cam 1').length).toBeGreaterThan(0);
 
     // Add another camera
     const addBtn = screen.getByText(/\+ Add Another Camera/i);
     fireEvent.click(addBtn);
 
     // Should see Camera 2 label
-    expect(screen.getByText('Camera 2')).not.toBeNull();
+    expect(screen.getAllByText('Camera 2').length).toBeGreaterThan(0);
 
-    // Find the second slot's trigger. 
-    // "Select or create camera..."
-    const triggers = screen.getAllByText('Select or create camera...');
-    // The second one should be the new one
-    fireEvent.click(triggers[triggers.length - 1]);
+    // Open second camera selector
+    const secondCameraSelect = screen.getByLabelText('Camera 2');
+    fireEvent.mouseDown(secondCameraSelect);
 
     // Select Cam 2
-    const cam2Option = screen.getByText('Cam 2');
+    const cam2Option = await screen.findByRole('option', { name: 'Cam 2' });
     fireEvent.click(cam2Option);
 
     // Save
@@ -105,22 +102,16 @@ describe('CameraConfigurationForm', () => {
 
     // Should see Camera 2 label
     await waitFor(() => {
-      expect(screen.getByText('Camera 2')).not.toBeNull();
+      expect(screen.getAllByText('Camera 2').length).toBeGreaterThan(0);
     });
 
     // Find remove buttons (X)
-    const removeBtns = screen.getAllByText('X');
-    // Remove the second one (index 1)
+    const removeBtns = screen.getAllByTitle('Remove Camera slot');
     fireEvent.click(removeBtns[1]);
 
     // Should only have 1 slot now
     await waitFor(() => {
       expect(screen.queryByText('Camera 2')).toBeNull();
     });
-  });
-});
-
-    // "Camera 2" label should be gone
-    expect(screen.queryByText('Camera 2')).toBeNull();
   });
 });

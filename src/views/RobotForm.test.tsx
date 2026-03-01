@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RobotForm from './RobotForm';
 import { robotModelsResource } from '../db/resources';
 
+vi.mock('../db/db', () => ({
+  db: {},
+}));
+
 // Mock the resources
 vi.mock('../db/resources', () => ({
   robotModelsResource: {
@@ -70,19 +74,19 @@ describe('RobotForm', () => {
     fireEvent.mouseDown(modelSelectTrigger);
 
     // 2. Wait for options to populate and select one
-    const modelOption = await screen.findByText('Robot Model A');
+    const modelOption = await screen.findByRole('option', { name: 'Robot Model A' });
     fireEvent.click(modelOption);
 
     // Select Modality
     const modalitySelectTrigger = screen.getByLabelText(/Modality/i);
     fireEvent.mouseDown(modalitySelectTrigger);
-    const modalityOption = await screen.findByText('Real');
+    const modalityOption = await screen.findByRole('option', { name: 'Real' });
     fireEvent.click(modalityOption);
 
     // Connect Device
     // We can select from the scanned list (which we triggered scan for)
     // or type manually. The scanned list items are clickable.
-    const deviceCard = await screen.findByText(/SerialNumber1/);
+    const deviceCard = await screen.findByRole('button', { name: /Select device SerialNumber1/i });
     fireEvent.click(deviceCard);
     
     // Or if we want to test manual input:
@@ -109,7 +113,9 @@ describe('RobotForm', () => {
 
     // Change modality to Simulated
     const modalitySelect = screen.getByLabelText(/Modality/i);
-    fireEvent.change(modalitySelect, { target: { value: 'simulated' } });
+    fireEvent.mouseDown(modalitySelect);
+    const simulatedOption = await screen.findByRole('option', { name: 'Simulated' });
+    fireEvent.click(simulatedOption);
 
     // Device select should disappear
     const connectedDevice = screen.queryByLabelText(/Connected Device/i);
@@ -119,11 +125,10 @@ describe('RobotForm', () => {
     fireEvent.change(nameInput, { target: { value: 'Sim Robot' } });
 
     // Select Robot Model
-    // Wait for options to populate
-    await waitFor(() => expect(screen.getByText('Robot Model B')).not.toBeNull());
-
     const modelSelect = screen.getByLabelText(/Robot Model/i);
-    fireEvent.change(modelSelect, { target: { value: '2' } });
+    fireEvent.mouseDown(modelSelect);
+    const modelOption = await screen.findByRole('option', { name: 'Robot Model B' });
+    fireEvent.click(modelOption);
 
     const saveBtn = screen.getByText(/Save Robot/i);
     fireEvent.click(saveBtn);

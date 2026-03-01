@@ -1,25 +1,21 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import ScenesView from './Scenes';
 import { scenesTable } from '../db/schema';
+import { tableResource } from '../db/tableResource';
+import { migrate } from '../db/migrate';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
+import path from 'node:path';
 import { db } from '../db/db';
 
-// Mock dependencies
-vi.mock('../db/db', () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => Promise.resolve([])), // default empty list
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn(() => ({
-        returning: vi.fn(() => Promise.resolve([{ id: 1, name: 'Scene 1' }])),
-      })),
-    })),
-    delete: vi.fn(() => ({
-      where: vi.fn(() => Promise.resolve()),
-    })),
-  },
-}));
+vi.mock('../db/db', async () => {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { drizzle } = await import('drizzle-orm/pglite');
+  const client = new PGlite();
+  const db = drizzle(client);
+  Object.assign(db, { ready: true, waitReady: Promise.resolve() });
+  return { db, client };
+});
 
 vi.mock('../ui/ToastContext', () => ({
   useToast: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -33,6 +29,17 @@ vi.mock('../lib/uiStore', () => ({
 }));
 
 describe('ScenesView', () => {
+  beforeAll(async () => {
+    (window as any).electronAPI = {
+      getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') }),
+    };
+    await migrate();
+  });
+
+  beforeEach(async () => {
+    await db.delete(scenesTable);
+  });
+
   it('renders correctly', async () => {
     render(<ScenesView />);
     expect(screen.getByText('Scenes')).toBeDefined();
@@ -41,13 +48,8 @@ describe('ScenesView', () => {
   });
 
   it('lists scenes', async () => {
-    // Override mock implementation for list
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockResolvedValue([
-        { id: 1, name: 'Test Scene', description: 'Description' },
-        { id: 2, name: 'Another Scene', description: '' }
-      ]),
-    });
+    await tableResource(scenesTable).create({ name: 'Test Scene' });
+    await tableResource(scenesTable).create({ name: 'Another Scene' });
 
     render(<ScenesView />);
     await waitFor(() => {

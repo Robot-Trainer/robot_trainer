@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import SkillsView from './Skills';
 import { skillsTable, sessionsTable, scenesTable } from '../db/schema';
@@ -46,7 +46,11 @@ describe('SkillsView Deletion', () => {
     render(<SkillsView />);
     await waitFor(() => screen.getByText('SkillToDelete'));
 
-    fireEvent.click(screen.getByText('Delete'));
+    const deleteIcon = await screen.findByTestId('DeleteIcon');
+    fireEvent.click(deleteIcon.closest('button')!);
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Delete$/i }));
 
     await waitFor(async () => {
       const skills = await tableResource(skillsTable).list();

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import SessionsView from './Sessions';
 import { sessionsTable, episodesTable, scenesTable } from '../db/schema';
@@ -49,8 +49,11 @@ describe('SessionsView Deletion', () => {
     render(<SessionsView />);
     await waitFor(() => screen.getByText('SessionToDelete'));
 
-    const deleteBtns = screen.getAllByText('Delete');
-    fireEvent.click(deleteBtns[0]);
+    const deleteIcon = await screen.findByTestId('DeleteIcon');
+    fireEvent.click(deleteIcon.closest('button')!);
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Delete$/i }));
 
     await waitFor(async () => {
       const sessions = await tableResource(sessionsTable).list();
