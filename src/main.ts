@@ -8,6 +8,7 @@ import { filterInterestingPorts } from './lib/serial_devices';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { JSDOM } from 'jsdom';
 import AdmZip from 'adm-zip';
+import { featureFlags } from './lib/feature_flags';
 
 import { VideoManager } from './lib/VideoManager';
 
@@ -72,6 +73,10 @@ const stopStartupProfiling = async (reason: string) => {
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
+}
+
+if (featureFlags.enableSim) {
+  console.log('[feature-flags] enable-sim is enabled');
 }
 
 let systemSettings: any = {};
