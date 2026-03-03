@@ -147,6 +147,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [tabValue, setTabValue] = useState(TAB_RECORD);
+  const [sessionRobotModality, setSessionRobotModality] = useState<'real' | 'simulated'>('simulated');
 
   // Dataset Config
   const [repoId, setRepoId] = useState('');
@@ -465,6 +466,35 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       }
     };
     fetchCameras();
+  }, [selectedSceneId]);
+
+  useEffect(() => {
+    if (!selectedSceneId) {
+      setSessionRobotModality('simulated');
+      return;
+    }
+
+    const loadSceneRobotModality = async () => {
+      try {
+        const robotRows = await db
+          .select({ robot: robotsTable })
+          .from(sceneRobotsTable)
+          .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
+          .where(eq(sceneRobotsTable.sceneId, selectedSceneId));
+
+        const firstRobot = robotRows[0]?.robot;
+        if (firstRobot?.modality === 'real') {
+          setSessionRobotModality('real');
+        } else {
+          setSessionRobotModality('simulated');
+        }
+      } catch (e) {
+        console.error('Failed to load scene robot modality', e);
+        setSessionRobotModality('simulated');
+      }
+    };
+
+    loadSceneRobotModality();
   }, [selectedSceneId]);
 
 
@@ -797,7 +827,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
-      window.electronAPI.sendInputEvent({
+      (window as any).electronAPI.sendInputEvent({
         type: 'keydown',
         key: e.key,
         code: e.code
@@ -808,7 +838,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
-      window.electronAPI.sendInputEvent({
+      (window as any).electronAPI.sendInputEvent({
         type: 'keyup',
         key: e.key,
         code: e.code
@@ -947,28 +977,36 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         {tabValue === TAB_RECORD && (
           <div className="h-full flex overflow-hidden">
             <div className="w-72 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 overflow-y-auto">
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Simulation</h3>
-                <Button
-                  variant={simRunning ? "ghost" : "primary"}
-                  className="w-full justify-center gap-2"
-                  onClick={simRunning ? handleStopSimulation : handleStartSimulation}
-                >
-                  {simRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  {simRunning ? "Pause Sim" : "Start Sim"}
-                </Button>
+              {sessionRobotModality === 'simulated' ? (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Simulation</h3>
+                    <Button
+                      variant={simRunning ? "ghost" : "primary"}
+                      className="w-full justify-center gap-2"
+                      onClick={simRunning ? handleStopSimulation : handleStartSimulation}
+                    >
+                      {simRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      {simRunning ? "Pause Sim" : "Start Sim"}
+                    </Button>
 
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900"
-                  onClick={handleResetSimulation}
-                  disabled={!simRunning}
-                >
-                  <RefreshCw className="w-4 h-4" /> Reset Sim
-                </Button>
-              </div>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-center gap-2 text-gray-600 hover:text-gray-900"
+                      onClick={handleResetSimulation}
+                      disabled={!simRunning}
+                    >
+                      <RefreshCw className="w-4 h-4" /> Reset Sim
+                    </Button>
+                  </div>
 
-              <hr className="border-gray-200" />
+                  <hr className="border-gray-200" />
+                </>
+              ) : (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                  Real robot session mode. Simulation controls are hidden.
+                </div>
+              )}
 
               <div className={`space-y-3 p-4 rounded-lg border text-center transition-colors ${recording ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Recording</h3>

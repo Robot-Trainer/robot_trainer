@@ -20,8 +20,8 @@ describe('RobotForm', () => {
   const mockOnCancel = vi.fn();
 
   const mockRobotModels = [
-    { id: 1, name: 'Robot Model A', modality: 'real' },
-    { id: 2, name: 'Robot Model B', modality: 'simulated' },
+    { id: 1, name: 'Robot Model A', modality: 'real', className: 'SO100Follower' },
+    { id: 2, name: 'Robot Model B', modality: 'simulated', className: 'GenericMujocoEnv' },
   ];
 
   const mockSerialPorts = [
@@ -77,12 +77,6 @@ describe('RobotForm', () => {
     const modelOption = await screen.findByRole('option', { name: 'Robot Model A' });
     fireEvent.click(modelOption);
 
-    // Select Modality
-    const modalitySelectTrigger = screen.getByLabelText(/Modality/i);
-    fireEvent.mouseDown(modalitySelectTrigger);
-    const modalityOption = await screen.findByRole('option', { name: 'Real' });
-    fireEvent.click(modalityOption);
-
     // Connect Device
     // We can select from the scanned list (which we triggered scan for)
     // or type manually. The scanned list items are clickable.
@@ -103,23 +97,20 @@ describe('RobotForm', () => {
         robotModelId: 1,
         modality: 'real',
         serialNumber: 'SerialNumber1',
-        data: { type: 'real' }
+        data: expect.objectContaining({
+          type: 'real',
+          config: expect.objectContaining({
+            port: '/dev/ttyUSB0',
+            disable_torque_on_disconnect: true,
+            use_degrees: false,
+          })
+        })
       }));
     });
   });
 
   it('handles simulated robot setup', async () => {
     render(<RobotForm onSaved={mockOnSaved} />);
-
-    // Change modality to Simulated
-    const modalitySelect = screen.getByLabelText(/Modality/i);
-    fireEvent.mouseDown(modalitySelect);
-    const simulatedOption = await screen.findByRole('option', { name: 'Simulated' });
-    fireEvent.click(simulatedOption);
-
-    // Device select should disappear
-    const connectedDevice = screen.queryByLabelText(/Connected Device/i);
-    expect(connectedDevice).toBeNull();
 
     const nameInput = screen.getByLabelText(/Robot Name/i);
     fireEvent.change(nameInput, { target: { value: 'Sim Robot' } });
@@ -129,6 +120,9 @@ describe('RobotForm', () => {
     fireEvent.mouseDown(modelSelect);
     const modelOption = await screen.findByRole('option', { name: 'Robot Model B' });
     fireEvent.click(modelOption);
+
+    // Real-device section should disappear for simulated model
+    expect(screen.queryByText(/Real Robot Configuration/i)).toBeNull();
 
     const saveBtn = screen.getByText(/Save Robot/i);
     fireEvent.click(saveBtn);
