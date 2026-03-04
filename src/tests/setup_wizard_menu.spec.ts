@@ -1,5 +1,6 @@
 import { test } from './fixtures';
 import { expect } from '@playwright/test';
+import { expectPageScreenshot } from './helpers';
 
 // Validates that selecting the main menu File -> Setup Wizard opens the wizard
 test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electronApp, setIpcHandlers }) => {
@@ -29,6 +30,7 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
   // Confirm the wizard is not visible initially
   const wizardText = window.getByRole('heading', { name: 'Environment Setup', exact: true });
   await expect(wizardText).not.toBeVisible();
+  await expectPageScreenshot(window);
 
   // Invoke the application menu item's click handler from the main process
   await electronApp.evaluate(({ Menu }) => {
@@ -42,6 +44,7 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
 
   // Wait for the setup wizard to appear
   await expect(wizardText).toBeVisible({ timeout: 5000 });
+  await expectPageScreenshot(window);
 });
 
 test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHandlers }) => {
@@ -85,10 +88,12 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
   });
 
   await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).toBeVisible();
+  await expectPageScreenshot(window);
 
   // Step 1 should be open by default if conda missing, "Start Setup" triggers the flow
   const startBtn = window.locator('button:has-text("Start Setup")');
   await expect(startBtn).toBeVisible();
+  await expectPageScreenshot(window);
 
   // Click Start
   await startBtn.click();
@@ -96,4 +101,5 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
   // Validate that the output section becomes visible and contains expected text
   // The wizard automatically toggles or keeps open the item being worked on.
   await expect(window.locator('text=Miniconda installed successfully')).toBeVisible();
+  await expectPageScreenshot(window);
 });

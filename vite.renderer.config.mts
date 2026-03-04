@@ -1,15 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react'; // Import the react plugin
 import tailwindcss from '@tailwindcss/vite'
-import { pgliteAdmin } from '../pglite-admin/src/index.js';
+import { existsSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const plugins = [react(), tailwindcss()];
+const pgliteAdminPath = fileURLToPath(new URL('../pglite-admin/src/index.js', import.meta.url));
+if (existsSync(pgliteAdminPath)) {
+  const { pgliteAdmin } = await import(pathToFileURL(pgliteAdminPath).href);
+  plugins.push(pgliteAdmin());
+}
 
 // https://vitejs.dev/config
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    pgliteAdmin()
-  ],
+  plugins,
   optimizeDeps: {
     exclude: ["@electric-sql/pglite"],
   },

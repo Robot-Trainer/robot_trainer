@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('Navigation resets ResourceManager form', () => {
   test('opening form then navigating away clears showForm state', async ({ window, setIpcHandlers }) => {
@@ -14,17 +14,22 @@ test.describe('Navigation resets ResourceManager form', () => {
 
     // Open Robots view
     await window.click('text=Robots');
-    await window.waitForSelector('text=Robots');
+    await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
+    await expectPageScreenshot(window);
 
     await window.click('text=Cameras');
-    await window.waitForSelector('text=Cameras');
+    await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
+    await expectPageScreenshot(window);
     // Navigate to Monitoring
-    await window.click('text=Datasets');
-    await window.waitForSelector('text=Datasets');
+    await dismissSetupWizard(window);
+    await window.click('text=Sessions');
+    await expect(window.getByRole('heading', { name: 'Sessions' })).toBeVisible();
+    await expectPageScreenshot(window);
 
     // Navigate back to Robots - the ResourceManager should show list (not form)
     await window.click('text=Robots');
-    await window.waitForSelector('text=Robots');
+    await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
+    await expectPageScreenshot(window);
 
     // Ensure Wizard is not present and Add Robot button visible
     await expect(window.locator('text=Confirm Selection')).toHaveCount(0);
@@ -33,14 +38,17 @@ test.describe('Navigation resets ResourceManager form', () => {
 });
 
 test.describe('Environment Check Navigation', () => {
-  test('shows loading indicator and handles check results', async ({ window, setIpcHandlers }) => {
+  test('shows loading indicator and handles check results', async ({ window, electronApp, setIpcHandlers }) => {
     // 1. Seed configuration so "missing config" doesn't trigger wizard
-    await window.evaluate(async () => {
-      await (window as any).electronAPI.saveSystemSettings({
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      win.webContents.send('request-save-system-settings', {
         condaRoot: '/mock/conda',
         pythonPath: '/mock/python'
       });
     });
+    // Give it a moment to persist
+    await window.waitForTimeout(500);
 
     // 2. Test "Loading env..." and Success Case
     await setIpcHandlers({
@@ -53,11 +61,13 @@ test.describe('Environment Check Navigation', () => {
 
     await window.reload();
 
-  await window.waitForLoadState('domcontentloaded');
-    await expect(window.locator('button:has-text("Scenes")')).toBeVisible();
+    const loadingButton = window.getByRole('button', { name: 'Loading env...' });
+    await expect(loadingButton).toBeVisible();
+    await expectPageScreenshot(window);
 
     // Should NOT see wizard (because config is present AND check passed)
     await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).not.toBeVisible();
+    await expectPageScreenshot(window);
 
     // 3. Test Failure Case
     await setIpcHandlers({
@@ -68,20 +78,12 @@ test.describe('Environment Check Navigation', () => {
     });
 
     await window.reload();
-    await window.waitForLoadState('domcontentloaded');
-    await expect(window.locator('button:has-text("Scenes")')).toBeVisible();
 
-    // During failing checks, either the wizard appears or loading indicator remains visible.
-    let wizardVisible = false;
-    try {
-      await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).toBeVisible({ timeout: 5000 });
-      wizardVisible = true;
-    } catch {
-      wizardVisible = false;
-    }
-    if (!wizardVisible) {
-      await expect(window.locator('button:has-text("Loading env...")')).toBeVisible();
-    }
+    // Open the wizard from the loading indicator while checks are running.
+    await expect(loadingButton).toBeVisible();
+    await expectPageScreenshot(window);
+    await loadingButton.click();
+    await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).toBeVisible();
+    await expectPageScreenshot(window);
   });
 });
-

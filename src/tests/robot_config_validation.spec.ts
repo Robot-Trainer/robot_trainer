@@ -1,48 +1,39 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('Robot Configuration Validation', () => {
   test('should validate configuration before saving', async ({ window }) => {
-    // 1. Dismiss Setup Wizard
     await dismissSetupWizard(window);
 
-    // 2. Navigate to Scenes
-    const navItem = window.locator('button:has-text("Scenes")');
-    await navItem.waitFor();
-    await navItem.click();
+    await window.getByRole('button', { name: 'Scenes' }).click();
+    await window.getByRole('button', { name: 'Add Scene' }).click();
+    await expect(window.getByRole('heading', { name: 'Scene Setup' })).toBeVisible();
+    await expectPageScreenshot(window);
 
-    // 3. Click Add
-    await window.click('text=Add Scene');
-
-    // 4. Test Missing Name
     window.once('dialog', async dialog => {
       expect(dialog.message()).toContain('Please enter a scene name');
       await dialog.dismiss();
     });
-    await window.click('button:has-text("Save Configuration")');
+    await window.getByRole('button', { name: 'Save Configuration' }).click();
 
-    // 5. Fill Name
     await window.getByLabel('Scene Name').fill('Test Scene Validated');
 
-    // 6. Test Missing Robot
     window.once('dialog', async dialog => {
       expect(dialog.message()).toContain('Please select a follower robot');
       await dialog.dismiss();
     });
-    await window.click('button:has-text("Save Configuration")');
+    await window.getByRole('button', { name: 'Save Configuration' }).click();
 
-    // 7. Success case (Create a robot)
+    await dismissSetupWizard(window);
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
+    await expect(window.locator('h4:has-text("Edit Simulated Robot")')).toBeVisible();
+    await expectPageScreenshot(window);
+    await dismissSetupWizard(window);
+    await window.getByRole('button', { name: 'Save Changes' }).click({ force: true });
 
-    // Save the new robot details to exit editor
-    await window.click('button:has-text("Save Changes")');
-    await expect(window.locator('text=Edit Simulated Robot')).not.toBeVisible();
-
-    // Now save configuration - should succeed
-    await window.click('button:has-text("Save Configuration")');
-
-    await expect(window.locator('text=Scene Setup')).toBeVisible();
+    await window.getByRole('button', { name: 'Save Configuration' }).click();
+    await expect(window.getByLabel('Scene Name')).toHaveValue('Test Scene Validated');
   });
 });

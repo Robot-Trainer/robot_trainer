@@ -19,8 +19,14 @@ export const test = base.extend<Fixtures>({
     // Need separate tmp directories for each playwright test so that running multiple
     // playwright workers doesn't cause IndexedDB migration conflicts.
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'robot-trainer-test-'));
+    const launchEnv = { ...process.env };
+    delete launchEnv.ELECTRON_RUN_AS_NODE;
+    launchEnv.HOME = tempDir;
+    launchEnv.XDG_CONFIG_HOME = tempDir;
+    launchEnv.XDG_DATA_HOME = tempDir;
     const app = await electron.launch({
       args: [".vite/build/main.js", "--no-sandbox", "--enable-logging", "--logging-level=0", `--user-data-dir=${tempDir}`],
+      env: launchEnv,
     });
     await use(app);
     await app.close();

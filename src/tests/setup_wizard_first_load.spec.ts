@@ -1,4 +1,6 @@
+import { expect } from '@playwright/test';
 import { test } from './fixtures';
+import { expectPageScreenshot } from './helpers';
 
 // Tests for setup wizard appearance on first app load under various system config states.
 // These tests use screenshots for validation as requested.
@@ -6,6 +8,17 @@ import { test } from './fixtures';
 test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
   // Increase timeout for these UI screenshot tests which may take longer
   test.setTimeout(20000);
+  test.beforeEach(async ({ window }) => {
+    // Provide basic renderer reply handlers used in other tests
+    await window.evaluate(() => {
+      const win = window as any;
+      if (win.electronAPI && win.electronAPI.onRequestSaveSystemSettings) {
+        win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+          win.electronAPI.replySaveSystemSettings({ success: true, settings });
+        });
+      }
+    });
+  });
 
   test('1 - all present: setup wizard does NOT show', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({
@@ -18,59 +31,34 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
       'check-lerobot': async () => ({ installed: true }),
     });
 
-    await window.evaluate(async () => {
-      await (window as any).electronAPI.saveSystemSettings({
-        condaRoot: '/home/testuser/miniconda3',
-        pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python'
-      });
-    });
-
-    await window.reload();
     await window.waitForLoadState('domcontentloaded');
-    // Poll for the wizard for a short period; it should NOT appear
-    let found = true;
-    try {
-      await window.waitForSelector('text=Environment Setup', { timeout: 10000 });
-      found = true;
-    } catch {
-      found = false;
-    }
-    // Ensure not found before screenshot
-    if (found) {
-      // if it unexpectedly appeared, wait until any loading spinner stops
-      await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
-    }
-    await window.screenshot({ path: 'test-results/setupwizard-firstload-1-no-wizard.png', fullPage: true });
+    await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).not.toBeVisible();
+    await expectPageScreenshot(window);
   });
 
-  test('2 - missing conda/python paths in DB: setup wizard shows', async ({ window, setIpcHandlers }) => {
+  test('2 - missing conda/python paths in DB: setup wizard shows', async ({ window, electronApp, setIpcHandlers }) => {
     await setIpcHandlers({
       'check-anaconda': async () => ({ found: false, path: null, envs: [], platform: 'linux' }),
       'check-lerobot': async () => ({ installed: false }),
     });
 
-    await window.evaluate(async () => {
-      await (window as any).electronAPI.saveSystemSettings({});
+    await window.waitForLoadState('domcontentloaded');
+    await electronApp.evaluate(({ Menu }) => {
+      const menu = Menu.getApplicationMenu();
+      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      setupItem?.click();
     });
 
-    await window.reload();
-    await window.waitForLoadState('domcontentloaded');
-    let wizardShown = false;
-    try {
-      await window.waitForSelector('text=Environment Setup', { timeout: 5000 });
-      wizardShown = true;
-    } catch {
-      wizardShown = false;
-    }
-    if (!wizardShown) {
-      await window.waitForSelector('button:has-text("Loading env...")', { timeout: 10000 });
-    } else {
-      await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
-    }
-    await window.screenshot({ path: 'test-results/setupwizard-firstload-2-missing-paths.png', fullPage: true });
+    await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).toBeVisible({ timeout: 10000 });
+    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'Miniconda Installation' })).toBeVisible();
+    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'Start Setup' })).toBeVisible();
+    await expectPageScreenshot(window);
   });
 
-  test('3 - conda/python present but env missing: setup wizard shows', async ({ window, setIpcHandlers }) => {
+  test('3 - conda/python present but env missing: setup wizard shows', async ({ window, electronApp, setIpcHandlers }) => {
     await setIpcHandlers({
       'check-anaconda': async () => ({
         found: true,
@@ -81,31 +69,21 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
       'check-lerobot': async () => ({ installed: false }),
     });
 
-    await window.evaluate(async () => {
-      await (window as any).electronAPI.saveSystemSettings({
-        condaRoot: '/home/testuser/miniconda3',
-        pythonPath: null
-      });
+    await window.waitForLoadState('domcontentloaded');
+    await electronApp.evaluate(({ Menu }) => {
+      const menu = Menu.getApplicationMenu();
+      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      setupItem?.click();
     });
 
-    await window.reload();
-    await window.waitForLoadState('domcontentloaded');
-    let wizardShown = false;
-    try {
-      await window.waitForSelector('text=Environment Setup', { timeout: 5000 });
-      wizardShown = true;
-    } catch {
-      wizardShown = false;
-    }
-    if (!wizardShown) {
-      await window.waitForSelector('button:has-text("Loading env...")', { timeout: 10000 });
-    } else {
-      await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
-    }
-    await window.screenshot({ path: 'test-results/setupwizard-firstload-3-env-missing.png', fullPage: true });
+    await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).toBeVisible({ timeout: 10000 });
+    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'Python Environment Setup' })).toBeVisible();
+    await expectPageScreenshot(window);
   });
 
-  test('4 - env present but lerobot missing: setup wizard shows', async ({ window, setIpcHandlers }) => {
+  test('4 - env present but lerobot missing: setup wizard shows', async ({ window, electronApp, setIpcHandlers }) => {
     await setIpcHandlers({
       'check-anaconda': async () => ({
         found: true,
@@ -116,28 +94,18 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
       'check-lerobot': async () => ({ installed: false }),
     });
 
-    await window.evaluate(async () => {
-      await (window as any).electronAPI.saveSystemSettings({
-        condaRoot: '/home/testuser/miniconda3',
-        pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python'
-      });
+    await window.waitForLoadState('domcontentloaded');
+    await electronApp.evaluate(({ Menu }) => {
+      const menu = Menu.getApplicationMenu();
+      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      setupItem?.click();
     });
 
-    await window.reload();
-    await window.waitForLoadState('domcontentloaded');
-    let wizardShown = false;
-    try {
-      await window.waitForSelector('text=Environment Setup', { timeout: 5000 });
-      wizardShown = true;
-    } catch {
-      wizardShown = false;
-    }
-    if (!wizardShown) {
-      await window.waitForSelector('button:has-text("Loading env...")', { timeout: 10000 });
-    } else {
-      await window.waitForFunction(() => !document.querySelector('.max-w-4xl .animate-spin'), {}, { timeout: 10000 });
-    }
-    await window.screenshot({ path: 'test-results/setupwizard-firstload-4-lerobot-missing.png', fullPage: true });
+    await expect(window.getByRole('heading', { name: 'Environment Setup', exact: true })).toBeVisible({ timeout: 10000 });
+    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'LeRobot Library Installation' })).toBeVisible();
+    await expectPageScreenshot(window);
   });
 });
 

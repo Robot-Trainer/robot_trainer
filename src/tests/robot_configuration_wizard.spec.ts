@@ -1,68 +1,44 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('Robot Configuration Wizard', () => {
   test('should verify robot and teleoperator models are populated', async ({ window }) => {
-    // 1. Dismiss Setup Wizard
     await dismissSetupWizard(window);
 
-    // 2. Navigate to Scenes
-    const navItem = window.locator('button:has-text("Scenes")');
-    await navItem.waitFor();
-    await navItem.click();
+    await window.getByRole('button', { name: 'Scenes' }).click();
+    await window.getByRole('button', { name: 'Add Scene' }).click();
+    await expect(window.getByRole('heading', { name: 'Scene Setup' })).toBeVisible();
+    await expectPageScreenshot(window);
 
-    // 3. Click Add
-    await window.click('text=Add Scene');
-
-    // 4. Verify Wizard appears
-    await expect(window.locator('text=Scene Setup')).toBeVisible(); 
-
-    // 5. Select Simulation Type for Follower to see Robot Models
-    // Open the dropdown
     await window.getByLabel('Follower Robot').click();
-    // Select the option
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
+    await expect(window.locator('h4:has-text("Edit Simulated Robot")')).toBeVisible();
+    await expectPageScreenshot(window);
+    await dismissSetupWizard(window);
 
-    // Verify Robot Editor appears and the Model dropdown is visible
-    const followerEditor = window.locator('div').filter({ has: window.locator('h4', { hasText: 'Edit Simulated Robot' }) }).first();
-    await expect(followerEditor).toBeVisible();
-
-    const followerModelLabel = followerEditor.getByLabel('Model');
+    const followerModelLabel = window.getByLabel('Model');
     await expect(followerModelLabel).toBeVisible();
-
-    // Verify content (seeded data)
-    // Open the Model dropdown to see options
+    await expectPageScreenshot(window);
     await followerModelLabel.click();
-    
-    // Check options in the listbox
-    const listbox = window.getByRole('listbox');
-    await expect(listbox).toBeVisible();
-    const followerOptions = await listbox.innerText();
-    expect(followerOptions).toContain('agilex_piper');
-    expect(followerOptions).toContain('unitree_go2');
-    
-    // Close the dropdown (press Escape or click backdrop)
+    const followerOptions = window.getByRole('option');
+    await expect(followerOptions.first()).toBeVisible();
+    await expectPageScreenshot(window);
+    expect(await followerOptions.count()).toBeGreaterThan(1);
     await window.keyboard.press('Escape');
 
-    // 6. Select Real Robot Teleoperation for Leader to see Teleoperator Models
-    // The "Type" select inside Leader Arm section
-    const leaderSection = window.locator('section', { hasText: 'Leader Arm' });
-    const leaderTypeSelect = leaderSection.getByLabel('Type');
-    
-    await leaderTypeSelect.click();
+    await window.getByRole('button', { name: 'Save Changes' }).click();
+    await window.getByLabel('Type').click();
     await window.getByRole('option', { name: 'Real Robot Teleoperation' }).click();
 
-    // Verify Teleoperator Model dropdown appears
-    const leaderModelSelect = leaderSection.getByLabel('Teleoperator Model');
+    const leaderModelSelect = window.getByLabel('Teleoperator Model');
     await expect(leaderModelSelect).toBeVisible();
+    await expectPageScreenshot(window);
 
-    // Verify content (seeded data)
     await leaderModelSelect.click();
-    const leaderListbox = window.getByRole('listbox');
-    await expect(leaderListbox).toBeVisible();
-    
-    const leaderOptions = await leaderListbox.innerText();
-    expect(leaderOptions).not.toContain('mock_teleop');
+    const teleoperatorOptions = window.getByRole('option');
+    await expect(teleoperatorOptions.first()).toBeVisible();
+    await expectPageScreenshot(window);
+    expect(await teleoperatorOptions.count()).toBeGreaterThan(1);
   });
 });

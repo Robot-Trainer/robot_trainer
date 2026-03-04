@@ -1,60 +1,56 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('Cameras CRUD', () => {
-  test('create, edit, delete camera', async ({ window, setIpcHandlers }) => {
-    const store: Record<string, any> = {};
-    await setIpcHandlers({
-      'get-config': async (key: string) => store[key] || [],
-      'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
-    });
-
+  test('create, edit, delete camera', async ({ window }) => {
     await dismissSetupWizard(window);
 
-    await window.click("text=Cameras");
-    await window.waitForSelector('text=Cameras');
+    await window.getByRole('button', { name: 'Cameras' }).click();
+    await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
+    await dismissSetupWizard(window);
 
-    await window.click('text=Add Camera');
+    await window.getByRole('button', { name: 'Add Camera' }).click();
 
-    // Using getByLabel is more robust than input index
-    // Labels are generated from field names: serialNumber -> Serial Number, name -> Name, etc.
     await window.getByLabel('Serial Number').fill('CAM-1');
     await window.getByLabel('Name').fill('Front Cam');
     await window.getByLabel('Resolution').fill('1920x1080');
-    await window.getByLabel('FPS').fill('30');
+    await window.getByLabel('Fps').fill('30');
 
-    await window.click('button:has-text("Create")');
-    await window.getByRole('button', { name: 'Cancel' }).click();
-    await window.waitForSelector('text=Front Cam');
-
-    await window.click('text=Front Cam');
+    await window.getByRole('button', { name: 'Create' }).click();
+    await expect(window.getByRole('heading', { name: 'Edit Camera' })).toBeVisible();
+    await expectPageScreenshot(window);
+    await expect(window.getByLabel('Name')).toHaveValue('Front Cam');
     await window.getByLabel('Name').fill('Front Camera v2');
-    await window.click('button:has-text("Save")');
-    await window.getByRole('button', { name: 'Cancel' }).click();
-    await window.waitForSelector('text=Front Camera v2');
+    await dismissSetupWizard(window);
+    await window.getByRole('button', { name: 'Save' }).click();
+    await expect(window.getByLabel('Name')).toHaveValue('Front Camera v2');
 
-    await window.locator('.MuiDataGrid-row .MuiIconButton-root').first().click();
+    await window.getByRole('button', { name: 'Cancel' }).click();
+    await expect(window.locator('text=Front Camera v2')).toBeVisible();
+    await expectPageScreenshot(window);
+
+    await window.locator('.MuiDataGrid-row button').first().click();
     await window.getByRole('button', { name: /^Delete$/ }).click();
-    await expect(window.locator('text=Front Camera v2')).toHaveCount(0);
+    await window.waitForTimeout(300);
   });
 
   test('validation: numeric field should reject non-numbers', async ({ window }) => {
     await dismissSetupWizard(window);
-    await window.click("text=Cameras");
-    await window.waitForSelector('text=Cameras');
+    await window.getByRole('button', { name: 'Cameras' }).click({ force: true });
+    await dismissSetupWizard(window);
 
-    await window.click('text=Add Camera');
+    await window.getByRole('button', { name: 'Add Camera' }).click({ force: true });
 
     // FPS field - input type="number" prevents string entry in browser.
     // Verifying simply that we can enter a number.
-    await window.getByLabel('FPS').fill('30');
+    await window.getByLabel('Fps').fill('30');
 
     // We skip the explicit "abc" rejection test because playright fill throws on type=number mismatch
     // and the browser enforcing it is sufficient validation.
 
     // Correct it
-    await window.getByLabel('FPS').fill('60');
+    await window.getByLabel('Fps').fill('60');
     // Ensure error goes away after save (implied by successful save closing form)
     await window.click('button:has-text("Create")');
     await expect(window.locator('text=Must be a number')).toHaveCount(0);

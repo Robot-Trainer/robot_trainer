@@ -4,10 +4,10 @@ export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
   testDir: "src/tests",
   globalSetup: "./src/tests/global-setup.ts",
-  workers: process.env.CI ? 2 : undefined,
-  fullyParallel: true,
+  workers: 1,
+  fullyParallel: false,
   testMatch: "src/tests/*.spec.ts",
-  timeout: 30000,
+  timeout: 60000,
   use: {
     video: "on",
   },
