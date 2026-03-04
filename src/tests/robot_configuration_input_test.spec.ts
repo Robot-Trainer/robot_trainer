@@ -7,19 +7,18 @@ test.describe('Robot Configuration Wizard Input', () => {
     // 1. Dismiss Setup Wizard if present
     await dismissSetupWizard(window);
 
-    // 2. Navigate to Robot Configurations
-    // It might be default, but let's click to be sure.
-    const navItem = window.locator('button:has-text("Robot Configurations")');
+    // 2. Navigate to Scenes
+    const navItem = window.locator('button:has-text("Scenes")');
     await navItem.click();
 
-    // 3. Click "Add Robot Configuration"
-    await window.click('text=Add Robot Configuration');
+    // 3. Click "Add Scene"
+    await window.click('text=Add Scene');
 
     // 4. Verify Wizard appears
-    await expect(window.locator('text=Robot Setup')).toBeVisible();
+    await expect(window.locator('text=Scene Setup')).toBeVisible();
 
-    // 6. Type a name in the configuration name field
-    const nameInput = window.getByLabel('Configuration Name');
+    // 6. Type a name in the scene name field
+    const nameInput = window.getByLabel('Scene Name');
     await expect(nameInput).toBeVisible();
 
     const testName = 'Test Configuration';
@@ -32,31 +31,26 @@ test.describe('Robot Configuration Wizard Input', () => {
   test('should not crash when selecting an existing robot', async ({ window }) => {
     await dismissSetupWizard(window);
 
-    // Navigate to Robot Configurations
-    const navItem = window.locator('button:has-text("Robot Configurations")');
+    // Navigate to Scenes
+    const navItem = window.locator('button:has-text("Scenes")');
     await navItem.click();
 
-    // Click "Add Robot Configuration"
-    await window.click('text=Add Robot Configuration');
+    // Click "Add Scene"
+    await window.click('text=Add Scene');
 
     // Create first simulated robot
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
     await window.waitForTimeout(500);
-
-    // Create second simulated robot
-    await window.getByLabel('Follower Robot').click();
-    await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
-    await window.waitForTimeout(500);
+    await window.click('button:has-text("Save Changes")');
 
     // Select the first robot again (which has a numeric value)
     await window.getByLabel('Follower Robot').click();
-
-    // Find all 'Simulated Robot' options and pick the first one
-    const options = window.getByRole('option', { name: /Simulated Robot/ });
-    await options.first().click();
+    await window.keyboard.press('ArrowDown');
+    await window.keyboard.press('ArrowDown');
+    await window.keyboard.press('Enter');
 
     // Verify the app is still alive (no crash)
-    await expect(window.locator('text=Robot Setup')).toBeVisible();
+    await expect(window.locator('text=Scene Setup')).toBeVisible();
   });
 });

@@ -125,10 +125,10 @@ interface Props {
   initialData?: any;
 }
 
-export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData }) => {
+export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData }) => {
   const toast = useToast();
   // State
-  const [sessionName, setSessionName] = useState('');
+  const [datasetName, setDatasetName] = useState('');
   const [scenes, setScenes] = useState<any[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
   const [sceneStatusMap, setSceneStatusMap] = useState<Record<number, SceneStatus>>({});
@@ -147,7 +147,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [tabValue, setTabValue] = useState(TAB_RECORD);
-  const [sessionRobotModality, setSessionRobotModality] = useState<'real' | 'simulated'>('simulated');
+  const [datasetRobotModality, setDatasetRobotModality] = useState<'real' | 'simulated'>('simulated');
 
   // Dataset Config
   const [repoId, setRepoId] = useState('');
@@ -162,7 +162,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   useEffect(() => {
     if (initialData) {
-      setSessionName(initialData.name || '');
+      setDatasetName(initialData.name || '');
       setSelectedSkillId(initialData.skillId || null);
       if (initialData.sceneId) setSelectedSceneId(initialData.sceneId);
       if (initialData.datasetConfig) {
@@ -380,12 +380,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         // Pre-select if initialData
         if (initialData) {
-          setSessionName(initialData.name);
+          setDatasetName(initialData.name);
           setSelectedSceneId(initialData.sceneId);
           setSelectedSkillId(initialData.skillId);
-          // Load episodes for session
+          // Load episodes for dataset
           if (initialData.id) {
-            const eps = await db.select().from(episodesTable).where(eq(episodesTable.sessionId, initialData.id));
+            const eps = await db.select().from(episodesTable).where(eq(episodesTable.datasetId, initialData.id));
             setEpisodes(eps.map(e => ({
               ...e,
               status: e.name.includes('[success]') ? 'success' : e.name.includes('[failure]') ? 'failure' : 'unknown',
@@ -470,7 +470,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
   useEffect(() => {
     if (!selectedSceneId) {
-      setSessionRobotModality('simulated');
+      setDatasetRobotModality('simulated');
       return;
     }
 
@@ -484,13 +484,13 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
         const firstRobot = robotRows[0]?.robot;
         if (firstRobot?.modality === 'real') {
-          setSessionRobotModality('real');
+          setDatasetRobotModality('real');
         } else {
-          setSessionRobotModality('simulated');
+          setDatasetRobotModality('simulated');
         }
       } catch (e) {
         console.error('Failed to load scene robot modality', e);
-        setSessionRobotModality('simulated');
+        setDatasetRobotModality('simulated');
       }
     };
 
@@ -728,12 +728,12 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     newEps[lastIdx] = { ...lastEp, status, name: `Episode ${episodes.length} [${status}]` };
     setEpisodes(newEps);
 
-    // Persist if we have session ID
+    // Persist if we have dataset ID
     if (initialData?.id) {
       try {
         await db.insert(episodesTable).values({
           name: `Episode ${newEps[lastIdx].timestamp} [${status}]`,
-          sessionId: initialData.id
+          datasetId: initialData.id
         });
         // Reload? Or just assume success.
       } catch (e) {
@@ -761,7 +761,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
       const payload = {
         id: initialData?.id,
-        name: sessionName,
+        name: datasetName,
         sceneId: selectedSceneId,
         skillId: selectedSkillId,
         datasetDir: datasetDir,
@@ -771,7 +771,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
       await onSaved(payload);
     } catch (e) {
-      toast.error('Failed to save session: ' + (e instanceof Error ? e.message : String(e)));
+      toast.error('Failed to save dataset: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSaving(false);
     }
@@ -861,17 +861,17 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <Input
-              label="Session Name"
-              value={sessionName}
-              onChange={(e: any) => setSessionName(e.target.value)}
-              placeholder="Enter Session Name"
+              label="Dataset Name"
+              value={datasetName}
+              onChange={(e: any) => setDatasetName(e.target.value)}
+              placeholder="Enter Dataset Name"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Session'}
+            {saving ? 'Saving...' : 'Save Dataset'}
           </Button>
         </div>
       </header>
@@ -880,7 +880,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Record / Simulate" />
           <Tab label="Settings" />
-          <Tab label="Session Episodes" />
+          <Tab label="Dataset Episodes" />
         </Tabs>
       </Box>
 
@@ -977,7 +977,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         {tabValue === TAB_RECORD && (
           <div className="h-full flex overflow-hidden">
             <div className="w-72 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 overflow-y-auto">
-              {sessionRobotModality === 'simulated' ? (
+              {datasetRobotModality === 'simulated' ? (
                 <>
                   <div className="space-y-2">
                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Simulation</h3>
@@ -1004,7 +1004,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
                 </>
               ) : (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                  Real robot session mode. Simulation controls are hidden.
+                  Real robot dataset mode. Simulation controls are hidden.
                 </div>
               )}
 
@@ -1106,7 +1106,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
         {tabValue === TAB_EPISODES && (
           <div className="h-full bg-white overflow-y-auto flex flex-col">
             <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between sticky top-0">
-              <h3 className="font-semibold text-gray-700 text-sm">Session Episodes</h3>
+              <h3 className="font-semibold text-gray-700 text-sm">Dataset Episodes</h3>
               <span className="text-xs text-gray-500">{episodes.length} episodes</span>
             </div>
             <table className="min-w-full divide-y divide-gray-200">
@@ -1138,7 +1138,7 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
               </tbody>
             </table>
             {episodes.length === 0 && (
-              <div className="p-8 text-center text-sm text-gray-500">No episodes recorded in this session yet.</div>
+              <div className="p-8 text-center text-sm text-gray-500">No episodes recorded in this dataset yet.</div>
             )}
           </div>
         )}
@@ -1167,4 +1167,4 @@ export const SessionForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   );
 };
 
-export default SessionForm;
+export default DatasetForm;

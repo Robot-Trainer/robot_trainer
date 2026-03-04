@@ -5,11 +5,11 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, sessionsTable } from '../db/schema';
+import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
 import { parseMujocoCameras, MjcfCamera } from '../lib/mujoco_parser';
-import SessionForm from './SessionForm';
+import DatasetForm from './DatasetForm';
 import { Dialog, DialogContent } from '@mui/material';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
@@ -47,8 +47,8 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
 
   const toast = useToast();
-  const [openSessionDialog, setOpenSessionDialog] = useState(false);
-  const [sessionInitialData, setSessionInitialData] = useState<any | null>(null);
+  const [openDatasetDialog, setOpenDatasetDialog] = useState(false);
+  const [datasetInitialData, setDatasetInitialData] = useState<any | null>(null);
 
   const fetchData = async () => {
     try {
@@ -533,7 +533,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         }
       }
 
-      // return parentResult so callers (like "Create Session" flow) can continue
+      // return parentResult so callers (like "Create Dataset" flow) can continue
       return parentResult;
 
     } catch (e) {
@@ -543,8 +543,8 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     }
   };
 
-  // Open SessionForm for the current scene. If the scene isn't persisted yet, attempt to save first.
-  const handleCreateSessionForScene = async () => {
+  // Open DatasetForm for the current scene. If the scene isn't persisted yet, attempt to save first.
+  const handleCreateDatasetForScene = async () => {
     // If scene already has an id (editing existing), use it; otherwise save first
     let sceneId = initialData?.id || null;
     if (!sceneId) {
@@ -556,24 +556,24 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       sceneId = saved.id;
     }
 
-    setSessionInitialData({ sceneId });
-    setOpenSessionDialog(true);
+    setDatasetInitialData({ sceneId });
+    setOpenDatasetDialog(true);
   };
 
-  const handleSessionSavedFromDialog = async (payload: any) => {
+  const handleDatasetSavedFromDialog = async (payload: any) => {
     try {
-      const [saved] = await db.insert(sessionsTable).values({
-        name: payload.name || `Session - ${new Date().toLocaleString()}`,
+      const [saved] = await db.insert(datasetsTable).values({
+        name: payload.name || `Dataset - ${new Date().toLocaleString()}`,
         sceneId: payload.sceneId,
         skillId: payload.skillId || null,
         data: payload
       }).returning();
-      toast?.success?.('Session created');
-      setOpenSessionDialog(false);
+      toast?.success?.('Dataset created');
+      setOpenDatasetDialog(false);
       return saved;
     } catch (e) {
-      console.error('Failed to create session', e);
-      toast?.error?.('Failed to create session');
+      console.error('Failed to create dataset', e);
+      toast?.error?.('Failed to create dataset');
       throw e;
     }
   };
@@ -752,11 +752,11 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           <div className="flex gap-2">
             <Button
               variant="ghost"
-              onClick={handleCreateSessionForScene}
+              onClick={handleCreateDatasetForScene}
               disabled={!initialData?.id && !sceneName}
-              title={!initialData?.id ? 'Save the scene first or click Save then create a session' : 'Create a new session for this scene'}
+              title={!initialData?.id ? 'Save the scene first or click Save then create a dataset' : 'Create a new dataset for this scene'}
             >
-              Create Session
+              Create Dataset
             </Button>
             {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
             <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
@@ -764,13 +764,13 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         </div>
       </Card>
 
-      {/* SessionForm dialog (create a new Session preselected to this Scene) */}
-      <Dialog open={openSessionDialog} onClose={() => setOpenSessionDialog(false)} maxWidth="lg" fullWidth>
+      {/* DatasetForm dialog (create a new Dataset preselected to this Scene) */}
+      <Dialog open={openDatasetDialog} onClose={() => setOpenDatasetDialog(false)} maxWidth="lg" fullWidth>
         <DialogContent dividers>
-          <SessionForm
-            initialData={sessionInitialData || { sceneId: initialData?.id }}
-            onCancel={() => setOpenSessionDialog(false)}
-            onSaved={handleSessionSavedFromDialog}
+          <DatasetForm
+            initialData={datasetInitialData || { sceneId: initialData?.id }}
+            onCancel={() => setOpenDatasetDialog(false)}
+            onSaved={handleDatasetSavedFromDialog}
           />
         </DialogContent>
       </Dialog>

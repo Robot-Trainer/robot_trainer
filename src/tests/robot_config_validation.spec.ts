@@ -7,23 +7,23 @@ test.describe('Robot Configuration Validation', () => {
     // 1. Dismiss Setup Wizard
     await dismissSetupWizard(window);
 
-    // 2. Navigate to Robot Configurations
-    const navItem = window.locator('button:has-text("Robot Configurations")');
+    // 2. Navigate to Scenes
+    const navItem = window.locator('button:has-text("Scenes")');
     await navItem.waitFor();
     await navItem.click();
 
     // 3. Click Add
-    await window.click('text=Add Robot Configuration');
+    await window.click('text=Add Scene');
 
     // 4. Test Missing Name
     window.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('Please enter a configuration name');
+      expect(dialog.message()).toContain('Please enter a scene name');
       await dialog.dismiss();
     });
     await window.click('button:has-text("Save Configuration")');
 
     // 5. Fill Name
-    await window.getByLabel('Configuration Name').fill('Test Config Validated');
+    await window.getByLabel('Scene Name').fill('Test Scene Validated');
 
     // 6. Test Missing Robot
     window.once('dialog', async dialog => {
@@ -40,11 +40,9 @@ test.describe('Robot Configuration Validation', () => {
     await window.click('button:has-text("Save Changes")');
     await expect(window.locator('text=Edit Simulated Robot')).not.toBeVisible();
 
-    // Now save configuration - should succeed (no dialog, or redirect)
-    // We expect navigation away or success message.
+    // Now save configuration - should succeed
     await window.click('button:has-text("Save Configuration")');
 
-    // Expect form to close
-    await expect(window.locator('h2:has-text("Robot Setup")')).not.toBeVisible();
+    await expect(window.locator('text=Scene Setup')).toBeVisible();
   });
 });

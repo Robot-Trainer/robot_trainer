@@ -5,7 +5,7 @@ import { db } from "../db/db";
 import { 
   userConfigTable, robotModelsTable, robotsTable, teleoperatorsTable, scenesTable, 
   camerasTable, teleoperatorModelsTable, sceneRobotsTable, sceneCamerasTable, 
-  sceneTeleoperatorsTable, skillsTable, sessionsTable, episodesTable 
+  sceneTeleoperatorsTable, skillsTable, datasetsTable, episodesTable 
 } from "../db/schema";
 import { seedRobotModels } from "../db/seed_robot_models";
 import { seedTeleoperators } from "../db/seed_teleoperators";
@@ -42,7 +42,7 @@ export const AdminControl = () => {
       try {
         console.log("Starting database reseed...");
         await db.delete(episodesTable);
-        await db.delete(sessionsTable);
+        await db.delete(datasetsTable);
         await db.delete(sceneTeleoperatorsTable);
         await db.delete(sceneCamerasTable);
         await db.delete(sceneRobotsTable);

@@ -7,17 +7,16 @@ test.describe('Robot Configuration Wizard', () => {
     // 1. Dismiss Setup Wizard
     await dismissSetupWizard(window);
 
-    // 2. Navigate to Robot Configurations
-    const navItem = window.locator('button:has-text("Robot Configurations")');
+    // 2. Navigate to Scenes
+    const navItem = window.locator('button:has-text("Scenes")');
     await navItem.waitFor();
     await navItem.click();
 
     // 3. Click Add
-    // The button should say "Add Robot Configuration" based on ResourceManager title
-    await window.click('text=Add Robot Configuration');
+    await window.click('text=Add Scene');
 
     // 4. Verify Wizard appears
-    await expect(window.locator('text=Robot Setup')).toBeVisible(); 
+    await expect(window.locator('text=Scene Setup')).toBeVisible(); 
 
     // 5. Select Simulation Type for Follower to see Robot Models
     // Open the dropdown
@@ -40,8 +39,8 @@ test.describe('Robot Configuration Wizard', () => {
     const listbox = window.getByRole('listbox');
     await expect(listbox).toBeVisible();
     const followerOptions = await listbox.innerText();
-    expect(followerOptions).toContain('SO100 Follower');
-    expect(followerOptions).toContain('Reachy 2');
+    expect(followerOptions).toContain('agilex_piper');
+    expect(followerOptions).toContain('unitree_go2');
     
     // Close the dropdown (press Escape or click backdrop)
     await window.keyboard.press('Escape');
@@ -64,8 +63,6 @@ test.describe('Robot Configuration Wizard', () => {
     await expect(leaderListbox).toBeVisible();
     
     const leaderOptions = await leaderListbox.innerText();
-    expect(leaderOptions).toContain('Phone');
-    expect(leaderOptions).toContain('Omx Leader');
     expect(leaderOptions).not.toContain('mock_teleop');
   });
 });

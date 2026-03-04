@@ -15,19 +15,16 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
     'save-system-settings': async () => { return; },
   });
 
-  // Ensure renderer replies with a config that will NOT auto-open the wizard
-  await window.evaluate(() => {
-    const win = window as any;
-    if (win.electronAPI && win.electronAPI.onRequestLoadSystemSettings) {
-      win.electronAPI.onRequestLoadSystemSettings(() => {
-        win.electronAPI.replyLoadSystemSettings({ condaRoot: '/home/testuser/miniconda3', pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python' });
-      });
-    }
+  await window.evaluate(async () => {
+    await (window as any).electronAPI.saveSystemSettings({
+      condaRoot: '/home/testuser/miniconda3',
+      pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python'
+    });
   });
 
+  await window.reload();
   await window.waitForLoadState('domcontentloaded');
-  // Wait for app to finish initial bootstrap (renderer signals idle)
-  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 30000 });
+  await expect(window.locator('button:has-text("Scenes")')).toBeVisible();
 
   // Confirm the wizard is not visible initially
   const wizardText = window.getByRole('heading', { name: 'Environment Setup', exact: true });
@@ -72,8 +69,13 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
   });
 
   // Force open wizard via menu
+  await window.evaluate(async () => {
+    await (window as any).electronAPI.saveSystemSettings({});
+  });
+
+  await window.reload();
   await window.waitForLoadState('domcontentloaded');
-  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 30000 });
+  await expect(window.locator('button:has-text("Scenes")')).toBeVisible();
 
   await electronApp.evaluate(({ Menu }) => {
     const menu = Menu.getApplicationMenu();

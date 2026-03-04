@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import SkillsView from './Skills';
-import { skillsTable, datasetsTable, scenesTable } from '../db/schema';
+import RobotModelsView, { robotModelFields } from './RobotModels';
+import { robotModelsTable, robotsTable } from '../db/schema';
 import { tableResource } from '../db/tableResource';
 import { migrate } from '../db/migrate';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -20,7 +20,7 @@ vi.mock('../db/db', async () => {
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
 vi.mock('../lib/uiStore', () => ({ default: (cb: any) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
-describe('SkillsView Deletion', () => {
+describe('RobotModelsView', () => {
   beforeAll(async () => {
     (window as any).electronAPI = {
       getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') })
@@ -29,23 +29,39 @@ describe('SkillsView Deletion', () => {
   });
 
   beforeEach(async () => {
-    await db.delete(datasetsTable);
-    await db.delete(skillsTable);
-    await db.delete(scenesTable);
+    await db.delete(robotsTable);
+    await db.delete(robotModelsTable);
   });
 
-  it('should delete skill and set dataset skillId to null', async () => {
-    const scene = await tableResource(scenesTable).create({ name: 'Scene' });
-    const skill = await tableResource(skillsTable).create({ name: 'SkillToDelete' });
-    const dataset = await tableResource(datasetsTable).create({
-      name: 'DatasetWithSkill',
-      sceneId: scene.id,
-      skillId: skill.id
-    });
-    void dataset;
+  it('includes all RobotModel fields in the form config', () => {
+    expect(robotModelFields.map((f) => f.name)).toEqual([
+      'name',
+      'dirName',
+      'className',
+      'configClassName',
+      'properties',
+      'modelXml',
+      'modelPath',
+      'modelFormat',
+    ]);
+  });
 
-    render(<SkillsView />);
-    await waitFor(() => screen.getByText('SkillToDelete'));
+  it('should delete robot model and set robots.robotModelId to null', async () => {
+    const model = await tableResource(robotModelsTable).create({
+      name: 'Delete Model',
+      dirName: 'delete_model',
+      className: 'DeleteModelClass',
+      configClassName: 'DeleteModelConfig',
+      properties: {},
+    });
+
+    const robot = await tableResource(robotsTable).create({
+      name: 'Robot Linked To Model',
+      robotModelId: model.id,
+    });
+
+    render(<RobotModelsView />);
+    await waitFor(() => screen.getByText('Delete Model'));
 
     const deleteIcon = await screen.findByTestId('DeleteIcon');
     fireEvent.click(deleteIcon.closest('button')!);
@@ -54,13 +70,13 @@ describe('SkillsView Deletion', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /^Delete$/i }));
 
     await waitFor(async () => {
-      const skills = await tableResource(skillsTable).list();
-      expect(skills).toHaveLength(0);
+      const models = await tableResource(robotModelsTable).list();
+      expect(models).toHaveLength(0);
     });
 
-    const datasets = await tableResource(datasetsTable).list();
-    expect(datasets).toHaveLength(1);
-    expect(datasets[0].skillId).toBeNull();
+    const robots = await tableResource(robotsTable).list();
+    expect(robots).toHaveLength(1);
+    expect(robots[0].id).toBe(robot.id);
+    expect(robots[0].robotModelId).toBeNull();
   });
 });
-

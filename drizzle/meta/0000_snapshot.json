@@ -202,8 +202,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "dataset_id": {
+          "name": "dataset_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -225,12 +225,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "episodes_session_id_sessions_id_fk": {
-          "name": "episodes_session_id_sessions_id_fk",
+        "episodes_dataset_id_datasets_id_fk": {
+          "name": "episodes_dataset_id_datasets_id_fk",
           "tableFrom": "episodes",
-          "tableTo": "sessions",
+          "tableTo": "datasets",
           "columnsFrom": [
-            "session_id"
+            "dataset_id"
           ],
           "columnsTo": [
             "id"
@@ -677,8 +677,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sessions": {
-      "name": "sessions",
+    "public.datasets": {
+      "name": "datasets",
       "schema": "",
       "columns": {
         "id": {
@@ -688,7 +688,7 @@
           "notNull": true,
           "identity": {
             "type": "byDefault",
-            "name": "sessions_id_seq",
+            "name": "datasets_id_seq",
             "schema": "public",
             "increment": "1",
             "startWith": "1",
@@ -760,9 +760,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "sessions_skill_id_skills_id_fk": {
-          "name": "sessions_skill_id_skills_id_fk",
-          "tableFrom": "sessions",
+        "datasets_skill_id_skills_id_fk": {
+          "name": "datasets_skill_id_skills_id_fk",
+          "tableFrom": "datasets",
           "tableTo": "skills",
           "columnsFrom": [
             "skill_id"
@@ -773,9 +773,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "sessions_scene_id_scenes_id_fk": {
-          "name": "sessions_scene_id_scenes_id_fk",
-          "tableFrom": "sessions",
+        "datasets_scene_id_scenes_id_fk": {
+          "name": "datasets_scene_id_scenes_id_fk",
+          "tableFrom": "datasets",
           "tableTo": "scenes",
           "columnsFrom": [
             "scene_id"

@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { SetupWizard } from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
-import Sessions from './views/Sessions';
+import Datasets from './views/Datasets';
 import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
+import RobotModels from './views/RobotModels';
 import Skills from './views/Skills';
 import Scenes from './views/Scenes';
 import useUIStore from "./lib/uiStore";
 import { configResource } from './db/resources';
 
 
-import { Activity, Robot, Session, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
+import { Activity, Robot, Dataset, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import { VideoPlayer } from './ui/VideoPlayer';
 import { ToastProvider } from './ui/ToastContext';
 import { AdminControl } from './ui/AdminControl';
@@ -216,12 +217,14 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
 
   const renderContent = () => {
     switch (activeTab) {
-      case "sessions":
-        return <Sessions />;
+      case "datasets":
+        return <Datasets />;
       case "scenes":
         return <Scenes />;
       case "robots":
         return <Robots />;
+      case "robot-models":
+        return <RobotModels />;
       case "skills":
         return <Skills />;
       case "cameras":
@@ -261,9 +264,9 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
               }}
             />
             <NavItem
-              id="sessions"
-              icon={Session}
-              label="Sessions"
+              id="datasets"
+              icon={Dataset}
+              label="Datasets"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -275,6 +278,17 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
               id="robots"
               icon={Robot}
               label="Robots"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
+            <NavItem
+              id="robot-models"
+              icon={Robot}
+              label="Robot Models"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -360,7 +374,7 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                     onClick={() => {
                       setShowSetupWizard(false);
                       setShowSetupWizardForced(false);
-                    }, ''}
+                    }}
                   >
                     Close
                   </button>

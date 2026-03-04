@@ -25,6 +25,8 @@ test.describe('Robots CRUD', () => {
     // Create a new robot
     await window.click('text=Add Robot');
 
+    await window.getByLabel('Robot Name').fill('Test Robot');
+
     // Select a robot model (index 1 to skip the placeholder)
     // MUI Select uses a hidden input but opens with a button/combobox role
     await window.getByLabel('Robot Model').click();
@@ -33,24 +35,24 @@ test.describe('Robots CRUD', () => {
     // We can't really select ports in CI environment easily unless mocked, 
     // but we can assume saving with no device works.
     await window.click('text=Save Robot');
+    await window.getByRole('button', { name: 'Cancel' }).click();
 
-    // ensure the robot appears (might be unnamed)
-    // The default name is usually empty string, displayed as "(unnamed)"
-    await window.waitForSelector('text=(unnamed)');
+    await window.waitForSelector('text=Test Robot');
 
-    // edit the robot (editing uses the built-in form)
-    await window.locator('text=(unnamed)').locator('..').locator('..').locator('button:has-text("Edit")').click();
+    await window.click('text=Test Robot');
 
     // Fill Robot Name
     await window.getByLabel('Robot Name').fill('Test Robot v2');
 
     await window.click('text=Save Robot');
+    await window.getByRole('button', { name: 'Cancel' }).click();
     await window.waitForSelector('text=Test Robot v2');
 
-    // delete
-    await window.locator('text=Test Robot v2').locator('..').locator('..').locator('button:has-text("Delete")').click();
+    const row = window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' }).first();
+    await row.locator('button').first().click();
+    await window.getByRole('button', { name: /^Delete$/ }).click();
 
     // ensure gone
-    await expect(window.locator('text=Test Robot v2')).toHaveCount(0);
+    await expect(window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' })).toHaveCount(0);
   });
 });

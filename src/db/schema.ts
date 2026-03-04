@@ -123,7 +123,7 @@ export const skillsTable = pgTable("skills", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-export const sessionsTable = pgTable("sessions", {
+export const datasetsTable = pgTable("datasets", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
   skillId: integer("skill_id").references(() => skillsTable.id, { onDelete: "set null" }),
@@ -139,7 +139,7 @@ export const sessionsTable = pgTable("sessions", {
 export const episodesTable = pgTable("episodes", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar("name").notNull(),
-  sessionId: integer("session_id").references(() => sessionsTable.id, { onDelete: "cascade" }).notNull(),
+  datasetId: integer("dataset_id").references(() => datasetsTable.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
