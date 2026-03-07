@@ -106,6 +106,9 @@ typings/
 # Electron-Forge
 out/
 
+# Web build output
+dist/web/
+
 src/python/build
 
 */*/*.pyc
