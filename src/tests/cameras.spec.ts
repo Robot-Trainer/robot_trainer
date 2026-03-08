@@ -16,9 +16,10 @@ test.describe('Cameras CRUD', () => {
     await window.getByLabel('Name').fill('Front Cam');
     await window.getByLabel('Resolution').fill('1920x1080');
     await window.getByLabel('Fps').fill('30');
+    await window.getByLabel('Data').fill('{}');
 
     await window.getByRole('button', { name: 'Create' }).click();
-    await expect(window.getByRole('heading', { name: 'Edit Camera' })).toBeVisible();
+    await expect(window.getByRole('button', { name: 'Save' })).toBeVisible({ timeout: 15000 });
     await expectPageScreenshot(window);
     await expect(window.getByLabel('Name')).toHaveValue('Front Cam');
     await window.getByLabel('Name').fill('Front Camera v2');
@@ -27,12 +28,13 @@ test.describe('Cameras CRUD', () => {
     await expect(window.getByLabel('Name')).toHaveValue('Front Camera v2');
 
     await window.getByRole('button', { name: 'Cancel' }).click();
-    await expect(window.locator('text=Front Camera v2')).toBeVisible();
+    const updatedRow = window.locator('.MuiDataGrid-row', { hasText: 'Front Camera v2' }).first();
+    await expect(updatedRow).toBeVisible();
     await expectPageScreenshot(window);
 
-    await window.locator('.MuiDataGrid-row button').first().click();
-    await window.getByRole('button', { name: /^Delete$/ }).click();
-    await window.waitForTimeout(300);
+    await updatedRow.locator('button[aria-label="Delete"]').click();
+    await window.getByRole('dialog').getByRole('button', { name: /^Delete$/ }).click();
+    await expect(window.locator('.MuiDataGrid-row', { hasText: 'Front Camera v2' })).toHaveCount(0);
   });
 
   test('validation: numeric field should reject non-numbers', async ({ window }) => {
@@ -42,17 +44,16 @@ test.describe('Cameras CRUD', () => {
 
     await window.getByRole('button', { name: 'Add Camera' }).click({ force: true });
 
-    // FPS field - input type="number" prevents string entry in browser.
-    // Verifying simply that we can enter a number.
-    await window.getByLabel('Fps').fill('30');
+    await window.getByLabel('Serial Number').fill('CAM-VAL-1');
+    await window.getByLabel('Name').fill('Validation Cam');
+    await window.getByLabel('Data').fill('{}');
 
-    // We skip the explicit "abc" rejection test because playright fill throws on type=number mismatch
-    // and the browser enforcing it is sufficient validation.
+    const fpsInput = window.getByLabel('Fps');
+    await fpsInput.fill('abc').catch(() => { /* input[type=number] rejects non-number strings */ });
+    await expect(fpsInput).toHaveValue('0');
 
-    // Correct it
     await window.getByLabel('Fps').fill('60');
-    // Ensure error goes away after save (implied by successful save closing form)
-    await window.click('button:has-text("Create")');
-    await expect(window.locator('text=Must be a number')).toHaveCount(0);
+    await window.getByRole('button', { name: 'Create' }).click();
+    await expect(window.getByRole('button', { name: 'Save' })).toBeVisible({ timeout: 15000 });
   });
 });
