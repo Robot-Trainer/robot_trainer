@@ -38,7 +38,7 @@ export const configResource = {
     if (rows.length === 0) {
       await db.insert(userConfigTable).values({ config: cfg });
     } else {
-      await db.update(userConfigTable).set({ config: cfg }).where(userConfigTable.id.eq(rows[0].id));
+      await db.update(userConfigTable).set({ config: cfg }).where(eq(userConfigTable.id, rows[0].id));
     }
     return { ok: true };
   },

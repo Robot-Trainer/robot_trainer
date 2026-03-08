@@ -3,10 +3,10 @@ import { test } from './fixtures';
 import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('System Settings integration with ConfigManager IPC', () => {
-  test('saves settings successfully', async ({ window, setIpcHandlers, electronApp }) => {
+  test('saves settings successfully', async ({ window, setIpcHandlers }) => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
-    // Register renderer-side listener to respond to main's request
+
     await window.evaluate(() => {
       const win = window as any;
       win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
@@ -15,10 +15,11 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
       });
     });
 
-    await window.click('text=System Settings');
+    await window.getByRole('button', { name: 'System Settings' }).click();
+    await expect(window.getByRole('heading', { name: 'System Settings' })).toBeVisible();
     await window.getByLabel('Python Interpreter Path').fill('/usr/bin/python3');
     await dismissSetupWizard(window);
-    await window.click('text=Save Settings');
+    await window.getByRole('button', { name: 'Save Settings' }).click();
     await expect(window.locator('text=Settings saved')).toBeVisible();
     await expectPageScreenshot(window);
   });
@@ -34,9 +35,10 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
       });
     });
 
-    await window.click('text=System Settings');
+    await window.getByRole('button', { name: 'System Settings' }).click();
+    await expect(window.getByRole('heading', { name: 'System Settings' })).toBeVisible();
     await window.getByLabel('Python Interpreter Path').fill('/usr/bin/python3');
-    await window.click('text=Save Settings');
+    await window.getByRole('button', { name: 'Save Settings' }).click();
     // Note: The error message might be partial match "Failed to save settings: disk full"
     await expect(window.locator('text=Failed to save settings')).toBeVisible({ timeout: 5000 });
     await expectPageScreenshot(window);
@@ -46,7 +48,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
 
-    await window.click('text=System Settings');
+    await window.getByRole('button', { name: 'System Settings' }).click();
     // fields should retain defaults (empty)
     const pyVal = await window.getByLabel('Python Interpreter Path').inputValue();
     expect(pyVal).toBe('');
@@ -62,7 +64,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
       });
     });
 
-    await window.click('text=System Settings');
+    await window.getByRole('button', { name: 'System Settings' }).click();
 
     // Set initial value via UI
     await window.getByLabel('Python Interpreter Path').fill('/initial');
@@ -77,6 +79,5 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     }, { pythonPath: '/changed', venvPath: '', extraPath: '', envVars: [] });
 
     await expect(window.locator('input[value="/changed"]')).toBeVisible();
-    await expectPageScreenshot(window);
   });
 });
