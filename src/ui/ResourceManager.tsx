@@ -57,6 +57,9 @@ type Props = {
 import { Input } from './Input';
 import { Select } from './Select';
 
+const resourceListCache = new Map<string, any[]>();
+const resourceListInFlight = new Map<string, Promise<any[]>>();
+
 const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
   for (const f of (fields || [])) o[f.name] = f.defaultValue !== undefined ? f.defaultValue : "";
@@ -171,27 +174,73 @@ export const ResourceManager: React.FC<Props> = ({
   const showForm = useUIStore((s: any) => s.resourceManagerShowForm);
   const setShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const [loading, setLoading] = useState(false);
+  const cacheKey = useMemo(() => {
+    const tableName = table ? ((table as any).name || (table as any).$name || '') : '';
+    return `${title}:${tableName}`;
+  }, [title, table]);
 
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (forceRefresh = false) => {
+    const cachedItems = resourceListCache.get(cacheKey);
+    if (!forceRefresh && cachedItems) {
+      setItems(cachedItems);
+      return;
+    }
+    setLoading(!cachedItems);
     try {
       if (!activeResource || typeof activeResource.list !== 'function') {
         console.warn("No valid resource API found for", title);
         return;
       }
-      const data = await activeResource.list();
+      let listPromise = resourceListInFlight.get(cacheKey);
+      if (!listPromise) {
+        listPromise = activeResource.list();
+        resourceListInFlight.set(cacheKey, listPromise);
+      }
+      const data = await listPromise;
+      resourceListCache.set(cacheKey, data);
       setItems(data);
     } catch (e) {
       console.error(e);
     } finally {
+      resourceListInFlight.delete(cacheKey);
       setLoading(false);
     }
   };
 
+  const refresh = async () => {
+    await load(true);
+  };
+
   useEffect(() => {
-    load();
-  }, [activeResource]);
+    const cachedItems = resourceListCache.get(cacheKey);
+    if (cachedItems) {
+      setItems(cachedItems);
+      return;
+    }
+    void load();
+  }, [cacheKey, activeResource]);
+
+  useEffect(() => {
+    if (!activeResource || typeof activeResource.list !== 'function') {
+      console.warn("No valid resource API found for", title);
+      return;
+    }
+    if (resourceListCache.has(cacheKey)) return;
+    if (resourceListInFlight.has(cacheKey)) return;
+    const listPromise = activeResource.list();
+    resourceListInFlight.set(cacheKey, listPromise);
+    void listPromise
+      .then((data) => {
+        resourceListCache.set(cacheKey, data);
+      })
+      .catch((e) => {
+        console.error(e);
+      })
+      .finally(() => {
+        resourceListInFlight.delete(cacheKey);
+      });
+  }, [cacheKey, activeResource, title]);
 
   const onCreate = () => {
     setForm(emptyFromFields(inferredFields));
@@ -263,7 +312,7 @@ export const ResourceManager: React.FC<Props> = ({
       }
       toast.success('Saved successfully');
       setForm(result);
-      await load();
+      await refresh();
       return result;
     } catch (e) {
       console.error(e);
@@ -278,7 +327,7 @@ export const ResourceManager: React.FC<Props> = ({
     if (!itemToDelete) return;
     try {
       if (activeResource) await activeResource.delete(itemToDelete.id);
-      await load();
+      await refresh();
       setDeleteConfirmOpen(false);
       setItemToDelete(null);
     } catch (e: any) {
@@ -289,7 +338,7 @@ export const ResourceManager: React.FC<Props> = ({
         alert(`Could not delete item: ${e.message}`);
       }
       // Reload to ensure consistency
-      await load();
+      await refresh();
     }
   };
 
