@@ -1,5 +1,5 @@
 import { db } from './db';
-import { eq, getTableColumns, Table } from 'drizzle-orm';
+import { eq, getTableColumns, Table, sql } from 'drizzle-orm';
 
 // Table is a drizzle pgTable instance
 export function tableResource(table: Table) {
@@ -19,6 +19,21 @@ export function tableResource(table: Table) {
       for (const c of columnNames) {
         if (Object.prototype.hasOwnProperty.call(item, c)) insertObj[c] = item[c];
       }
+
+      if (
+        columnNames.includes('id') &&
+        !Object.prototype.hasOwnProperty.call(insertObj, 'id')
+      ) {
+        try {
+          const maxIdRows = await db
+            .select({ maxId: sql<number>`coalesce(max(${(table as any).id}), 0)` })
+            .from(table as any);
+          const nextId = Number(maxIdRows?.[0]?.maxId ?? 0) + 1;
+          insertObj.id = nextId;
+        } catch {
+          // Fallback to DB default sequence behavior when max-id lookup fails.
+        }
+      }
       
       const [result] = await db.insert(table).values(insertObj as any).returning();
       return result;
@@ -30,11 +45,11 @@ export function tableResource(table: Table) {
       for (const c of cols) {
         if (Object.prototype.hasOwnProperty.call(item, c)) updateObj[c] = item[c];
       }
-      const [result] = await db.update(table).set(updateObj).where(eq(table.id as any, id)).returning();
+      const [result] = await db.update(table).set(updateObj).where(eq((table as any).id, id)).returning();
       return result;
     },
     delete: async (id: string | number) => {
-      await db.delete(table).where(eq(table.id as any, id));
+      await db.delete(table).where(eq((table as any).id, id));
       return { ok: true };
     },
     table

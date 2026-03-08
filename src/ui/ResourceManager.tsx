@@ -24,7 +24,7 @@ import { Button } from "./Button";
 import useUIStore from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
 
-type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: any };
+type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: any; isJson?: boolean };
 
 export type GridCol = {
   field: string;
@@ -57,12 +57,24 @@ type Props = {
 import { Input } from './Input';
 import { Select } from './Select';
 
-const resourceListCache = new Map<string, any[]>();
-const resourceListInFlight = new Map<string, Promise<any[]>>();
+const formatFieldValueForForm = (field: Field, value: any) => {
+  if (field.isJson && value !== undefined && value !== null && value !== "") {
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return value ?? "";
+};
 
 const emptyFromFields = (fields?: Field[]) => {
   const o: any = {};
-  for (const f of (fields || [])) o[f.name] = f.defaultValue !== undefined ? f.defaultValue : "";
+  for (const f of (fields || [])) {
+    const defaultValue = f.defaultValue !== undefined ? f.defaultValue : "";
+    o[f.name] = formatFieldValueForForm(f, defaultValue);
+  }
   return o;
 };
 
@@ -122,6 +134,7 @@ export const ResourceManager: React.FC<Props> = ({
                     : col?.notNull && !col?.hasDefault,
                 options: isEnum ? (col as any).enumValues : undefined,
                 defaultValue: (col as any).default,
+                isJson: col?.dataType === "json",
               };
             });
           } catch (e) { /* ignore */ }
@@ -152,6 +165,7 @@ export const ResourceManager: React.FC<Props> = ({
               required: col.notNull && !col.hasDefault,
               options: isEnum ? (col as any).enumValues : undefined,
               defaultValue: (col as any).default,
+              isJson: col?.dataType === "json",
             };
           });
       } catch (e) {
@@ -174,73 +188,27 @@ export const ResourceManager: React.FC<Props> = ({
   const showForm = useUIStore((s: any) => s.resourceManagerShowForm);
   const setShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
   const [loading, setLoading] = useState(false);
-  const cacheKey = useMemo(() => {
-    const tableName = table ? ((table as any).name || (table as any).$name || '') : '';
-    return `${title}:${tableName}`;
-  }, [title, table]);
 
 
-  const load = async (forceRefresh = false) => {
-    const cachedItems = resourceListCache.get(cacheKey);
-    if (!forceRefresh && cachedItems) {
-      setItems(cachedItems);
-      return;
-    }
-    setLoading(!cachedItems);
+  const load = async () => {
+    setLoading(true);
     try {
       if (!activeResource || typeof activeResource.list !== 'function') {
         console.warn("No valid resource API found for", title);
         return;
       }
-      let listPromise = resourceListInFlight.get(cacheKey);
-      if (!listPromise) {
-        listPromise = activeResource.list();
-        resourceListInFlight.set(cacheKey, listPromise);
-      }
-      const data = await listPromise;
-      resourceListCache.set(cacheKey, data);
+      const data = await activeResource.list();
       setItems(data);
     } catch (e) {
       console.error(e);
     } finally {
-      resourceListInFlight.delete(cacheKey);
       setLoading(false);
     }
   };
 
-  const refresh = async () => {
-    await load(true);
-  };
-
   useEffect(() => {
-    const cachedItems = resourceListCache.get(cacheKey);
-    if (cachedItems) {
-      setItems(cachedItems);
-      return;
-    }
-    void load();
-  }, [cacheKey, activeResource]);
-
-  useEffect(() => {
-    if (!activeResource || typeof activeResource.list !== 'function') {
-      console.warn("No valid resource API found for", title);
-      return;
-    }
-    if (resourceListCache.has(cacheKey)) return;
-    if (resourceListInFlight.has(cacheKey)) return;
-    const listPromise = activeResource.list();
-    resourceListInFlight.set(cacheKey, listPromise);
-    void listPromise
-      .then((data) => {
-        resourceListCache.set(cacheKey, data);
-      })
-      .catch((e) => {
-        console.error(e);
-      })
-      .finally(() => {
-        resourceListInFlight.delete(cacheKey);
-      });
-  }, [cacheKey, activeResource, title]);
+    load();
+  }, [activeResource]);
 
   const onCreate = () => {
     setForm(emptyFromFields(inferredFields));
@@ -251,7 +219,11 @@ export const ResourceManager: React.FC<Props> = ({
   };
 
   const onEdit = (item: any) => {
-    setForm({ ...item });
+    const normalizedForm: any = { ...item };
+    for (const f of inferredFields) {
+      normalizedForm[f.name] = formatFieldValueForForm(f, item?.[f.name]);
+    }
+    setForm(normalizedForm);
     setEditing(item);
     setErrors({});
     setSaveError(null);
@@ -270,6 +242,13 @@ export const ResourceManager: React.FC<Props> = ({
       if (f.type === "number") {
         if (val !== "" && val !== null && val !== undefined && isNaN(Number(val))) {
           newErrors[f.name] = "Must be a number";
+        }
+      }
+      if (f.isJson && val !== "" && val !== null && val !== undefined && typeof val === "string") {
+        try {
+          JSON.parse(val);
+        } catch {
+          newErrors[f.name] = "Must be valid JSON";
         }
       }
     }
@@ -298,6 +277,29 @@ export const ResourceManager: React.FC<Props> = ({
           dataToSave[f.name] = 0;
         }
       }
+      if (f.isJson) {
+        const val = dataToSave[f.name];
+        if (val === "" || val === null || val === undefined) {
+          dataToSave[f.name] = {};
+        } else if (typeof val === "string") {
+          dataToSave[f.name] = JSON.parse(val);
+        }
+      } else {
+        const val = dataToSave[f.name];
+        if (typeof val === "string") {
+          const trimmed = val.trim();
+          if (
+            (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+            (trimmed.startsWith("[") && trimmed.endsWith("]"))
+          ) {
+            try {
+              dataToSave[f.name] = JSON.parse(trimmed);
+            } catch {
+              // leave as-is for non-JSON text fields
+            }
+          }
+        }
+      }
     }
 
     try {
@@ -312,11 +314,12 @@ export const ResourceManager: React.FC<Props> = ({
       }
       toast.success('Saved successfully');
       setForm(result);
-      await refresh();
+      await load();
       return result;
     } catch (e) {
       console.error(e);
-      const msg = "Failed to save. Please check your data and try again.";
+      const details = e instanceof Error ? e.message : String(e);
+      const msg = `Failed to save. ${details || 'Please check your data and try again.'}`;
       setSaveError(msg);
       toast.error(msg);
       return;
@@ -327,7 +330,7 @@ export const ResourceManager: React.FC<Props> = ({
     if (!itemToDelete) return;
     try {
       if (activeResource) await activeResource.delete(itemToDelete.id);
-      await refresh();
+      await load();
       setDeleteConfirmOpen(false);
       setItemToDelete(null);
     } catch (e: any) {
@@ -338,7 +341,7 @@ export const ResourceManager: React.FC<Props> = ({
         alert(`Could not delete item: ${e.message}`);
       }
       // Reload to ensure consistency
-      await refresh();
+      await load();
     }
   };
 

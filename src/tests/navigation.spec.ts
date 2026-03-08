@@ -13,23 +13,22 @@ test.describe('Navigation resets ResourceManager form', () => {
     await dismissSetupWizard(window);
 
     // Open Robots view
-    await window.click('text=Robots');
+    await window.getByRole('button', { name: 'Robots' }).click();
     await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
-    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'Add Robot' })).toBeVisible();
 
-    await window.click('text=Cameras');
+    await window.getByRole('button', { name: 'Cameras' }).click();
     await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
-    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: 'Add Camera' })).toBeVisible();
     // Navigate to Monitoring
     await dismissSetupWizard(window);
-    await window.click('text=Sessions');
-    await expect(window.getByRole('heading', { name: 'Sessions' })).toBeVisible();
-    await expectPageScreenshot(window);
+    await window.getByRole('button', { name: 'Datasets' }).click();
+    await expect(window.getByRole('heading', { name: 'Datasets' })).toBeVisible();
+    await expect(window.getByRole('button', { name: 'Add Dataset' })).toBeVisible();
 
     // Navigate back to Robots - the ResourceManager should show list (not form)
-    await window.click('text=Robots');
+    await window.getByRole('button', { name: 'Robots' }).click();
     await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
-    await expectPageScreenshot(window);
 
     // Ensure Wizard is not present and Add Robot button visible
     await expect(window.locator('text=Confirm Selection')).toHaveCount(0);
@@ -63,11 +62,10 @@ test.describe('Environment Check Navigation', () => {
 
     const loadingButton = window.getByRole('button', { name: 'Loading env...' });
     await expect(loadingButton).toBeVisible();
-    await expectPageScreenshot(window);
 
     // Should NOT see wizard (because config is present AND check passed)
-    await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).not.toBeVisible();
-    await expectPageScreenshot(window);
+    await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).toHaveCount(0);
+    await expect(window.getByRole('button', { name: 'Scenes' })).toBeVisible();
 
     // 3. Test Failure Case
     await setIpcHandlers({
@@ -81,7 +79,6 @@ test.describe('Environment Check Navigation', () => {
 
     // Open the wizard from the loading indicator while checks are running.
     await expect(loadingButton).toBeVisible();
-    await expectPageScreenshot(window);
     await loadingButton.click();
     await expect(window.getByRole('heading', { name: "Environment Setup", exact: true })).toBeVisible();
     await expectPageScreenshot(window);

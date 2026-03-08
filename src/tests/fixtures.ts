@@ -61,12 +61,18 @@ export const test = base.extend<Fixtures>({
   },
 
   window: async ({ electronApp }, use) => {
+    const isAppWindow = (w: Page) => {
+      const url = w.url();
+      return !url.startsWith('devtools://') && !url.startsWith('chrome-devtools://');
+    };
+
     // Wait for the application window (not DevTools)
-    let win: Page | undefined = electronApp.windows().find((w) => !w.url().startsWith('devtools://'));
+    let win: Page | undefined = electronApp.windows().find((w) => isAppWindow(w));
     if (!win) {
-      win = await electronApp.waitForEvent('window', (w) => !w.url().startsWith('devtools://'));
+      win = await electronApp.waitForEvent('window', (w) => isAppWindow(w));
     }
     await win.waitForLoadState("domcontentloaded");
+    await win.waitForSelector('#root', { timeout: 15000 }).catch(() => { /* ignore */ });
     try {
       await win.setViewportSize({ width: 1200, height: 800 });
     } catch { /* ignore */ }

@@ -14,8 +14,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'src/tests',
   testMatch: 'src/tests/*.spec.ts',
-  workers: 1,
-  fullyParallel: false,
+  workers: process.env.CI ? 2 : undefined,
+  fullyParallel: true,
   timeout: 60000,
   use: {
     video: 'on',

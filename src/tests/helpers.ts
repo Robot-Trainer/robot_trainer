@@ -5,35 +5,45 @@ export async function expectPageScreenshot(window: Page) {
     caret: 'hide',
     maxDiffPixelRatio: 0.02,
     mask: [
-      window.getByText(/^Created:/),
-      window.getByText(/^Updated:/),
-      window.locator('div.fixed.inset-0.z-50'),
-      window.locator('[role="presentation"]'),
-      window.locator('[role="alert"]'),
+      // window.getByText(/^Created:/),
+      // window.getByText(/^Updated:/),
+      // window.locator('[role="presentation"]'),
+      // window.locator('[role="alert"]'),
     ],
   });
 }
 
 export async function dismissSetupWizard(window: Page) {
-  // Wait for app to be idle. Catch timeout to proceed even if flag is flaky.
-  await window.waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 15000 }).catch(() => { /* ignore */ });
+  if (window.isClosed()) return;
+
+  await window
+    .waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 8000 })
+    .catch(() => { /* ignore idle timeout and continue best effort */ });
 
   const wizard = window.getByRole('heading', { name: 'Environment Setup', exact: true });
-  const closeButton = window.locator('button', { hasText: /^Close$/ });
-  const skipButton = window.locator('button', { hasText: /^Skip \/ Close$/ });
+  const closeButton = window.getByRole('button', { name: /^Close$/ });
+  const skipButton = window.getByRole('button', { name: /^Skip \/ Close$/ });
 
-  // The main process may re-request settings shortly after startup, which can re-open the wizard.
-  const until = Date.now() + 7000;
-  while (Date.now() < until) {
-    if (await wizard.isVisible({ timeout: 500 }).catch(() => false)) {
-      if (await skipButton.isVisible().catch(() => false)) {
-        await skipButton.click().catch(() => { /* ignore */ });
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (window.isClosed()) return;
+
+    const isVisible = await wizard.isVisible({ timeout: 150 }).catch(() => false);
+    if (!isVisible) {
+      if (attempt === 0) {
+        await window.waitForTimeout(120).catch(() => { /* ignore */ });
+        continue;
       }
-      if (await closeButton.isVisible().catch(() => false)) {
-        await closeButton.click().catch(() => { /* ignore */ });
-      }
-      await wizard.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => { /* ignore */ });
+      break;
     }
-    await window.waitForTimeout(350);
+
+    if (await skipButton.isVisible({ timeout: 100 }).catch(() => false)) {
+      await skipButton.click({ force: true }).catch(() => { /* ignore */ });
+    }
+    if (await closeButton.isVisible({ timeout: 100 }).catch(() => false)) {
+      await closeButton.click({ force: true }).catch(() => { /* ignore */ });
+    }
+
+    await wizard.waitFor({ state: 'hidden', timeout: 1200 }).catch(() => { /* ignore */ });
+    await window.waitForTimeout(120).catch(() => { /* ignore */ });
   }
 }
