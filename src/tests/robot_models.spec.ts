@@ -12,29 +12,32 @@ test.describe('Robot Models CRUD', () => {
 
     await dismissSetupWizard(window);
 
-    await window.click('text=Robot Models');
-    await window.waitForSelector('text=Robot Models');
+    await window.getByRole('button', { name: 'Robot Models' }).click();
+    await expect(window.getByRole('heading', { name: 'Robot Models' })).toBeVisible();
 
-    await window.click('text=Add Robot Model');
+    await window.getByRole('button', { name: 'Add Robot Model' }).click();
 
-    await window.getByLabel('Name').fill('Model Alpha');
-    await window.getByLabel('Dir Name').fill('model_alpha');
-    await window.getByLabel('Class Name').fill('ModelAlphaClass');
-    await window.getByLabel('Config Class Name').fill('ModelAlphaConfig');
+    await window.getByRole('textbox', { name: 'Name *', exact: true }).fill('Model Alpha');
+    await window.getByRole('textbox', { name: 'Dir Name *' }).fill('model_alpha');
+    await window.getByRole('textbox', { name: 'Class Name *', exact: true }).fill('ModelAlphaClass');
+    await window.getByRole('textbox', { name: 'Config Class Name *' }).fill('ModelAlphaConfig');
     await window.getByLabel('Properties').fill('{"family":"alpha"}');
     await window.getByLabel('Model XML').fill('<mujoco model="alpha"/>');
     await window.getByLabel('Model Path').fill('/tmp/model_alpha.xml');
     await window.getByLabel('Model Format').fill('xml');
 
-    await window.click('button:has-text("Create")');
-    await window.waitForSelector('text=Model Alpha');
+    await window.getByRole('button', { name: 'Create' }).click();
+    await expect(window.getByRole('button', { name: 'Save' })).toBeVisible({ timeout: 15000 });
+    await expect(window.getByRole('textbox', { name: 'Name *', exact: true })).toHaveValue('Model Alpha');
 
-    await window.click('text=Model Alpha');
-    await window.getByLabel('Name').fill('Model Alpha v2');
-    await window.click('button:has-text("Save")');
-    await window.waitForSelector('text=Model Alpha v2');
+    await window.getByRole('textbox', { name: 'Name *', exact: true }).fill('Model Alpha v2');
+    await window.getByRole('button', { name: 'Save' }).click();
+    await window.getByRole('button', { name: 'Cancel' }).click();
 
-    await window.getByTestId('DeleteIcon').first().click();
+    const updatedRow = window.locator('.MuiDataGrid-row', { hasText: 'Model Alpha v2' }).first();
+    await expect(updatedRow).toBeVisible();
+
+    await updatedRow.locator('button[aria-label="Delete"]').click();
     const dialog = window.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: /^Delete$/i }).click();

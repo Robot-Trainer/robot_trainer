@@ -12,25 +12,34 @@ test.describe('Robots CRUD', () => {
 
     await dismissSetupWizard(window);
     await window.getByRole('button', { name: 'Add Robot' }).click();
-
-    await window.getByLabel('Robot Model').click();
-    await window.getByRole('option').nth(1).click();
-    await window.keyboard.press('Escape');
-    await dismissSetupWizard(window);
-
-    await window.getByRole('button', { name: 'Save Robot' }).click();
     await expect(window.getByLabel('Robot Name')).toBeVisible();
-    await expectPageScreenshot(window);
-    await window.getByLabel('Robot Name').fill('Test Robot v2');
+
+    await window.getByLabel('Robot Name').fill('Test Robot');
+    await window.getByLabel('Modality').click();
+    await window.getByRole('option', { name: 'Simulated' }).click();
     await dismissSetupWizard(window);
+
     await window.getByRole('button', { name: 'Save Robot' }).click();
+    await expect(window.getByLabel('Robot Name')).toHaveValue('Test Robot');
+    await expectPageScreenshot(window);
 
     await window.getByRole('button', { name: 'Cancel' }).click();
-    await expect(window.locator('.MuiDataGrid-row').first()).toBeVisible();
+    await window.locator('.MuiDataGrid-row', { hasText: 'Test Robot' }).first().click();
+
+    const nameInput = window.getByLabel('Robot Name');
+    await nameInput.fill('');
+    await nameInput.fill('Test Robot v2');
+    await expect(nameInput).toHaveValue('Test Robot v2');
+    await dismissSetupWizard(window);
+    await window.getByRole('button', { name: 'Save Robot' }).click();
+    await window.getByRole('button', { name: 'Cancel' }).click();
+
+    const updatedRow = window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' }).first();
+    await expect(updatedRow).toBeVisible({ timeout: 15000 });
     await expectPageScreenshot(window);
 
-    await window.locator('.MuiDataGrid-row button').first().click();
-    await window.getByRole('button', { name: /^Delete$/ }).click();
-    await window.waitForTimeout(300);
+    await updatedRow.locator('button[aria-label="Delete"]').click();
+    await window.getByRole('dialog').getByRole('button', { name: /^Delete$/ }).click();
+    await expect(window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' })).toHaveCount(0);
   });
 });
