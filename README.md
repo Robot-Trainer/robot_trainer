@@ -34,19 +34,23 @@ Run the app in development (renderer served by Vite):
 npm run start
 ```
 
-Run Electron in headless/debug mode (useful for CI or debugging):
-
-```bash
-npm run browser
-```
 
 **Scripts**
+- `npm run db:generate` — Generate Drizzle DB migrations (in drizzle).
 - `npm run start` — Start Electron using electron-forge (development).
+- `npm run start:profile` — Start Electron with startup profiling enabled.
+- `npm run package` — Package the Electron app.
+- `npm run download-ffmpeg` — Download prebuilt ffmpeg via `scripts/download_ffmpeg.js`.
 - `npm test` — Run unit tests via `vitest`.
 - `npm run test:playwright` — Build/package and run Playwright tests (integration).
-- `npm run package` — Create a packaged app (runs `prepackage` first to build Python).
 - `npm run make` — Produce OS installers using electron-forge makers.
+- `npm run publish` — Publish the packaged app using electron-forge.
 - `npm run release` — Generate DB assets and publish Electron Forge binaries to GitHub Releases.
+- `npm run lint` — Run ESLint across the project.
+- `npm run build:web` — Build the web renderer via Vite.
+- `npm run dev:web` — Start the Vite dev server for the web build.
+- `npm run start:web` — Start the app server (`tsx src/server/index.ts`).
+- `npm run test:playwright:web` — Run Playwright tests in web mode.
 
 **Project Structure (high level)**
 
