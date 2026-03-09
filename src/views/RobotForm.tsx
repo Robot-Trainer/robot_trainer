@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Grid,
   Typography,
@@ -17,11 +17,15 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { robotModelsResource } from '../db/resources';
 import { db } from '../db/db';
+import { eq } from 'drizzle-orm';
 import {
   robotModelsTable,
   scenesTable,
   sceneRobotsTable
 } from '../db/schema';
+import Editor from '@monaco-editor/react';
+import MujocoPreview from '../ui/MujocoPreview';
+import CameraDiscovery, { type CameraEntry } from '../ui/CameraDiscovery';
 
 interface SerialPort {
   path: string;
@@ -86,6 +90,15 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
   } | null>(null);
   const [modelFileError, setModelFileError] = useState<string | null>(null);
 
+  // Monaco editor / 3D preview state for editing simulated robots
+  const [editorXml, setEditorXml] = useState<string>('');
+  const [previewXml, setPreviewXml] = useState<string>('');
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const editorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Camera discovery state for real robots
+  const [discoveredCameras, setDiscoveredCameras] = useState<CameraEntry[]>([]);
+
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -115,6 +128,20 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
     setMaxRelativeTarget(cfg.max_relative_target != null ? String(cfg.max_relative_target) : '');
     setRobotConfigId(cfg.id || '');
     setCalibrationDir(cfg.calibration_dir || '');
+
+    // Load modelXml for editing simulated robots
+    const xml = initialData.data?.modelXml || '';
+    if (xml) {
+      setEditorXml(xml);
+      setPreviewXml(xml);
+    }
+
+    // Load saved cameras for real robots
+    const savedCams = initialData.data?.cameras;
+    if (Array.isArray(savedCams)) {
+      // Cameras are serialized without live streams — we don't restore streams here
+      // The user will re-detect cameras when editing
+    }
   }, [initialData]);
 
   const selectedModel = modelOptions.find((m: any) => String(m.id) === String(robotModelId));
@@ -125,6 +152,44 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       setModality(selectedModelModality);
     }
   }, [selectedModelModality]);
+
+  // When editing an existing simulated robot, load modelXml from the linked robot model
+  useEffect(() => {
+    if (!initialData || !selectedModel) return;
+    if (selectedModel.modelXml && !editorXml) {
+      setEditorXml(selectedModel.modelXml);
+      setPreviewXml(selectedModel.modelXml);
+    }
+  }, [selectedModel, initialData]);
+
+  // Debounced preview update when editor content changes
+  const handleEditorChange = useCallback((value: string | undefined) => {
+    const newXml = value || '';
+    setEditorXml(newXml);
+
+    if (editorTimerRef.current) {
+      clearTimeout(editorTimerRef.current);
+    }
+    editorTimerRef.current = setTimeout(() => {
+      setPreviewXml(newXml);
+    }, 800);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (editorTimerRef.current) clearTimeout(editorTimerRef.current);
+    };
+  }, []);
+
+  // Camera management callbacks
+  const handleAddCamera = useCallback((camera: CameraEntry) => {
+    setDiscoveredCameras((prev) => [...prev, camera]);
+  }, []);
+
+  const handleRemoveCamera = useCallback((cameraName: string) => {
+    setDiscoveredCameras((prev) => prev.filter((c) => c.name !== cameraName));
+  }, []);
 
   const handleSave = async () => {
     if (!onSaved) return;
@@ -216,8 +281,33 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
           id: robotConfigId || null,
           calibration_dir: calibrationDir || null,
         };
+
+        // Save discovered cameras metadata (without live streams)
+        if (discoveredCameras.length > 0) {
+          payloadData.cameras = discoveredCameras.map((c) => ({
+            name: c.name,
+            deviceId: c.deviceId,
+            deviceLabel: c.deviceLabel,
+          }));
+        }
       } else if (payloadData.config) {
         delete payloadData.config;
+      }
+
+      // Save edited modelXml for simulated robots
+      if (modality === 'simulated' && editorXml && initialData) {
+        payloadData.modelXml = editorXml;
+
+        // Also update the linked robot model's modelXml in the database
+        if (selectedModel?.id) {
+          try {
+            await db.update(robotModelsTable)
+              .set({ modelXml: editorXml })
+              .where(eq(robotModelsTable.id, selectedModel.id));
+          } catch {
+            // non-critical; the data is still saved on the robot
+          }
+        }
       }
 
       const payload = {
@@ -288,6 +378,34 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             value={robotModelId}
             onChange={(e: any) => setRobotModelId(e.target.value)}
             options={[{ label: 'Select Robot Model...', value: '' }, ...modelOptionItems]}
+            renderOption={(opt) => {
+              if (opt.value === '') return opt.label;
+              const model = modelOptions.find((m: any) => String(m.id) === String(opt.value));
+              const mod = getModelModality(model);
+              return (
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                  <span>{opt.label}</span>
+                  {mod === 'real' && (
+                    <Chip
+                      label="Real"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+                    />
+                  )}
+                  {mod === 'simulated' && (
+                    <Chip
+                      label="Sim"
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                      sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+                    />
+                  )}
+                </Stack>
+              );
+            }}
           />
         </Grid>
         {showExplicitModalitySelector ? (
@@ -447,17 +565,27 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         </Box>
       )}
 
-      {modality === 'simulated' && (
+      {modality === 'real' && (
+        <CameraDiscovery
+          cameras={discoveredCameras}
+          onAdd={handleAddCamera}
+          onRemove={handleRemoveCamera}
+        />
+      )}
+
+      {modality === 'simulated' && !initialData && (
         <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
           <Stack spacing={2}>
             <Typography variant="h6" fontSize="1rem">Model File (MJCF)</Typography>
 
-            <Button variant="ghost" onClick={handleSelectModelFile}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <UploadFileIcon fontSize="small" />
-                <span>{modelFilePath ? 'Change File...' : 'Select Model File...'}</span>
-              </Stack>
-            </Button>
+            <Stack direction="row" spacing={2}>
+              <Button variant="ghost" onClick={handleSelectModelFile}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <UploadFileIcon fontSize="small" />
+                  <span>{modelFilePath ? 'Change File...' : 'Upload Model File...'}</span>
+                </Stack>
+              </Button>
+            </Stack>
 
             {modelFileError && <Alert severity="error">{modelFileError}</Alert>}
 
@@ -478,6 +606,63 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
               </Box>
             )}
           </Stack>
+        </Box>
+      )}
+
+      {modality === 'simulated' && initialData && (
+        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+          <Typography variant="h6" fontSize="1rem" sx={{ mb: 2 }}>
+            Model XML Editor
+          </Typography>
+
+          <Grid container spacing={2}>
+            {/* Left: Monaco Editor */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  height: 500,
+                }}
+              >
+                <Editor
+                  height="100%"
+                  language="xml"
+                  theme="vs-light"
+                  value={editorXml}
+                  onChange={handleEditorChange}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    wordWrap: 'on',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              </Box>
+            </Grid>
+
+            {/* Right: 3D Preview */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <MujocoPreview
+                xml={previewXml}
+                height={500}
+                onError={(err) => setPreviewError(err)}
+                onSuccess={() => setPreviewError(null)}
+              />
+            </Grid>
+          </Grid>
+
+          {previewError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              <Typography variant="subtitle2">XML Error</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                {previewError}
+              </Typography>
+            </Alert>
+          )}
         </Box>
       )}
 

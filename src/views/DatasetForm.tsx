@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, Tab, Box, Grid, Typography } from '@mui/material';
 import { db } from '../db/db';
 import { eq } from 'drizzle-orm';
@@ -18,8 +18,12 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Badge from '../ui/Badge';
 import { useToast } from '../ui/ToastContext';
-import { Play, CheckCircle, ChevronRight, Pause, Stop, RefreshCw, XCircle, Circle, ExternalLink } from '../icons';
-import { VideoPlayer } from '../ui/VideoPlayer';
+import { Play, CheckCircle, ChevronRight, Pause, Stop, RefreshCw, XCircle, Circle } from '../icons';
+import { MuJoCoSimView } from '../ui/MuJoCoSimView';
+import type { MuJoCoSimViewHandle } from '../ui/MuJoCoSimView';
+import { MujocoSimulation } from '../lib/MujocoSimulation';
+import type { CameraSpec, ObservationData, SimulationState } from '../lib/MujocoSimulation';
+import { SimDatasetRecorder } from '../lib/SimDatasetRecorder';
 
 type SceneStatus = {
   ready: boolean;
@@ -140,9 +144,14 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const [simRunning, setSimRunning] = useState(false);
   const [recording, setRecording] = useState(false);
 
-  // Map cameraId -> wsUrl
+  // WASM simulation instances
+  const simRef = useRef<MujocoSimulation | null>(null);
+  const recorderRef = useRef<SimDatasetRecorder | null>(null);
+  const simViewRef = useRef<MuJoCoSimViewHandle | null>(null);
+  const [simInitialising, setSimInitialising] = useState(false);
+
+  // Map cameraId -> wsUrl (retained for real cameras only)
   const [cameraStreams, setCameraStreams] = useState<{ [key: number]: string }>({});
-  const [simStreamUrl, setSimStreamUrl] = useState<string | null>(null);
 
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -206,15 +215,8 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     resolveDefaultDatasetDir(repoId);
   }, [repoId, datasetDirManuallySet]);
 
-  useEffect(() => {
-    if ((window as any).electronAPI) {
-      return (window as any).electronAPI.onSimulationError((error: any) => {
-        setErrorMessage(error);
-        setErrorModalOpen(true);
-        setSimRunning(false);
-      });
-    }
-  }, []);
+  // Simulation error handling is done via the MujocoSimulation.onError callback
+  // when the sim is started (see handleStartSimulation).
 
   // Timers and refs
   const recordingStartTime = useRef<number | null>(null);
@@ -556,163 +558,143 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const handleStartSimulation = async () => {
     if (!(await checkSceneReadiness())) return;
     if (!selectedSceneId) return;
+    if (simInitialising) return;
+
+    setSimInitialising(true);
     try {
       const snapshot = await getSceneSnapshot(selectedSceneId);
       if (!snapshot) return;
 
       const follower = snapshot.robots[0];
-      const teleop = snapshot.teleoperators[0];
 
-      const snapshotCameras: Record<string, any> = {};
-      snapshot.cameras.forEach((c: any) => {
-        snapshotCameras[c.name] = { ...c.data, ...c._snapshot };
-      });
-
-      // Check if this is a custom simulated robot (has model XML or Path)
+      // Only custom simulated robots with model XML are supported
       const isCustomSimulated = follower?.modality === 'simulated'
         && follower?.model?.className === 'GenericMujocoEnv'
         && (follower?.model?.modelXml || follower?.model?.modelPath);
 
-      let gymManipulatorConfig: any;
+      if (!isCustomSimulated) {
+        throw new Error('Only custom simulated robots with model XML are supported');
+      }
 
-      if (isCustomSimulated) {
-        // Build custom_mujoco config for GenericMujocoEnv
-        // Build camera specs solely from snapshot.cameras
-        const cameraSpecs = snapshot.cameras.map((c: any) => {
-          const rawData = c.data?.mujoco || c.data || {};
+      // Build camera specs from snapshot
+      const cameraSpecs: CameraSpec[] = snapshot.cameras.map((c: any) => {
+        const rawData = c.data?.mujoco || c.data || {};
+        const hasDbPos = typeof c.posX === 'number' && typeof c.posY === 'number' && typeof c.posZ === 'number';
+        const pos = hasDbPos ? [c.posX, c.posY, c.posZ] : (rawData.pos || [0, 0, 0]);
+        const hasDbQuat = typeof c.quatW === 'number';
+        const quat = hasDbQuat ? [c.quatW, c.quatX, c.quatY, c.quatZ] : rawData.quat;
+        const hasDbXyaxes = typeof c.xyaxesX1 === 'number';
+        const xyaxes = hasDbXyaxes ? [c.xyaxesX1, c.xyaxesY1, c.xyaxesZ1, c.xyaxesX2, c.xyaxesY2, c.xyaxesZ2] : rawData.xyaxes;
 
-          // Extract MJCF properties, preferring DB columns if present
-          const hasDbPos = typeof c.posX === 'number' && typeof c.posY === 'number' && typeof c.posZ === 'number';
-          const pos = hasDbPos ? [c.posX, c.posY, c.posZ] : (rawData.pos || [0, 0, 0]);
-
-          const hasDbQuat = typeof c.quatW === 'number';
-          const quat = hasDbQuat ? [c.quatW, c.quatX, c.quatY, c.quatZ] : rawData.quat;
-
-          const hasDbXyaxes = typeof c.xyaxesX1 === 'number';
-          const xyaxes = hasDbXyaxes ? [c.xyaxesX1, c.xyaxesY1, c.xyaxesZ1, c.xyaxesX2, c.xyaxesY2, c.xyaxesZ2] : rawData.xyaxes;
-
-          return {
-            name: c.name || `camera_${c.id}`,
-            
-            pos,
-            quat,
-            xyaxes,
-            
-            // Optional MJCF properties from raw data if NOT overridden by DB columns
-            // If DB has columns, we used them above.
-            axis: rawData.axis,
-            target: rawData.target,
-            zaxis: rawData.zaxis,
-            euler: rawData.euler, // Prioritize quat/xyaxes if present? Python side handles it.
-
-            fovy: rawData.fovy,
-            // Resolution
-            width: parseInt(c.resolution?.split('x')[0]) || 128,
-            height: parseInt(c.resolution?.split('x')[1]) || 128,
-          };
-        });
-
-        const modelProps: any = follower.model.properties || {};
-
-        gymManipulatorConfig = {
-          env: {
-            type: "custom_mujoco",
-            task: null,
-            fps: fps,
-            model_xml: follower.model.modelXml,
-            model_path: follower.model.modelPath,
-            robot_xml_path: follower.model.modelPath,
-            scene_xml_path: snapshot.sceneXmlPath || null,
-            model_format: follower.model.modelFormat || 'mjcf',
-            cameras: cameraSpecs,
-            home_position: modelProps.homePosition || null,
-            cartesian_bounds: modelProps.cartesianBounds || null,
-            image_obs: true,
-            render_mode: "rgb_array",
-            reward_type: "sparse",
-            control_dt: 0.02,
-            physics_dt: 0.002,
-            seed: 0,
-            processor: {
-              control_mode: "keyboard",
-              gripper: {
-                use_gripper: modelProps.hasGripper || false,
-                gripper_penalty: -0.02,
-              },
-              observation: {
-                display_cameras: true,
-              },
-              reset: {
-                reset_time_s: 2.0,
-                control_time_s: 15.0,
-                terminate_on_success: true,
-              },
-            },
-          },
-          teleop: {
-            type: "keyboard",
-          },
-          dataset: {
-            repo_id: repoId,
-            root: datasetDir || null,
-            task: singleTask || "manipulation",
-            replay_episode: null,
-            push_to_hub: false,
-          },
-          device: 'cpu',
-          mode: "record",
+        return {
+          name: c.name || `camera_${c.id}`,
+          pos,
+          quat,
+          xyaxes,
+          euler: rawData.euler,
+          target: rawData.target,
+          fovy: rawData.fovy,
+          width: parseInt(c.resolution?.split('x')[0]) || 128,
+          height: parseInt(c.resolution?.split('x')[1]) || 128,
         };
-      } else {
-        throw new Error("Only custom simulated robots with model XML are supported in this version");
-      }
+      });
 
-      console.log("Prepared gym manipulator config:", gymManipulatorConfig);
+      const modelProps: any = follower.model.properties || {};
 
-      if (teleop) {
-        void teleop;
-      }
+      // Create and initialise the WASM simulation
+      const sim = new MujocoSimulation();
+      await sim.init({
+        modelXml: follower.model.modelXml,
+        cameras: cameraSpecs,
+        homePosition: modelProps.homePosition || undefined,
+        controlDt: 0.02,
+        physicsDt: 0.002,
+      });
 
-      const res = await (window as any).electronAPI?.startSimulation(gymManipulatorConfig);
-      if (res && res.ok) {
-        setSimRunning(true);
-        if (res.wsUrl) setSimStreamUrl(res.wsUrl);
-      }
+      // Set up error handler
+      sim.onError = (error) => {
+        setErrorMessage({ message: error.message });
+        setErrorModalOpen(true);
+        setSimRunning(false);
+      };
+
+      simRef.current = sim;
+
+      // Create dataset recorder
+      const recorder = new SimDatasetRecorder(sim, {
+        fps,
+        taskDescription: singleTask || 'manipulation',
+        cameraNames: cameraSpecs.map(c => c.name),
+      });
+      recorderRef.current = recorder;
+
+      sim.start();
+      setSimRunning(true);
     } catch (e) {
       console.error(e);
+      setErrorMessage({
+        message: e instanceof Error ? e.message : String(e),
+      });
+      setErrorModalOpen(true);
+    } finally {
+      setSimInitialising(false);
     }
   };
 
   const handleStopSimulation = async () => {
     try {
-      await (window as any).electronAPI?.stopSimulation();
+      const sim = simRef.current;
+      if (sim) {
+        sim.dispose();
+        simRef.current = null;
+      }
+      recorderRef.current = null;
       setSimRunning(false);
-      setSimStreamUrl(null);
     } catch (e) { console.error(e); }
   };
 
   const handleResetSimulation = async () => {
-    await handleStopSimulation();
-    // Short delay to ensure cleanup?
-    setTimeout(handleStartSimulation, 500);
+    const sim = simRef.current;
+    if (sim) {
+      sim.reset();
+    }
   };
 
   const handleRecordToggle = async () => {
     if (recording) {
-      // Stop
+      // Stop recording — finalise current episode
+      const recorder = recorderRef.current;
+      if (recorder) {
+        const summary = recorder.finishEpisode('pending');
+        const newEp = {
+          id: 'temp-' + Date.now(),
+          name: summary ? `Episode ${summary.index}` : 'New Episode',
+          status: 'pending' as const,
+          duration: recordingDuration,
+          timestamp: new Date().toLocaleTimeString(),
+          isTemp: true
+        };
+        setEpisodes(prev => [...prev, newEp]);
+      }
       setRecording(false);
-      // Add pending episode (in UI only until annotated/saved)
-      const newEp = {
-        id: 'temp-' + Date.now(),
-        name: 'New Episode',
-        status: 'pending',
-        duration: recordingDuration,
-        timestamp: new Date().toLocaleTimeString(),
-        isTemp: true
-      };
-      setEpisodes(prev => [...prev, newEp]);
     } else {
-      // Start
+      // Start recording
       if (!(await checkSceneReadiness())) return;
+      const recorder = recorderRef.current;
+      const sim = simRef.current;
+      if (!recorder || !sim) {
+        toast.error('Start the simulation first before recording');
+        return;
+      }
+
+      // Hook onStep to capture frames while recording
+      const canvas = simViewRef.current?.getCanvas() ?? undefined;
+      recorder.startRecording(canvas);
+
+      sim.onStep = (obs: ObservationData, state: SimulationState) => {
+        recorder.recordFrame(obs, state);
+      };
+
       setRecording(true);
     }
   };
@@ -728,6 +710,9 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     newEps[lastIdx] = { ...lastEp, status, name: `Episode ${episodes.length} [${status}]` };
     setEpisodes(newEps);
 
+    // Update recorder
+    recorderRef.current?.annotateLastEpisode(status);
+
     // Persist if we have dataset ID
     if (initialData?.id) {
       try {
@@ -735,7 +720,6 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
           name: `Episode ${newEps[lastIdx].timestamp} [${status}]`,
           datasetId: initialData.id
         });
-        // Reload? Or just assume success.
       } catch (e) {
         console.error("Failed to save episode", e);
       }

@@ -32,12 +32,6 @@ interface ElectronAPI {
   checkLerobot: () => Promise<{ installed: boolean }>;
   saveRobotConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
   setConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
-  startSimulation: (config?: any) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
-  stopSimulation: () => Promise<{ ok: boolean; message?: string }>;
-  startCamera: (devicePath: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
-  openVideoWindow: (url: string) => Promise<void>;
-  startRTSP: (url: string) => Promise<{ ok: boolean; wsUrl?: string; message?: string }>;
-  stopVideo: (id: string) => Promise<{ ok: boolean; message?: string }>;
   // Main -> Renderer request/listen/reply helpers
   onRequestLoadSystemSettings: (cb: () => void) => () => void;
   onRequestSaveSystemSettings: (cb: (settings: any) => void) => () => void;
@@ -47,9 +41,6 @@ interface ElectronAPI {
   onInstallMinicondaOutput: (cb: (data: string) => void) => () => void;
   onCreateAnacondaEnvOutput: (cb: (data: string) => void) => () => void;
   onInstallLerobotOutput: (cb: (data: string) => void) => () => void;
-  getSimulationState: () => Promise<{ running: boolean; wsUrl?: string }>;
-  onSimulationStateChanged: (cb: (state: { running: boolean; wsUrl?: string }) => void) => () => void;
-  onSimulationError: (cb: (error: any) => void) => () => void;
   selectModelFile: () => Promise<string | null>;
   readModelFile: (filePath: string) => Promise<{
     content: string;
@@ -67,7 +58,6 @@ interface ElectronAPI {
   }>;
   saveRobotModelZip: (sourceFilePath: string) => Promise<{ modelPath: string }>;
   saveRobotModelFile: (sourceFilePath: string) => Promise<{ modelPath: string }>;
-  sendInputEvent: (event: any) => Promise<void>;
 }
 
 declare global {

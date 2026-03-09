@@ -8,9 +8,11 @@ type Props = {
   onChange?: (e: any) => void;
   options?: Option[];
   className?: string;
+  /** Custom render function for each option */
+  renderOption?: (option: Option) => React.ReactNode;
 };
 
-export const Select: React.FC<Props> = ({ label, value, onChange, options = [], className = '' }) => {
+export const Select: React.FC<Props> = ({ label, value, onChange, options = [], className = '', renderOption }) => {
   const valueExists = options.some(opt => opt.value === value || String(opt.value) === String(value));
 
   return (
@@ -32,7 +34,7 @@ export const Select: React.FC<Props> = ({ label, value, onChange, options = [], 
 
       {options.map((opt) => (
         <MenuItem key={String(opt.value)} value={opt.value}>
-          {opt.label}
+          {renderOption ? renderOption(opt) : opt.label}
         </MenuItem>
       ))}
     </TextField>

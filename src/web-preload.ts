@@ -57,66 +57,51 @@ function onEvent(channel: string, cb: (...args: any[]) => void): () => void {
 // ---------------------------------------------------------------------------
 (window as any).electronAPI = {
   // ── Invoke-style calls ──────────────────────────────────────────────────
-  getUsername: () => invokeApi('get-username'),
+  getUsername: () => invokeApi("get-username"),
   getDefaultDatasetDir: (repoId: string) =>
-    invokeApi('get-default-dataset-dir', repoId),
-  selectDatasetDirectory: () => invokeApi('select-dataset-directory'),
-  scanSerialPorts: () => invokeApi('scan-serial-ports'),
+    invokeApi("get-default-dataset-dir", repoId),
+  selectDatasetDirectory: () => invokeApi("select-dataset-directory"),
+  scanSerialPorts: () => invokeApi("scan-serial-ports"),
   saveSystemSettings: (settings: any) =>
-    invokeApi('save-system-settings', settings),
-  checkAnaconda: () => invokeApi('check-anaconda'),
-  createAnacondaEnv: (name: string) => invokeApi('create-anaconda-env', name),
-  installMiniconda: () => invokeApi('install-miniconda'),
-  installLerobot: () => invokeApi('install-lerobot'),
-  checkLerobot: () => invokeApi('check-lerobot'),
-  scanMujocoMenagerie: () => invokeApi('scan-mujoco-menagerie'),
-  saveRobotConfig: (config: any) => invokeApi('save-robot-config', config),
+    invokeApi("save-system-settings", settings),
+  checkAnaconda: () => invokeApi("check-anaconda"),
+  createAnacondaEnv: (name: string) => invokeApi("create-anaconda-env", name),
+  installMiniconda: () => invokeApi("install-miniconda"),
+  installLerobot: () => invokeApi("install-lerobot"),
+  checkLerobot: () => invokeApi("check-lerobot"),
+  scanMujocoMenagerie: () => invokeApi("scan-mujoco-menagerie"),
+  saveRobotConfig: (config: any) => invokeApi("save-robot-config", config),
   // setConfig is an alias for saveRobotConfig — mirrors the Electron preload.ts alias.
-  setConfig: (config: any) => invokeApi('save-robot-config', config),
-  openAdminWindow: (dbName: string) => invokeApi('open-admin-window', dbName),
-  getMigrations: () => invokeApi('get-migrations'),
-  startSimulation: (config?: any) => invokeApi('start-simulation', config),
-  stopSimulation: () => invokeApi('stop-simulation'),
-  startCamera: (devicePath: string) => invokeApi('start-camera', devicePath),
-  openVideoWindow: (url: string) => invokeApi('open-video-window', url),
-  startRTSP: (url: string) => invokeApi('start-rtsp', url),
-  stopVideo: (id: string) => invokeApi('stop-video', id),
-  getSimulationState: () => invokeApi('get-simulation-state'),
-  selectModelFile: () => invokeApi('select-model-file'),
-  readModelFile: (filePath: string) => invokeApi('read-model-file', filePath),
+  setConfig: (config: any) => invokeApi("save-robot-config", config),
+  openAdminWindow: (dbName: string) => invokeApi("open-admin-window", dbName),
+  getMigrations: () => invokeApi("get-migrations"),
+  openVideoWindow: (url: string) => invokeApi("open-video-window", url),
+
+  selectModelFile: () => invokeApi("select-model-file"),
+  readModelFile: (filePath: string) => invokeApi("read-model-file", filePath),
   saveRobotModelZip: (sourceFilePath: string) =>
-    invokeApi('save-robot-model-zip', sourceFilePath),
+    invokeApi("save-robot-model-zip", sourceFilePath),
   saveRobotModelFile: (sourceFilePath: string) =>
-    invokeApi('save-robot-model-file', sourceFilePath),
-  sendInputEvent: (event: any) => invokeApi('send-input-event', event),
+    invokeApi("save-robot-model-file", sourceFilePath),
 
   // ── Reply helpers (renderer → server via Socket.IO) ─────────────────────
   replyLoadSystemSettings: (settings: any) =>
-    getSocket().emit('reply-load-system-settings', settings),
+    getSocket().emit("reply-load-system-settings", settings),
   replySaveSystemSettings: (result: any) =>
-    getSocket().emit('reply-save-system-settings', result),
+    getSocket().emit("reply-save-system-settings", result),
 
   // ── Event subscriptions (server → renderer via Socket.IO) ───────────────
   onRequestLoadSystemSettings: (cb: () => void) =>
-    onEvent('request-load-system-settings', cb),
+    onEvent("request-load-system-settings", cb),
   onRequestSaveSystemSettings: (cb: (settings: any) => void) =>
-    onEvent('request-save-system-settings', cb),
+    onEvent("request-save-system-settings", cb),
   onSystemSettingsChanged: (cb: (data: any) => void) =>
-    onEvent('system-settings-changed', cb),
-  onOpenSetupWizard: (cb: () => void) => onEvent('open-setup-wizard', cb),
-  onSimulationFrame: (cb: (base64jpeg: string) => void) =>
-    onEvent('simulation-frame', cb),
-  onSimulationStopped: (cb: (info: any) => void) =>
-    onEvent('simulation-stopped', cb),
+    onEvent("system-settings-changed", cb),
+  onOpenSetupWizard: (cb: () => void) => onEvent("open-setup-wizard", cb),
   onInstallMinicondaOutput: (cb: (data: string) => void) =>
-    onEvent('install-miniconda-output', cb),
+    onEvent("install-miniconda-output", cb),
   onCreateAnacondaEnvOutput: (cb: (data: string) => void) =>
-    onEvent('create-anaconda-env-output', cb),
+    onEvent("create-anaconda-env-output", cb),
   onInstallLerobotOutput: (cb: (data: string) => void) =>
-    onEvent('install-lerobot-output', cb),
-  onSimulationStateChanged: (
-    cb: (state: { running: boolean; wsUrl?: string }) => void,
-  ) => onEvent('simulation-state-changed', cb),
-  onSimulationError: (cb: (error: any) => void) =>
-    onEvent('simulation-error', cb),
+    onEvent("install-lerobot-output", cb),
 };
