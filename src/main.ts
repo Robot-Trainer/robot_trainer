@@ -75,11 +75,9 @@ if (started) {
   app.quit();
 }
 
-if (featureFlags.enableSim) {
-  console.log('[feature-flags] enable-sim is enabled');
-}
+console.log(`[feature-flags] enable-sim is ${featureFlags.enableSim ? 'enabled' : 'disabled'}`);
 
-let systemSettings: any = {};
+let systemSettings: any = {featureFlags};
 
 const loadSystemSettings = async () => {
   // Ask the renderer (which owns the drizzle DB) for the settings.

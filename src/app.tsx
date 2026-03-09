@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { SetupWizard } from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
 import Datasets from './views/Datasets';
-import MonitoringView from './views/Monitoring';
 import Cameras from './views/Cameras';
 import Robots from './views/Robots';
 import RobotModels from './views/RobotModels';
@@ -233,8 +232,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
         return <SetupWizard />;
       case "system-settings":
         return <SystemSettings />;
-      case "monitoring":
-        return <MonitoringView />;
       default:
         return <Scenes />;
     }

@@ -20,7 +20,6 @@ test.describe('Navigation resets ResourceManager form', () => {
     await window.getByRole('button', { name: 'Cameras' }).click();
     await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
     await expect(window.getByRole('button', { name: 'Add Camera' })).toBeVisible();
-    // Navigate to Monitoring
     await dismissSetupWizard(window);
     await window.getByRole('button', { name: 'Datasets' }).click();
     await expect(window.getByRole('heading', { name: 'Datasets' })).toBeVisible();

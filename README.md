@@ -10,7 +10,7 @@ That is, its primary features are being actively implemented. Do not expect it t
 
 **Overview**
 
-Robot Trainer is an Electron desktop application built with Vite + React (TypeScript) that integrates a bundled Python runtime for robot-related tooling. The project packages a small Python utility (built with PyInstaller) alongside the Electron app so native robot integrations can run as a standalone binary.
+Robot Trainer is an application (currently desktop, but aspiring to be fully-web based) designed to simplify the robot training workflow. Our mission is to make it easy enough for anyone to train their robot on new tasks.
 
 **Quick Links**
 - **Repository root**: [package.json](package.json)
@@ -19,9 +19,6 @@ Robot Trainer is an Electron desktop application built with Vite + React (TypeSc
 
 **Development Requirements**
 - Node.js (recommended v18+)
-- Python 3.10+ (for building the bundled Python binary)
-- [`uv`](https://docs.astral.sh/uv) or other Python package manager for Python dependencies.
-- Platform-specific build tools when creating installers
 
 **Quick Start (development)**
 
@@ -29,7 +26,6 @@ Install dependencies:
 
 ```bash
 npm install
-uv sync
 ```
 
 Run the app in development (renderer served by Vite):
@@ -48,7 +44,6 @@ npm run browser
 - `npm run start` — Start Electron using electron-forge (development).
 - `npm test` — Run unit tests via `vitest`.
 - `npm run test:playwright` — Build/package and run Playwright tests (integration).
-- `npm run build-python` — Build the Python helper into a single executable using PyInstaller (runs in `src/python`).
 - `npm run package` — Create a packaged app (runs `prepackage` first to build Python).
 - `npm run make` — Produce OS installers using electron-forge makers.
 - `npm run release` — Generate DB assets and publish Electron Forge binaries to GitHub Releases.
