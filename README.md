@@ -12,10 +12,41 @@ That is, its primary features are being actively implemented. Do not expect it t
 
 Robot Trainer is an application (currently desktop, but aspiring to be fully-web based) designed to simplify the robot training workflow. Our mission is to make it easy enough for anyone to train their robot on new tasks.
 
+## Roadmap
+ *  ✅ Complete
+ *  🟨 In Progress
+ *  ⬜ Not Started
+
+
+| Progress | Description |
+|---:|-------------|
+| **Core** |
+| ✅ | Basic application and data schema|
+| **Datasets** | 
+| ✅ | Basic dataset management |
+| 🟨 | View basic simulation |
+| 🟨 | Record dataset via simulation |
+| 🟨 | Record dataset via teleoperation |
+| 🟨 | Real robot teleoperation |
+| ⬜ | Integrate dataset visualizer |
+| ⬜ | Allow users to view datasets from Huggingface |
+| **Robots** |
+| 🟨 | Create basic robot with MJCF and mesh files |
+| 🟨 | Create basic robot by writing XML file in editor |
+| ⬜ | Calibrate robots |
+| ⬜ | Remember robot when unplugged and plugged into different port |
+| ⬜ | Remove unnecessary robot DB attributes (class name fields, etc) |
+| **Scenes** |
+| 🟨 | Create a basic scene from XML that already includes robot management |
+| 🟨 | Create a basic scene from XML file and a selected robot |
+| **Skills** |
+| 🟨 | Seed standard skills from Huggingface|
+
+
+## Development
 **Quick Links**
 - **Repository root**: [package.json](package.json)
 - **Main process / preload / renderer**: [src/main.ts](src/main.ts), [src/preload.ts](src/preload.ts), [src/renderer.ts](src/renderer.ts)
-- **Bundled Python code**: [src/python](src/python)
 
 **Development Requirements**
 - Node.js (recommended v18+)
@@ -90,10 +121,6 @@ Note: `forge.config.ts` includes `extraResource: ['src/python/dist']` so the pac
 - The `vite.main.config.ts` marks `serialport` as external to avoid bundling native bindings into the renderer/main bundle.
 - Electron version and native module compatibility can be sensitive; if you change Electron, rebuild native modules (e.g., `electron-rebuild`) as needed.
 - The renderer uses React + Tailwind; Vite config for the renderer is in `vite.renderer.config.mts`.
-
-**Where to look for robot integrations**
-- `src/lib/robot.ts` and `src/lib/serial_devices.ts` contain core device and serial port logic.
-- Mock modules and tests are in `src/robot_sdk/testing/mock_modules` and `src/lib/test_fixtures.ts` respectively.
 
 **License & Author**
 - Author: Bernie Telles <btelles@gmail.com>
