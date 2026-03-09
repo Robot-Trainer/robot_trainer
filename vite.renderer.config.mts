@@ -14,6 +14,14 @@ if (existsSync(pgliteAdminPath)) {
 // https://vitejs.dev/config
 export default defineConfig({
   plugins,
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        format: 'es',
+      },
+    },
+  },
   optimizeDeps: {
     exclude: ["@electric-sql/pglite"],
   },

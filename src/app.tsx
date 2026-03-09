@@ -33,15 +33,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
   const popoutUrl = searchParams.get('popoutUrl');
   const popoutMode = searchParams.get('popoutMode');
 
-  const [simState, setSimState] = useState<{ running: boolean; wsUrl?: string } | null>(null);
-
-  useEffect(() => {
-    if (popoutMode === 'simulation') {
-      window.electronAPI.getSimulationState().then(setSimState);
-      return window.electronAPI.onSimulationStateChanged(setSimState);
-    }
-  }, [popoutMode]);
-
   if (popoutUrl) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
@@ -52,14 +43,8 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
 
   if (popoutMode === 'simulation') {
     return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center">
-        {simState?.running && simState.wsUrl ? (
-          <VideoPlayer url={simState.wsUrl} className="w-full h-full object-contain" />
-        ) : (
-          <div className="text-white/50 text-xl font-mono">
-            Waiting for simulation...
-          </div>
-        )}
+      <div className="w-screen h-screen bg-black flex items-center justify-center text-white/50 text-xl font-mono">
+        Simulation popout is no longer supported in renderer-only mode.
       </div>
     );
   }

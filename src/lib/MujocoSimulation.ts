@@ -15,8 +15,7 @@
  */
 
 import * as THREE from 'three';
-import loadMujoco from 'mujoco_wasm';
-import type { MainModule, MjModel, MjData, MjvScene as MjvSceneType } from 'mujoco_wasm';
+import type { MainModule, MjModel, MjData, MjvScene as MjvSceneType } from 'mujoco_wasm/dist/mujoco_wasm.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -150,7 +149,19 @@ export class MujocoSimulation {
   // ── Initialisation ─────────────────────────────────────────────────────
 
   async init(config: SimulationConfig): Promise<void> {
-    this.mujoco = await loadMujoco();
+    const pageBaseUrl = new URL('.', window.location.href);
+    const wasmModuleUrl = new URL('mujoco_wasm/mujoco_wasm.js', pageBaseUrl).href;
+    const wasmBinaryUrl = new URL('mujoco_wasm/mujoco_wasm.wasm', pageBaseUrl).href;
+
+    const loadMujocoModule = await import(/* @vite-ignore */ wasmModuleUrl);
+    const loadMujoco = loadMujocoModule.default as (moduleArg?: any) => Promise<MainModule>;
+
+    this.mujoco = await loadMujoco({
+      locateFile: (path: string) => {
+        if (path.endsWith('.wasm')) return wasmBinaryUrl;
+        return path;
+      },
+    });
     const mj = this.mujoco;
 
     // Set up in-memory file system for model files

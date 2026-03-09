@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, Tab, Box, Grid, Typography } from '@mui/material';
 import { db } from '../db/db';
 import { eq } from 'drizzle-orm';
@@ -150,8 +150,6 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
   const simViewRef = useRef<MuJoCoSimViewHandle | null>(null);
   const [simInitialising, setSimInitialising] = useState(false);
 
-  // Map cameraId -> wsUrl (retained for real cameras only)
-  const [cameraStreams, setCameraStreams] = useState<{ [key: number]: string }>({});
 
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -427,16 +425,7 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     };
     loadData();
 
-    // Listeners
-    const offStopped = (window as any).electronAPI?.onSimulationStopped
-      ? (window as any).electronAPI.onSimulationStopped(() => {
-        setSimRunning(false);
-        setSimStreamUrl(null);
-      })
-      : null;
-
     return () => {
-      if (offStopped) offStopped();
       clearInterval(timerRef.current);
     };
   }, []);
@@ -761,9 +750,6 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
     }
   };
 
-  // Logic to start real cameras if available
-  const activeCameras = cameras.filter(c => c.modality === 'real');
-  const hasRealCameras = activeCameras.length > 0;
   const cameraCount = cameras.length;
   const videoGridClass = cameraCount <= 1
     ? 'grid-cols-1'
@@ -771,70 +757,16 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
       ? 'grid-cols-2'
       : 'grid-cols-3';
 
-  // Start cameras effect (naive: start all real cameras when scene is selected)
+  // Cleanup simulation objects on unmount
   useEffect(() => {
-    const startCams = async () => {
-      const newStreams: { [key: number]: string } = {};
-      for (const cam of activeCameras) {
-        // Assumption: cam.data contains 'path' or we use serialNumber to find path?
-        // Usually path is needed. Let's assume cam.data.path exists or we scan. 
-        // Since we can't easily scan map here without more info, we'll try to use serial or data.path.
-        // For now, let's assume 'data.path' is stored when camera was added.
-        const path = (cam.data as any)?.path || (cam.data as any)?.devicePath;
-        if (path) {
-          try {
-            const res = await (window as any).electronAPI.startCamera(path);
-            if (res && res.ok && res.wsUrl) {
-              newStreams[cam.id] = res.wsUrl;
-            }
-          } catch (e) {
-            console.error(`Failed to start camera ${cam.name}`, e);
-          }
-        }
+    return () => {
+      try {
+        simRef.current?.dispose();
+      } catch (e) {
+        console.error('Failed to dispose simulation during unmount', e);
       }
-      setCameraStreams(newStreams);
-    };
-
-    if (hasRealCameras) {
-      startCams();
-    }
-
-    return () => {
-      // Cleanup streams? usage of stopVideo
-    };
-  }, [cameras]);
-
-  // Capture keyboard events for simulation control
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid sending keys while typing in inputs
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
-      (window as any).electronAPI.sendInputEvent({
-        type: 'keydown',
-        key: e.key,
-        code: e.code
-      });
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
-      (window as any).electronAPI.sendInputEvent({
-        type: 'keyup',
-        key: e.key,
-        code: e.code
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      simRef.current = null;
+      recorderRef.current = null;
     };
   }, []);
 
@@ -1032,7 +964,7 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
             </div>
 
             <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
-              {cameras.length === 0 && !simStreamUrl && (
+              {cameras.length === 0 && !simRunning && (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   No cameras configured or simulation stopped.
                 </div>
@@ -1046,22 +978,18 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
 
                   if (isSim) {
                     return (
-                      <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm group">
+                      <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
                         <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10 flex items-center gap-1">
                           {camLabel}
                           {(cam.data as any)?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
                         </div>
 
-                        <button
-                          onClick={() => (window as any).electronAPI.openVideoWindow('simulation')}
-                          className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded shadow-sm backdrop-blur-sm transition-opacity opacity-0 group-hover:opacity-100 z-20"
-                          title="Open in new window"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-
-                        {simStreamUrl ? (
-                          <VideoPlayer url={simStreamUrl} className="w-full h-full object-contain" channel={cam.name} />
+                        {simRunning && simRef.current ? (
+                          <MuJoCoSimView
+                            ref={simViewRef}
+                            simulation={simRef.current}
+                            className="w-full h-full"
+                          />
                         ) : (
                           <div className="text-white/50 text-sm">Simulation not running</div>
                         )}
@@ -1072,10 +1000,8 @@ export const DatasetForm: React.FC<Props> = ({ onCancel, onSaved, initialData })
                   return (
                     <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
                       <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">{camLabel}</div>
-                      {cameraStreams[cam.id] ? (
-                        <VideoPlayer url={cameraStreams[cam.id]} className="w-full h-full object-contain" />
-                      ) : camPath ? (
-                        <div className="text-white/50 text-sm">Connecting...</div>
+                      {camPath ? (
+                        <div className="text-white/50 text-sm">Real camera preview unavailable in renderer-only mode</div>
                       ) : (
                         <div className="text-white/50 text-sm">No device path</div>
                       )}

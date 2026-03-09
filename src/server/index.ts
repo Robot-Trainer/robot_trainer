@@ -87,22 +87,6 @@ const stubs: Record<string, StubFn> = {
   'save-robot-config': (_config: any) => ({ ok: true }),
   'open-admin-window': (_dbName: string) => undefined,
   'get-migrations': () => ({}),
-  'start-simulation': (_config?: any) => ({
-    ok: false,
-    message: 'Not implemented in web mode',
-  }),
-  'stop-simulation': () => ({ ok: true }),
-  'start-camera': (_devicePath: string) => ({
-    ok: false,
-    message: 'Not implemented in web mode',
-  }),
-  'open-video-window': (_url: string) => undefined,
-  'start-rtsp': (_url: string) => ({
-    ok: false,
-    message: 'Not implemented in web mode',
-  }),
-  'stop-video': (_id: string) => ({ ok: true }),
-  'get-simulation-state': () => ({ running: false }),
   'select-model-file': () => null,
   'read-model-file': (_filePath: string) => ({
     content: '',
@@ -119,7 +103,6 @@ const stubs: Record<string, StubFn> = {
   }),
   'save-robot-model-zip': (_sourceFilePath: string) => ({ modelPath: '' }),
   'save-robot-model-file': (_sourceFilePath: string) => ({ modelPath: '' }),
-  'send-input-event': (_event: any) => undefined,
 };
 
 // ---------------------------------------------------------------------------
