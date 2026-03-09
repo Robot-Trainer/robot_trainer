@@ -103,6 +103,7 @@ typings/
 
 # Vite
 .vite/
+vitest_output.txt
 
 # Electron-Forge
 out/
