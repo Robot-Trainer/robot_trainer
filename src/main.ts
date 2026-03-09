@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -952,14 +952,25 @@ const createWindow = () => {
     width: 1920,
     height: 1080,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      devTools: true
+      preload: path.join(__dirname, "preload.js"),
+      devTools: true,
     },
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
-    return { action: 'deny' };
+    return { action: "deny" };
   });
+  // Enable cross-origin isolation
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+      },
+    });
+  });
+
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -969,15 +980,15 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.webContents.once('did-finish-load', () => {
+  mainWindow.webContents.once("did-finish-load", () => {
     setTimeout(() => {
-      void stopStartupProfiling('did-finish-load');
+      void stopStartupProfiling("did-finish-load");
     }, STARTUP_TRACE_STOP_DELAY_MS);
   });
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
-};
+};;
 
 const setupAppMenu = () => {
   const isMac = process.platform === 'darwin';

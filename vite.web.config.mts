@@ -34,6 +34,17 @@ export default defineConfig({
     watch: {
       ignored: ['**/src/python/.venv/**'],
     },
+    open: true,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    }
+  },
+  preview: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    }
   },
   define: {
     // Allows renderer code to detect which mode it is running in.

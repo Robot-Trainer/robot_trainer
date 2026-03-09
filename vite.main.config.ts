@@ -27,6 +27,16 @@ export default defineConfig(({ mode }) => ({
     watch: {
       ignored: ['**/src/python/.venv/**'],
     },
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    }
+  },
+  preview: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    }
   },
   define: {
     'import.meta.env.mode': JSON.stringify('production'),
