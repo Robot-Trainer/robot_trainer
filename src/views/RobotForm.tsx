@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Grid,
   Typography,
@@ -7,25 +7,21 @@ import {
   Alert,
   Paper,
   CircularProgress,
-  Chip
-} from '@mui/material';
-import UsbIcon from '@mui/icons-material/Usb';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
-import { robotModelsResource } from '../db/resources';
-import { db } from '../db/db';
-import { eq } from 'drizzle-orm';
-import {
-  robotModelsTable,
-  scenesTable,
-  sceneRobotsTable
-} from '../db/schema';
-import Editor from '@monaco-editor/react';
-import MujocoPreview from '../ui/MujocoPreview';
-import CameraDiscovery, { type CameraEntry } from '../ui/CameraDiscovery';
+  Chip,
+} from "@mui/material";
+import UsbIcon from "@mui/icons-material/Usb";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import Button from "../ui/Button";
+import Input from "../ui/Input";
+import Select from "../ui/Select";
+import { robotModelsResource } from "../db/resources";
+import { db } from "../db/db";
+import { eq } from "drizzle-orm";
+import { robotModelsTable, scenesTable, sceneRobotsTable } from "../db/schema";
+import Editor from "@monaco-editor/react";
+import MujocoPreview from "../ui/MujocoPreview";
+import CameraDiscovery, { type CameraEntry } from "../ui/CameraDiscovery";
 
 interface SerialPort {
   path: string;
@@ -42,38 +38,72 @@ interface RobotFormProps {
   initialData?: any;
 }
 
-type RobotModality = 'real' | 'simulated';
+type RobotModality = "real" | "simulated";
+
+const extractCameraSerialNumber = (camera: CameraEntry): string => {
+  const explicitSerial = String((camera as any).serialNumber || "").trim();
+  if (explicitSerial) return explicitSerial;
+
+  const label = String((camera as any).deviceLabel || "");
+  const serialMatch = label.match(/serial[:\s#-]*([a-zA-Z0-9._-]+)/i);
+  if (serialMatch?.[1]) return serialMatch[1];
+
+  return String(camera.deviceId || "").trim();
+};
+
+const getCameraResolutionAndFps = (
+  camera: CameraEntry,
+): { resolution: string; fps: number } => {
+  const track = camera.stream?.getVideoTracks?.()[0];
+  const settings = track?.getSettings?.();
+  const width = typeof settings?.width === "number" ? settings.width : 0;
+  const height = typeof settings?.height === "number" ? settings.height : 0;
+  const frameRate =
+    typeof settings?.frameRate === "number" ? settings.frameRate : 0;
+
+  return {
+    resolution: width > 0 && height > 0 ? `${width}x${height}` : "",
+    fps: frameRate > 0 ? Math.round(frameRate) : 0,
+  };
+};
 
 const getModelModality = (model: any): RobotModality | null => {
-  if (model?.modality === 'real' || model?.modality === 'simulated') {
+  if (model?.modality === "real" || model?.modality === "simulated") {
     return model.modality;
   }
 
-  const cls = String(model?.className || '').toLowerCase();
-  if (cls.includes('follower')) return 'real';
-  if (cls.includes('mujoco') || cls.includes('sim')) return 'simulated';
+  const cls = String(model?.className || "").toLowerCase();
+  if (cls.includes("follower")) return "real";
+  if (cls.includes("mujoco") || cls.includes("sim")) return "simulated";
   return null;
 };
 
-const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData }) => {
+const RobotForm: React.FC<RobotFormProps> = ({
+  onSaved,
+  onCancel,
+  initialData,
+}) => {
   const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [modality, setModality] = useState<RobotModality>('real');
-  const [robotModelId, setRobotModelId] = useState<string>('');
-  const [serialNumber, setSerialNumber] = useState<string>('');
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [modality, setModality] = useState<RobotModality>("real");
+  const [robotModelId, setRobotModelId] = useState<string>("");
+  const [serialNumber, setSerialNumber] = useState<string>("");
   const [modelOptions, setModelOptions] = useState<any[]>([]);
-  const [modelOptionItems, setModelOptionItems] = useState<{ label: string; value: string }[]>([]);
+  const [modelOptionItems, setModelOptionItems] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const [realPortPath, setRealPortPath] = useState<string>('');
-  const [disableTorqueOnDisconnect, setDisableTorqueOnDisconnect] = useState(true);
+  const [realPortPath, setRealPortPath] = useState<string>("");
+  const [disableTorqueOnDisconnect, setDisableTorqueOnDisconnect] =
+    useState(true);
   const [useDegrees, setUseDegrees] = useState(false);
-  const [maxRelativeTarget, setMaxRelativeTarget] = useState<string>('');
-  const [robotConfigId, setRobotConfigId] = useState<string>('');
-  const [calibrationDir, setCalibrationDir] = useState<string>('');
+  const [maxRelativeTarget, setMaxRelativeTarget] = useState<string>("");
+  const [robotConfigId, setRobotConfigId] = useState<string>("");
+  const [calibrationDir, setCalibrationDir] = useState<string>("");
 
   const [modelFilePath, setModelFilePath] = useState<string | null>(null);
   const [modelFileData, setModelFileData] = useState<{
@@ -91,8 +121,8 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
   const [modelFileError, setModelFileError] = useState<string | null>(null);
 
   // Monaco editor / 3D preview state for editing simulated robots
-  const [editorXml, setEditorXml] = useState<string>('');
-  const [previewXml, setPreviewXml] = useState<string>('');
+  const [editorXml, setEditorXml] = useState<string>("");
+  const [previewXml, setPreviewXml] = useState<string>("");
   const [previewError, setPreviewError] = useState<string | null>(null);
   const editorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,7 +134,9 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
       try {
         const models = await robotModelsResource.list();
         setModelOptions(models);
-        setModelOptionItems(models.map((m: any) => ({ label: m.name, value: String(m.id) })));
+        setModelOptionItems(
+          models.map((m: any) => ({ label: m.name, value: String(m.id) })),
+        );
       } catch (e) {
         setModelOptions([]);
         setModelOptionItems([]);
@@ -115,22 +147,26 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
 
   useEffect(() => {
     if (!initialData) return;
-    setName(initialData.name || '');
-    setNotes(initialData.notes || '');
-    setModality((initialData.modality as RobotModality) || 'real');
-    setSerialNumber(initialData.serialNumber || '');
-    setRobotModelId(initialData.robotModelId ? String(initialData.robotModelId) : '');
+    setName(initialData.name || "");
+    setNotes(initialData.notes || "");
+    setModality((initialData.modality as RobotModality) || "real");
+    setSerialNumber(initialData.serialNumber || "");
+    setRobotModelId(
+      initialData.robotModelId ? String(initialData.robotModelId) : "",
+    );
 
     const cfg = initialData.data?.config || {};
-    setRealPortPath(cfg.port || '');
+    setRealPortPath(cfg.port || "");
     setDisableTorqueOnDisconnect(cfg.disable_torque_on_disconnect ?? true);
     setUseDegrees(cfg.use_degrees ?? false);
-    setMaxRelativeTarget(cfg.max_relative_target != null ? String(cfg.max_relative_target) : '');
-    setRobotConfigId(cfg.id || '');
-    setCalibrationDir(cfg.calibration_dir || '');
+    setMaxRelativeTarget(
+      cfg.max_relative_target != null ? String(cfg.max_relative_target) : "",
+    );
+    setRobotConfigId(cfg.id || "");
+    setCalibrationDir(cfg.calibration_dir || "");
 
     // Load modelXml for editing simulated robots
-    const xml = initialData.data?.modelXml || '';
+    const xml = initialData.data?.modelXml || "";
     if (xml) {
       setEditorXml(xml);
       setPreviewXml(xml);
@@ -144,7 +180,9 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
     }
   }, [initialData]);
 
-  const selectedModel = modelOptions.find((m: any) => String(m.id) === String(robotModelId));
+  const selectedModel = modelOptions.find(
+    (m: any) => String(m.id) === String(robotModelId),
+  );
   const selectedModelModality = getModelModality(selectedModel);
 
   useEffect(() => {
@@ -164,7 +202,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
 
   // Debounced preview update when editor content changes
   const handleEditorChange = useCallback((value: string | undefined) => {
-    const newXml = value || '';
+    const newXml = value || "";
     setEditorXml(newXml);
 
     if (editorTimerRef.current) {
@@ -195,40 +233,47 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
     if (!onSaved) return;
     setSubmitting(true);
     try {
-      if (modality === 'simulated' && modelFileData && !initialData) {
+      if (modality === "simulated" && modelFileData && !initialData) {
         const modelName = name || modelFileData.baseName;
 
         let pathForDb: string | undefined = undefined;
         const xmlForDb: string | null = null;
 
         if (modelFilePath) {
-          if (modelFileData.format === 'zip') {
-            const result = await (window as any).electronAPI.saveRobotModelZip(modelFilePath);
+          if (modelFileData.format === "zip") {
+            const result = await (window as any).electronAPI.saveRobotModelZip(
+              modelFilePath,
+            );
             pathForDb = result.modelPath;
           } else {
-            const result = await (window as any).electronAPI.saveRobotModelFile(modelFilePath);
+            const result = await (window as any).electronAPI.saveRobotModelFile(
+              modelFilePath,
+            );
             pathForDb = result.modelPath;
           }
         }
 
-        const [insertedModel] = await db.insert(robotModelsTable).values({
-          name: modelName,
-          dirName: 'custom',
-          className: 'GenericMujocoEnv',
-          configClassName: 'CustomMujocoEnvConfig',
-          modelXml: xmlForDb,
-          modelPath: pathForDb,
-          modelFormat: modelFileData.format,
-          properties: modelFileData.metadata,
-        }).returning();
+        const [insertedModel] = await db
+          .insert(robotModelsTable)
+          .values({
+            name: modelName,
+            dirName: "custom",
+            className: "GenericMujocoEnv",
+            configClassName: "CustomMujocoEnvConfig",
+            modelXml: xmlForDb,
+            modelPath: pathForDb,
+            modelFormat: modelFileData.format,
+            properties: modelFileData.metadata,
+          })
+          .returning();
 
         const payload = {
           name: modelName,
           notes,
-          modality: 'simulated' as const,
-          serialNumber: '',
+          modality: "simulated" as const,
+          serialNumber: "",
           robotModelId: insertedModel.id,
-          data: { type: 'simulation' },
+          data: { type: "simulation" },
           _autoCreateConfig: true,
           _modelMetadata: modelFileData.metadata,
         };
@@ -236,9 +281,12 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         const createdRobot = await onSaved(payload);
 
         if (createdRobot && createdRobot.id) {
-          const [scene] = await db.insert(scenesTable).values({
-            name: `${modelName} Scene`,
-          }).returning();
+          const [scene] = await db
+            .insert(scenesTable)
+            .values({
+              name: `${modelName} Scene`,
+            })
+            .returning();
 
           await db.insert(sceneRobotsTable).values({
             sceneId: scene.id,
@@ -246,7 +294,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             snapshot: {
               id: createdRobot.id,
               name: modelName,
-              modality: 'simulated',
+              modality: "simulated",
               robotModelId: insertedModel.id,
               model: {
                 name: modelName,
@@ -262,16 +310,17 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
 
       const parsedModelId = robotModelId ? parseInt(robotModelId, 10) : null;
       const maxRelativeTargetValue =
-        maxRelativeTarget.trim() === '' || Number.isNaN(Number(maxRelativeTarget))
+        maxRelativeTarget.trim() === "" ||
+        Number.isNaN(Number(maxRelativeTarget))
           ? null
           : Number(maxRelativeTarget);
 
       const payloadData = {
         ...(initialData?.data || {}),
-        type: modality === 'real' ? 'real' : 'simulation'
+        type: modality === "real" ? "real" : "simulation",
       } as any;
 
-      if (modality === 'real') {
+      if (modality === "real") {
         payloadData.config = {
           ...(payloadData.config || {}),
           port: realPortPath,
@@ -284,24 +333,30 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
 
         // Save discovered cameras metadata (without live streams)
         if (discoveredCameras.length > 0) {
-          payloadData.cameras = discoveredCameras.map((c) => ({
-            name: c.name,
-            deviceId: c.deviceId,
-            deviceLabel: c.deviceLabel,
-          }));
+          payloadData.cameras = discoveredCameras.map((c) => {
+            const { resolution, fps } = getCameraResolutionAndFps(c);
+            return {
+              name: c.name,
+              resolution,
+              fps,
+              serial_number: extractCameraSerialNumber(c),
+              modality: "real",
+            };
+          });
         }
       } else if (payloadData.config) {
         delete payloadData.config;
       }
 
       // Save edited modelXml for simulated robots
-      if (modality === 'simulated' && editorXml && initialData) {
+      if (modality === "simulated" && editorXml && initialData) {
         payloadData.modelXml = editorXml;
 
         // Also update the linked robot model's modelXml in the database
         if (selectedModel?.id) {
           try {
-            await db.update(robotModelsTable)
+            await db
+              .update(robotModelsTable)
               .set({ modelXml: editorXml })
               .where(eq(robotModelsTable.id, selectedModel.id));
           } catch {
@@ -314,7 +369,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         name,
         notes,
         modality,
-        serialNumber: modality === 'real' ? serialNumber : '',
+        serialNumber: modality === "real" ? serialNumber : "",
         robotModelId: parsedModelId,
         data: payloadData,
       };
@@ -348,9 +403,13 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg.match(/permission|access/i)) {
-        setScanError('Permission denied when accessing serial ports. Try running with appropriate permissions.');
+        setScanError(
+          "Permission denied when accessing serial ports. Try running with appropriate permissions.",
+        );
       } else if (msg.match(/no ports|no devices|Could not find any/i)) {
-        setScanError('No serial devices found. Ensure devices are connected and try again.');
+        setScanError(
+          "No serial devices found. Ensure devices are connected and try again.",
+        );
       } else {
         setScanError(`Failed to scan USB ports: ${msg}`);
       }
@@ -377,30 +436,46 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             label="Robot Model"
             value={robotModelId}
             onChange={(e: any) => setRobotModelId(e.target.value)}
-            options={[{ label: 'Select Robot Model...', value: '' }, ...modelOptionItems]}
+            options={[
+              { label: "Select Robot Model...", value: "" },
+              ...modelOptionItems,
+            ]}
             renderOption={(opt) => {
-              if (opt.value === '') return opt.label;
-              const model = modelOptions.find((m: any) => String(m.id) === String(opt.value));
+              if (opt.value === "") return opt.label;
+              const model = modelOptions.find(
+                (m: any) => String(m.id) === String(opt.value),
+              );
               const mod = getModelModality(model);
               return (
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ width: "100%" }}
+                >
                   <span>{opt.label}</span>
-                  {mod === 'real' && (
+                  {mod === "real" && (
                     <Chip
                       label="Real"
                       size="small"
                       color="success"
                       variant="outlined"
-                      sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+                      sx={{
+                        height: 20,
+                        "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
+                      }}
                     />
                   )}
-                  {mod === 'simulated' && (
+                  {mod === "simulated" && (
                     <Chip
                       label="Sim"
                       size="small"
                       color="info"
                       variant="outlined"
-                      sx={{ height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
+                      sx={{
+                        height: 20,
+                        "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
+                      }}
                     />
                   )}
                 </Stack>
@@ -413,10 +488,12 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             <Select
               label="Modality"
               value={modality}
-              onChange={(e: any) => setModality(e.target.value as RobotModality)}
+              onChange={(e: any) =>
+                setModality(e.target.value as RobotModality)
+              }
               options={[
-                { label: 'Real', value: 'real' },
-                { label: 'Simulated', value: 'simulated' }
+                { label: "Real", value: "real" },
+                { label: "Simulated", value: "simulated" },
               ]}
             />
           </Grid>
@@ -437,22 +514,42 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         </Grid>
       </Grid>
 
-      {modality === 'real' && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontSize="1rem">Real Robot Configuration (LeRobot)</Typography>
+      {modality === "real" && (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography variant="h6" fontSize="1rem">
+              Real Robot Configuration (LeRobot)
+            </Typography>
             <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
               <Stack direction="row" spacing={1} alignItems="center">
-                {scanning ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
-                <span>{scanning ? 'Scanning...' : 'Scan Ports'}</span>
+                {scanning ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <RefreshIcon fontSize="small" />
+                )}
+                <span>{scanning ? "Scanning..." : "Scan Ports"}</span>
               </Stack>
             </Button>
           </Stack>
 
-          {scanError && <Alert severity="error" sx={{ mb: 2 }}>{scanError}</Alert>}
+          {scanError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {scanError}
+            </Alert>
+          )}
 
           {serialPorts.length === 0 && !scanning ? (
-            <Typography variant="body2" color="textSecondary" align="center" sx={{ py: 2 }}>
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              align="center"
+              sx={{ py: 2 }}
+            >
               No serial devices found. Connect a device and click Scan.
             </Typography>
           ) : (
@@ -464,32 +561,44 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
                     key={i}
                     variant="outlined"
                     onClick={() => {
-                      setSerialNumber(p.serialNumber || '');
-                      setRealPortPath(p.path || '');
+                      setSerialNumber(p.serialNumber || "");
+                      setRealPortPath(p.path || "");
                     }}
                     sx={{
                       p: 1.5,
-                      cursor: 'pointer',
-                      borderColor: isSelected ? 'primary.main' : 'divider',
-                      bgcolor: isSelected ? 'primary.soft' : 'background.default',
-                      backgroundColor: isSelected ? 'rgba(25, 118, 210, 0.08)' : undefined,
-                      transition: 'all 0.2s',
-                      '&:hover': { borderColor: 'primary.main' }
+                      cursor: "pointer",
+                      borderColor: isSelected ? "primary.main" : "divider",
+                      bgcolor: isSelected
+                        ? "primary.soft"
+                        : "background.default",
+                      backgroundColor: isSelected
+                        ? "rgba(25, 118, 210, 0.08)"
+                        : undefined,
+                      transition: "all 0.2s",
+                      "&:hover": { borderColor: "primary.main" },
                     }}
                     role="button"
                     aria-label={`Select device ${p.serialNumber}`}
                   >
                     <Stack direction="row" alignItems="center" spacing={2}>
-                      <UsbIcon color={isSelected ? 'primary' : 'action'} />
+                      <UsbIcon color={isSelected ? "primary" : "action"} />
                       <Box flexGrow={1}>
                         <Typography variant="subtitle2">
-                          {p.manufacturer || 'Unknown Device'}
+                          {p.manufacturer || "Unknown Device"}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                          Port: {p.path} • Serial: {p.serialNumber || 'N/A'}
+                          Port: {p.path} • Serial: {p.serialNumber || "N/A"}
                         </Typography>
                       </Box>
-                      {isSelected && <Typography variant="caption" color="primary" fontWeight="bold">SELECTED</Typography>}
+                      {isSelected && (
+                        <Typography
+                          variant="caption"
+                          color="primary"
+                          fontWeight="bold"
+                        >
+                          SELECTED
+                        </Typography>
+                      )}
                     </Stack>
                   </Paper>
                 );
@@ -518,22 +627,24 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             <Grid size={{ xs: 12, md: 6 }}>
               <Select
                 label="Disable Torque on Disconnect"
-                value={disableTorqueOnDisconnect ? 'true' : 'false'}
-                onChange={(e: any) => setDisableTorqueOnDisconnect(e.target.value === 'true')}
+                value={disableTorqueOnDisconnect ? "true" : "false"}
+                onChange={(e: any) =>
+                  setDisableTorqueOnDisconnect(e.target.value === "true")
+                }
                 options={[
-                  { label: 'True', value: 'true' },
-                  { label: 'False', value: 'false' },
+                  { label: "True", value: "true" },
+                  { label: "False", value: "false" },
                 ]}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Select
                 label="Use Degrees"
-                value={useDegrees ? 'true' : 'false'}
-                onChange={(e: any) => setUseDegrees(e.target.value === 'true')}
+                value={useDegrees ? "true" : "false"}
+                onChange={(e: any) => setUseDegrees(e.target.value === "true")}
                 options={[
-                  { label: 'False', value: 'false' },
-                  { label: 'True', value: 'true' },
+                  { label: "False", value: "false" },
+                  { label: "True", value: "true" },
                 ]}
               />
             </Grid>
@@ -565,7 +676,7 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         </Box>
       )}
 
-      {modality === 'real' && (
+      {modality === "real" && (
         <CameraDiscovery
           cameras={discoveredCameras}
           onAdd={handleAddCamera}
@@ -573,16 +684,20 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         />
       )}
 
-      {modality === 'simulated' && !initialData && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+      {modality === "simulated" && !initialData && (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
           <Stack spacing={2}>
-            <Typography variant="h6" fontSize="1rem">Model File (MJCF)</Typography>
+            <Typography variant="h6" fontSize="1rem">
+              Model File (MJCF)
+            </Typography>
 
             <Stack direction="row" spacing={2}>
               <Button variant="ghost" onClick={handleSelectModelFile}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <UploadFileIcon fontSize="small" />
-                  <span>{modelFilePath ? 'Change File...' : 'Upload Model File...'}</span>
+                  <span>
+                    {modelFilePath ? "Change File..." : "Upload Model File..."}
+                  </span>
                 </Stack>
               </Button>
             </Stack>
@@ -590,18 +705,53 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             {modelFileError && <Alert severity="error">{modelFileError}</Alert>}
 
             {modelFileData && (
-              <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "grey.50",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "grey.300",
+                }}
+              >
                 <Typography variant="subtitle2" gutterBottom>
-                  {modelFileData.baseName}.{modelFileData.format === 'urdf' ? 'urdf' : 'xml'}
+                  {modelFileData.baseName}.
+                  {modelFileData.format === "urdf" ? "urdf" : "xml"}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-                  <Chip label={modelFileData.format.toUpperCase()} size="small" color="primary" variant="outlined" />
-                  <Chip label={`${modelFileData.metadata.numJoints} joints`} size="small" variant="outlined" />
-                  <Chip label={`${modelFileData.metadata.actuatorNames.length} actuators`} size="small" variant="outlined" />
-                  {modelFileData.metadata.hasGripper && <Chip label="Gripper detected" size="small" color="success" variant="outlined" />}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  sx={{ mb: 1 }}
+                >
+                  <Chip
+                    label={modelFileData.format.toUpperCase()}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${modelFileData.metadata.numJoints} joints`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${modelFileData.metadata.actuatorNames.length} actuators`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {modelFileData.metadata.hasGripper && (
+                    <Chip
+                      label="Gripper detected"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
+                  )}
                 </Stack>
                 <Typography variant="caption" color="textSecondary">
-                  Joints: {modelFileData.metadata.jointNames.join(', ') || 'None'}
+                  Joints:{" "}
+                  {modelFileData.metadata.jointNames.join(", ") || "None"}
                 </Typography>
               </Box>
             )}
@@ -609,8 +759,8 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         </Box>
       )}
 
-      {modality === 'simulated' && initialData && (
-        <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+      {modality === "simulated" && initialData && (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
           <Typography variant="h6" fontSize="1rem" sx={{ mb: 2 }}>
             Model XML Editor
           </Typography>
@@ -620,23 +770,23 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
             <Grid size={{ xs: 12, md: 6 }}>
               <Box
                 sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
+                  border: "1px solid",
+                  borderColor: "divider",
                   borderRadius: 1,
-                  overflow: 'hidden',
+                  overflow: "hidden",
                   height: 500,
                 }}
               >
                 <Editor
                   height="100%"
                   language="xml"
-                  theme="vs-light"
+                  theme="vs-dark"
                   value={editorXml}
                   onChange={handleEditorChange}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 13,
-                    wordWrap: 'on',
+                    wordWrap: "on",
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
                   }}
@@ -658,7 +808,10 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
           {previewError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               <Typography variant="subtitle2">XML Error</Typography>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <Typography
+                variant="body2"
+                sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+              >
                 {previewError}
               </Typography>
             </Alert>
@@ -666,14 +819,19 @@ const RobotForm: React.FC<RobotFormProps> = ({ onSaved, onCancel, initialData })
         </Box>
       )}
 
-      <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 2 }}>
+      <Stack
+        direction="row"
+        justifyContent="flex-end"
+        spacing={2}
+        sx={{ mt: 2 }}
+      >
         {onCancel && (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             Cancel
           </Button>
         )}
         <Button onClick={handleSave} disabled={submitting}>
-          {submitting ? 'Saving...' : 'Save Robot'}
+          {submitting ? "Saving..." : "Save Robot"}
         </Button>
       </Stack>
     </Stack>
