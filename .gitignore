@@ -114,4 +114,5 @@ src/python/build
 
 */*/*.pyc
 
-devtools_traces/*
+devtools_traces
+scratch
