@@ -1,4 +1,4 @@
-import { app, BrowserWindow, contentTracing, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -11,64 +11,13 @@ import AdmZip from 'adm-zip';
 import { featureFlags } from './lib/feature_flags';
 
 import { VideoManager } from './lib/VideoManager';
+import { setupStartupProfiling, stopStartupProfiling, STARTUP_TRACE_STOP_DELAY_MS } from './lib/profiling';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 let mainWindow: BrowserWindow | null = null;
 const videoManagers = new Map<string, VideoManager>();
-
-const STARTUP_PROFILE_SWITCH = '--profile-startup';
-const STARTUP_TRACE_STOP_DELAY_MS = 3000;
-const startupProfilingEnabled = process.argv.includes(STARTUP_PROFILE_SWITCH);
-let startupTraceDir: string | null = null;
-let startupTraceStarted = false;
-let startupTraceStopped = false;
-
-const startupTraceTimestamp = () => {
-  return new Date().toISOString().replace(/[:.]/g, '-');
-};
-
-const setupStartupProfiling = async () => {
-  if (!startupProfilingEnabled) return;
-
-  try {
-    const baseDir = path.join(app.getPath('userData'), 'profiles', `startup-${startupTraceTimestamp()}`);
-    await fs.mkdir(baseDir, { recursive: true });
-    startupTraceDir = baseDir;
-
-    await contentTracing.startRecording({
-      included_categories: [
-        'toplevel',
-        'benchmark',
-        'v8',
-        'ipc',
-        'devtools.timeline',
-        'disabled-by-default-v8.cpu_profiler',
-        'disabled-by-default-v8.cpu_profiler.hires',
-      ],
-    });
-
-    startupTraceStarted = true;
-    console.log(`[profiling] startup tracing enabled: ${startupTraceDir}`);
-  } catch (error) {
-    console.error('[profiling] failed to start startup tracing', error);
-  }
-};
-
-const stopStartupProfiling = async (reason: string) => {
-  if (!startupProfilingEnabled || !startupTraceStarted || startupTraceStopped || !startupTraceDir) return;
-
-  startupTraceStopped = true;
-  const tracePath = path.join(startupTraceDir, 'startup.trace.json');
-
-  try {
-    const outPath = await contentTracing.stopRecording(tracePath);
-    console.log(`[profiling] startup trace saved (${reason}): ${outPath || tracePath}`);
-  } catch (error) {
-    console.error('[profiling] failed to stop startup tracing', error);
-  }
-};
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
