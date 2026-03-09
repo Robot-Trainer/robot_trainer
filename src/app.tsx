@@ -235,20 +235,9 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
         <div className="flex-1 overflow-y-auto py-6 px-4">
           <div className="mb-8">
             <NavItem
-              id="scenes"
-              icon={RobotConfiguration}
-              label="Scenes"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
-            <NavItem
-              id="datasets"
-              icon={Dataset}
-              label="Datasets"
+              id="robot-models"
+              icon={Robot}
+              label="Robot Models"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -268,9 +257,9 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
               }}
             />
             <NavItem
-              id="robot-models"
-              icon={Robot}
-              label="Robot Models"
+              id="cameras"
+              icon={Camera}
+              label="Cameras"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -278,7 +267,17 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                 setResourceManagerShowForm(false);
               }}
             />
-
+            <NavItem
+              id="scenes"
+              icon={RobotConfiguration}
+              label="Scenes"
+              active={activeTab}
+              onClick={(id) => {
+                setActiveTab(id);
+                setCurrentPage(id);
+                setResourceManagerShowForm(false);
+              }}
+            />
             <NavItem
               id="skills"
               icon={Layout}
@@ -290,11 +289,10 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                 setResourceManagerShowForm(false);
               }}
             />
-
             <NavItem
-              id="cameras"
-              icon={Camera}
-              label="Cameras"
+              id="datasets"
+              icon={Dataset}
+              label="Datasets"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);
@@ -302,7 +300,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                 setResourceManagerShowForm(false);
               }}
             />
-
             <NavItem
               id="system-settings"
               icon={Settings}
