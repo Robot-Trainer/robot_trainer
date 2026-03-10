@@ -13,8 +13,8 @@ export const robotModelsTable = pgTable("robot_models", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   name: varchar('name').notNull(),
   dirName: varchar('dir_name').notNull(),
-  className: varchar('class_name').notNull(),
-  configClassName: varchar('config_class_name').notNull(),
+  className: varchar('class_name'),
+  configClassName: varchar('config_class_name'),
   properties: json('properties').default({}),
   modelXml: text('model_xml'),
   modelPath: varchar('model_path'),
@@ -86,8 +86,8 @@ export const camerasTable = pgTable("cameras", {
 
 export const teleoperatorModelsTable = pgTable("teleoperator_models", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  className: varchar("class_name").notNull(),
-  configClassName: varchar("config_class_name").notNull(),
+  className: varchar("class_name"),
+  configClassName: varchar("config_class_name"),
   data: json("data").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

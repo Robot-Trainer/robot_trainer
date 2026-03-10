@@ -79,4 +79,33 @@ describe('RobotModelsView', () => {
     expect(robots[0].id).toBe(robot.id);
     expect(robots[0].robotModelId).toBeNull();
   });
+
+  it('renders modality badges and robot metadata columns', async () => {
+    await tableResource(robotModelsTable).create({
+      name: 'Metadata Model',
+      dirName: 'metadata_model',
+      className: 'MetadataClass',
+      configClassName: 'MetadataConfig',
+      supportedModalities: ['real', 'simulated'],
+      properties: {
+        jointNames: ['j1', 'j2', 'j3'],
+        actuatorNames: ['a1', 'a2'],
+        hasGripper: true,
+      },
+    });
+
+    render(<RobotModelsView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Metadata Model')).toBeTruthy();
+      expect(screen.getByText('Joints')).toBeTruthy();
+      expect(screen.getByText('Has Gripper')).toBeTruthy();
+      expect(screen.getByText('Actuators')).toBeTruthy();
+      expect(screen.getByText('real')).toBeTruthy();
+      expect(screen.getByText('simulated')).toBeTruthy();
+      expect(screen.getByText('Yes')).toBeTruthy();
+      expect(screen.getByText('3')).toBeTruthy();
+      expect(screen.getByText('2')).toBeTruthy();
+    });
+  });
 });

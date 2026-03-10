@@ -1,5 +1,5 @@
 {
-  "id": "dfc5ba2b-c941-4e92-93aa-3fd93fb26966",
+  "id": "bd0b4ab9-8990-4d6e-b030-2a8d4773e38b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -398,13 +398,13 @@
           "name": "class_name",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "config_class_name": {
           "name": "config_class_name",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "properties": {
           "name": "properties",
@@ -430,6 +430,14 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
+        },
+        "supported_modalities": {
+          "name": "supported_modalities",
+          "type": "robotModality[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{\"simulated\"}'"
         },
         "created_at": {
           "name": "created_at",
@@ -874,13 +882,13 @@
           "name": "class_name",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "config_class_name": {
           "name": "config_class_name",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "data": {
           "name": "data",

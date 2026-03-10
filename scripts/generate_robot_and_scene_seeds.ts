@@ -251,7 +251,9 @@ async function main() {
   const robotStartMarker = "/** START GENERATED MUJOCO MENAGERIE RECORDS */";
   const robotEndMarker = "/** END GENERATED MUJOCO MENAGERIE RECORDS */";
 
-  const robotJSON = data.robots.map((r) => JSON.stringify(r)).join(",\n  ");
+  const robotJSON = data.robots
+    .map((r, index) => JSON.stringify({ ...r, id: index + 1 }))
+    .join(",\n  ");
 
   const robotRegex = new RegExp(
     `(${escapeRegExp(robotStartMarker)})[\\s\\S]*?(${escapeRegExp(robotEndMarker)})`,
@@ -266,7 +268,7 @@ async function main() {
     "/** END GENERATED MUJOCO MENAGERIE CONFIGURATIONS */";
 
   const configJSON = data.configurations
-    .map((c) => JSON.stringify(c))
+    .map((c, index) => JSON.stringify({ ...c, id: index + 1 }))
     .join(",\n  ");
 
   const configRegex = new RegExp(
