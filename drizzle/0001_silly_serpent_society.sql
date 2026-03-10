@@ -1,0 +1,1 @@
+ALTER TABLE "robot_models" ADD COLUMN "supported_modalities" "robotModality"[] DEFAULT '{"simulated"}';

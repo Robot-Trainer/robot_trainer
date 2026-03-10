@@ -19,6 +19,7 @@ export const robotModelsTable = pgTable("robot_models", {
   modelXml: text('model_xml'),
   modelPath: varchar('model_path'),
   modelFormat: varchar('model_format'),
+  supportedModalities: robotModalityEnum('supported_modalities').array().default(['simulated']),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
