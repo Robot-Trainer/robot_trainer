@@ -1,29 +1,28 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import Badge from './Badge';
 
 export const StatusPill: React.FC<{ status?: string }> = ({ status }) => {
-  const colorMap: Record<string, "success" | "primary" | "error" | "default" | "warning"> = {
-    ready: "success",
-    active: "success",
-    busy: "primary",
-    error: "error",
-    offline: "default",
-    warning: "warning"
+  const colorMap: Record<string, 'green' | 'blue' | 'red' | 'gray' | 'yellow'> = {
+    ready: 'green',
+    active: 'green',
+    busy: 'blue',
+    error: 'red',
+    offline: 'gray',
+    warning: 'yellow'
   };
 
-  const color = colorMap[status || ''] || "default";
+  const color = colorMap[status || ''] || 'gray';
 
   return (
-    <Chip 
-      label={status || 'unknown'} 
-      color={color} 
-      size="small" 
-      sx={{ 
-        height: '20px', 
-        fontSize: '0.75rem', 
-        textTransform: 'uppercase',
+    <Badge
+      label={status || 'unknown'}
+      color={color}
+      uppercase
+      sx={{
+        height: '20px',
+        fontSize: '0.75rem',
         fontWeight: 600
-      }} 
+      }}
     />
   );
 };

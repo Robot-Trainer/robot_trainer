@@ -3,7 +3,8 @@ import ResourceManager, { GridCol } from "../ui/ResourceManager";
 import { scenesTable } from "../db/schema";
 import { scenesResource } from "../db/resources";
 import SceneForm from "./SceneForm";
-import { Chip, Box, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
+import Badge from "../ui/Badge";
 
 const gridCols: GridCol[] = [
   {
@@ -14,7 +15,7 @@ const gridCols: GridCol[] = [
   {
     field: "robotName",
     headerName: "Robot",
-    render: (row: any) => row.robotName || <Typography variant="body2" color="text.disabled">No Robot</Typography>
+    render: (row: any) => row.robotName || "No Robot"
   },
   {
     field: "robotModality",
@@ -22,11 +23,10 @@ const gridCols: GridCol[] = [
     render: (row: any) => {
       if (!row.robotModality) return <Typography variant="body2" color="text.disabled">-</Typography>;
       return (
-        <Chip
-          label={row.robotModality.charAt(0).toUpperCase() + row.robotModality.slice(1)}
-          size="small"
+        <Badge
+          label={row.robotModality}
           variant="outlined"
-          color={row.robotModality === 'simulated' ? 'primary' : 'success'}
+          color={row.robotModality === 'simulated' ? 'blue' : 'green'}
           sx={{ height: 24 }}
         />
       );
@@ -35,12 +35,7 @@ const gridCols: GridCol[] = [
   {
     field: "cameraCount",
     headerName: "Cameras",
-    render: (row: any) => (
-      <Box display="flex" alignItems="center" gap={1}>
-        <Typography variant="body2" fontWeight="500">{row.cameraCount || 0}</Typography>
-        <Typography variant="caption" color="text.secondary">cam{row.cameraCount === 1 ? '' : 's'}</Typography>
-      </Box>
-    )
+    render: (row: any) => row.cameraCount || 0
   },
 ];
 

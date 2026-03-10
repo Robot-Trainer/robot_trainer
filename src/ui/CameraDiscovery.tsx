@@ -7,7 +7,6 @@ import {
   Paper,
   IconButton,
   CircularProgress,
-  Chip,
 } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -16,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import Button from './Button';
 import Input from './Input';
 import Select from './Select';
+import Badge from './Badge';
 
 export interface CameraEntry {
   name: string;
@@ -248,10 +248,9 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
                   muted
                   style={{ width: '100%', display: 'block', maxHeight: 300 }}
                 />
-                <Chip
+                <Badge
                   label="Live Preview"
-                  size="small"
-                  color="success"
+                  color="green"
                   sx={{ position: 'absolute', top: 8, right: 8 }}
                 />
               </Box>

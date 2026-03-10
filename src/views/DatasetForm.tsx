@@ -67,7 +67,7 @@ const SceneDropdown: React.FC<SceneDropdownProps> = ({ scenes, selectedSceneId, 
     const issueText = status.issues.length > 0 ? status.issues.join(', ') : undefined;
     return (
       <>
-        {status.mode === 'sim' && <Badge color="blue">sim</Badge>}
+        {status.mode === 'sim' && <Badge color="blue">simulated</Badge>}
         {status.mode === 'real' && <Badge color="green">real</Badge>}
         {status.mode === 'mixed' && <Badge color="yellow">mixed</Badge>}
         {status.ready

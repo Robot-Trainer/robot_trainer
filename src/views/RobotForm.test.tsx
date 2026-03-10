@@ -61,6 +61,12 @@ describe('RobotForm', () => {
   const mockRobotModels = [
     { id: 1, name: 'Robot Model A', modality: 'real', className: 'SO100Follower' },
     { id: 2, name: 'Robot Model B', modality: 'simulated', className: 'GenericMujocoEnv' },
+    {
+      id: 3,
+      name: 'Robot Model C',
+      supportedModalities: ['real', 'simulated'],
+      className: 'HybridRobotModel'
+    },
   ];
 
   const mockSerialPorts = [
@@ -155,12 +161,27 @@ describe('RobotForm', () => {
     const modelSelect = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelect);
 
-    // Verify badges appear - real model should have "Real" badge, simulated should have "Sim"
+    // Verify badges appear for model modalities
     const realOption = await screen.findByRole('option', { name: /Robot Model A/i });
-    expect(realOption.textContent).toContain('Real');
+    expect(realOption.textContent).toContain('real');
 
     const simOption = await screen.findByRole('option', { name: /Robot Model B/i });
-    expect(simOption.textContent).toContain('Sim');
+    expect(simOption.textContent).toContain('simulated');
+  });
+
+  it('shows both modality badges for multi-modality robot models', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+
+    const multiOption = await screen.findByRole('option', { name: /Robot Model C/i });
+    expect(multiOption.textContent).toContain('real');
+    expect(multiOption.textContent).toContain('simulated');
   });
 
   it('handles simulated robot setup', async () => {

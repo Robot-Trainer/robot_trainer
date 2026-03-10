@@ -1,32 +1,52 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import { Chip, type ChipProps, type SxProps, type Theme } from '@mui/material';
 
 interface BadgeProps {
-  children: React.ReactNode;
-  color: 'green' | 'blue' | 'red' | 'yellow';
+  children?: React.ReactNode;
+  label?: React.ReactNode;
+  color?: 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray';
+  variant?: ChipProps['variant'];
+  size?: ChipProps['size'];
+  sx?: SxProps<Theme>;
+  uppercase?: boolean;
   tooltip?: string;
   className?: string;
 }
 
-const Badge: React.FC<BadgeProps> = ({ children, color, tooltip, className = '' }) => {
-  const colorMap: Record<string, "success" | "primary" | "error" | "warning" | "default"> = {
+const Badge: React.FC<BadgeProps> = ({
+  children,
+  label,
+  color = 'gray',
+  variant = 'outlined',
+  size = 'small',
+  sx,
+  uppercase = false,
+  tooltip,
+  className = '',
+}) => {
+  const colorMap: Record<string, ChipProps['color']> = {
     green: 'success',
     blue: 'primary',
     red: 'error',
     yellow: 'warning',
+    purple: 'secondary',
+    gray: 'default',
   };
+
+  const badgeLabel = label ?? children;
 
   return (
     <Chip
-      label={children}
+      label={badgeLabel}
       color={colorMap[color] || 'default'}
-      size="small"
+      size={size}
+      variant={variant}
       title={tooltip}
-      className={`mx-1 ${className}`}
-      sx={{ borderRadius: 1 }} // Current was 'rounded' (small radius), not 'rounded-full' like Chip. Keeping closer to original shape? 
-      // User said "Material UI version", so maybe I should let it be a pill? 
-      // I'll leave borderRadius default (pill) as that IS the Material UI version. 
-      // Commenting out sx change -> actually I will remove it.
+      className={className}
+      sx={{
+        textTransform: uppercase ? 'uppercase' : 'none',
+        ...(sx || {}),
+      }}
     />
   );
 };

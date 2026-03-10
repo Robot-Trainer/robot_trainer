@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getTableColumns } from "drizzle-orm";
 import { DataGrid } from '@mui/x-data-grid';
+import styles from './ResourceManager.module.css';
 
 import {
   Box,
@@ -368,22 +369,16 @@ export const ResourceManager: React.FC<Props> = ({
       sortable: false,
       filterable: false,
       renderCell: (params: any) => (
-        <Stack
-          direction="row"
-          spacing={0}
-          justifyContent="flex-end"
-          sx={{ width: "100%" }}
-        >
           <Tooltip title="Delete">
             <IconButton
               size="small"
               color="error"
+              
               onClick={(e) => { e.stopPropagation(); requestDelete(params.row); }}
             >
-              <Delete fontSize="small" />
+              <Delete fontSize="small"/>
             </IconButton>
           </Tooltip>
-        </Stack>
       ),
     } as any);
 
@@ -435,6 +430,7 @@ export const ResourceManager: React.FC<Props> = ({
             <Box sx={{ width: '100%' }}>
               <DataGrid
                 rows={items}
+                className={styles.grid}
                 columns={columns}
                 onRowClick={(params) => onEdit(params.row)}
                 disableRowSelectionOnClick

@@ -234,7 +234,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
                     </>
                   )}
                   {r.modality === 'simulated' && (
-                    <Badge color="blue">sim</Badge>
+                    <Badge color="blue">simulated</Badge>
                   )}
                 </Box>
               );

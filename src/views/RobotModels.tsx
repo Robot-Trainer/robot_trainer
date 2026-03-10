@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Chip, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import ResourceManager, { type GridCol } from '../ui/ResourceManager';
 import { robotModelsTable } from '../db/schema';
+import Badge from '../ui/Badge';
 
 export const robotModelFields = [
   { name: 'name', label: 'Name', required: true },
@@ -47,10 +48,10 @@ function getActuatorCount(properties: Record<string, unknown>): number {
   return Array.isArray(actuatorNames) ? actuatorNames.length : 0;
 }
 
-const modalityChipColor = (modality: string): 'success' | 'primary' | 'default' => {
-  if (modality === 'real') return 'success';
-  if (modality === 'simulated') return 'primary';
-  return 'default';
+const modalityBadgeColor = (modality: string): 'green' | 'blue' | 'gray' => {
+  if (modality === 'real') return 'green';
+  if (modality === 'simulated') return 'blue';
+  return 'gray';
 };
 
 const robotModelGridCols: GridCol[] = [
@@ -68,17 +69,14 @@ const robotModelGridCols: GridCol[] = [
       }
 
       return (
-        <Stack direction="row" spacing={0.5}>
-          {modalities.map((modality: string) => (
-            <Chip
+          modalities.map((modality: string) => (
+            <Badge
               key={modality}
-              size="small"
               variant="outlined"
               label={modality}
-              color={modalityChipColor(modality)}
+              color={modalityBadgeColor(modality)}
             />
-          ))}
-        </Stack>
+          ))
       );
     },
   },
@@ -87,7 +85,7 @@ const robotModelGridCols: GridCol[] = [
     headerName: 'Joints',
     render: (row) => {
       const properties = parseProperties(row.properties);
-      return <Typography>{getJointCount(properties)}</Typography>;
+      return getJointCount(properties);
     },
   },
   {
@@ -97,11 +95,10 @@ const robotModelGridCols: GridCol[] = [
       const properties = parseProperties(row.properties);
       const hasGripper = properties.hasGripper === true;
       return (
-        <Chip
-          size="small"
+        <Badge
           variant="outlined"
           label={hasGripper ? 'Yes' : 'No'}
-          color={hasGripper ? 'success' : 'default'}
+          color={hasGripper ? 'green' : 'gray'}
         />
       );
     },
@@ -111,7 +108,7 @@ const robotModelGridCols: GridCol[] = [
     headerName: 'Actuators',
     render: (row) => {
       const properties = parseProperties(row.properties);
-      return <Typography>{getActuatorCount(properties)}</Typography>;
+      return getActuatorCount(properties);
     },
   },
 ];

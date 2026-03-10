@@ -1,0 +1,8 @@
+.grid {
+    div[role="row"] button[aria-label="Delete"] {
+    visibility: hidden;
+    }
+    div[role="row"]:hover button[aria-label="Delete"] {
+    visibility: visible;
+    }
+}

@@ -7,7 +7,6 @@ import {
   Alert,
   Paper,
   CircularProgress,
-  Chip,
 } from "@mui/material";
 import UsbIcon from "@mui/icons-material/Usb";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -22,6 +21,7 @@ import { robotModelsTable, scenesTable, sceneRobotsTable } from "../db/schema";
 import Editor from "@monaco-editor/react";
 import MujocoPreview from "../ui/MujocoPreview";
 import CameraDiscovery, { type CameraEntry } from "../ui/CameraDiscovery";
+import Badge from "../ui/Badge";
 
 interface SerialPort {
   path: string;
@@ -67,15 +67,24 @@ const getCameraResolutionAndFps = (
   };
 };
 
-const getModelModality = (model: any): RobotModality | null => {
+const getModelModalities = (model: any): RobotModality[] => {
+  if (Array.isArray(model?.supportedModalities)) {
+    const normalized = model.supportedModalities.filter(
+      (m: unknown): m is RobotModality => m === "real" || m === "simulated",
+    );
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
   if (model?.modality === "real" || model?.modality === "simulated") {
-    return model.modality;
+    return [model.modality];
   }
 
   const cls = String(model?.className || "").toLowerCase();
-  if (cls.includes("follower")) return "real";
-  if (cls.includes("mujoco") || cls.includes("sim")) return "simulated";
-  return null;
+  if (cls.includes("follower")) return ["real"];
+  if (cls.includes("mujoco") || cls.includes("sim")) return ["simulated"];
+  return [];
 };
 
 const RobotForm: React.FC<RobotFormProps> = ({
@@ -183,7 +192,9 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const selectedModel = modelOptions.find(
     (m: any) => String(m.id) === String(robotModelId),
   );
-  const selectedModelModality = getModelModality(selectedModel);
+  const selectedModelModalities = getModelModalities(selectedModel);
+  const selectedModelModality =
+    selectedModelModalities.length === 1 ? selectedModelModalities[0] : null;
 
   useEffect(() => {
     if (selectedModelModality) {
@@ -445,7 +456,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               const model = modelOptions.find(
                 (m: any) => String(m.id) === String(opt.value),
               );
-              const mod = getModelModality(model);
+              const modalities = getModelModalities(model);
               return (
                 <Stack
                   direction="row"
@@ -454,30 +465,18 @@ const RobotForm: React.FC<RobotFormProps> = ({
                   sx={{ width: "100%" }}
                 >
                   <span>{opt.label}</span>
-                  {mod === "real" && (
-                    <Chip
-                      label="Real"
-                      size="small"
-                      color="success"
+                  {modalities.map((modality) => (
+                    <Badge
+                      key={`${opt.value}-${modality}`}
+                      label={modality}
+                      color={modality === "real" ? "green" : "blue"}
                       variant="outlined"
                       sx={{
                         height: 20,
                         "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
                       }}
                     />
-                  )}
-                  {mod === "simulated" && (
-                    <Chip
-                      label="Sim"
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                      sx={{
-                        height: 20,
-                        "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
-                      }}
-                    />
-                  )}
+                  ))}
                 </Stack>
               );
             }}
@@ -500,7 +499,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
         ) : (
           <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-              This model is configured as <strong>{modality}</strong>.
+              This model is configured as <strong>{selectedModelModalities.join(' / ')}</strong>.
             </Typography>
           </Grid>
         )}
@@ -724,27 +723,25 @@ const RobotForm: React.FC<RobotFormProps> = ({
                   flexWrap="wrap"
                   sx={{ mb: 1 }}
                 >
-                  <Chip
+                  <Badge
                     label={modelFileData.format.toUpperCase()}
-                    size="small"
-                    color="primary"
+                    color="blue"
                     variant="outlined"
                   />
-                  <Chip
+                  <Badge
                     label={`${modelFileData.metadata.numJoints} joints`}
-                    size="small"
+                    color="gray"
                     variant="outlined"
                   />
-                  <Chip
+                  <Badge
                     label={`${modelFileData.metadata.actuatorNames.length} actuators`}
-                    size="small"
+                    color="gray"
                     variant="outlined"
                   />
                   {modelFileData.metadata.hasGripper && (
-                    <Chip
+                    <Badge
                       label="Gripper detected"
-                      size="small"
-                      color="success"
+                      color="green"
                       variant="outlined"
                     />
                   )}

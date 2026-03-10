@@ -263,7 +263,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
                   {c.isXml ? (
                     <Badge color="purple" tooltip="Defined in XML">xml</Badge>
                   ) : (
-                    c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">sim</Badge>
+                    c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">simulated</Badge>
                   )}
                 </Box>
               );
