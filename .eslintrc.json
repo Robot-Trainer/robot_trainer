@@ -12,5 +12,14 @@
     "plugin:import/electron",
     "plugin:import/typescript"
   ],
-  "parser": "@typescript-eslint/parser"
+  "parser": "@typescript-eslint/parser",
+"ignorePatterns": [
+  "dist/",
+  "build/",
+  "node_modules/",
+  "public/",
+  "coverage/",
+  "mujoco_menagerie/",
+  "src/mujoco/"
+]
 }
