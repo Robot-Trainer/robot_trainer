@@ -1,68 +1,9 @@
-interface SerialPort {
-  path: string;
-  manufacturer: string;
-  serialNumber: string;
-  productId?: string;
-  vendorId?: string;
-  pnpId?: string;
-}
-
-interface ElectronAPI {
-  getUsername: () => Promise<string>;
-  getDefaultDatasetDir: (repoId: string) => Promise<string>;
-  selectDatasetDirectory: () => Promise<string | null>;
-  scanSerialPorts: () => Promise<SerialPort[]>;
-  getMigrations: () => JSON;
-  saveSystemSettings: (settings: any) => Promise<void>;
-  loadSystemSettings: () => Promise<any>;
-  checkAnaconda: () => Promise<{
-    found: boolean;
-    path: string | null;
-    envs: Array<{ name: string; pythonPath?: string | null }>;
-    platform?: string;
-    condaAvailable?: boolean;
-    condaVersion?: string;
-    error?: string;
-  }>;
-  createAnacondaEnv: (
-    name: string
-  ) => Promise<{ success: boolean; code: number; output: string }>;
-  installMiniconda: () => Promise<{ success: boolean; path?: string; error?: string; output?: string }>;
-  installLerobot: () => Promise<{ success: boolean; output?: string; error?: string }>;
-  checkLerobot: () => Promise<{ installed: boolean }>;
-  saveRobotConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
-  setConfig: (config: any) => Promise<{ ok: boolean; path?: string }>;
-  // Main -> Renderer request/listen/reply helpers
-  onRequestLoadSystemSettings: (cb: () => void) => () => void;
-  onRequestSaveSystemSettings: (cb: (settings: any) => void) => () => void;
-  replyLoadSystemSettings: (settings: any) => void;
-  replySaveSystemSettings: (result: any) => void;
-  onSystemSettingsChanged: (cb: (data: any) => void) => () => void;
-  onInstallMinicondaOutput: (cb: (data: string) => void) => () => void;
-  onCreateAnacondaEnvOutput: (cb: (data: string) => void) => () => void;
-  onInstallLerobotOutput: (cb: (data: string) => void) => () => void;
-  selectModelFile: () => Promise<string | null>;
-  readModelFile: (filePath: string) => Promise<{
-    content: string;
-    format: string;
-    baseName: string;
-    metadata: {
-      numJoints: number;
-      jointNames: string[];
-      actuatorNames: string[];
-      siteNames: string[];
-      hasGripper: boolean;
-      cameras: string[];
-    };
-    zipPath?: string;
-  }>;
-  saveRobotModelZip: (sourceFilePath: string) => Promise<{ modelPath: string }>;
-  saveRobotModelFile: (sourceFilePath: string) => Promise<{ modelPath: string }>;
-}
+import type { ElectronAPI } from './types/electron';
 
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    __appIdle?: boolean;
   }
 }
 
@@ -70,4 +11,6 @@ declare module '*?url' {
   const content: string;
   export default content;
 }
+
+export {};
 

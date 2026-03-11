@@ -1,12 +1,13 @@
 import { sql } from "drizzle-orm";
 import type { MigrationConfig } from "drizzle-orm/migrator";
 import { db, client } from "./db";
+import type { MigrationFile } from "../types/electron";
 // import migrations from './migrations.json';
 
 
 export async function migrate() {
     // dialect and session will appear to not exist...but they do
-    if (typeof window !== 'undefined' && (window as any).electronAPI && (window as any).electronAPI.getMigrations) {
+    if (typeof window !== 'undefined' && window.electronAPI?.getMigrations) {
         const migrations = await window.electronAPI.getMigrations();
         if (!client.ready) await client.waitReady;
         await db.dialect.migrate(migrations, db.session, {
@@ -21,14 +22,14 @@ export async function migrate() {
 
 export type MigrationStatus =
     | { type: 'synced' }
-    | { type: 'pending', pending: any[], fresh?: boolean }
-    | { type: 'corrupted', error: any };
+    | { type: 'pending', pending: MigrationFile[], fresh?: boolean }
+    | { type: 'corrupted', error: unknown };
 
 export async function checkMigrationStatus(): Promise<MigrationStatus> {
     if (!client.ready) await client.waitReady;
 
-    let migrationList: any[] = [];
-    if (typeof window !== 'undefined' && (window as any).electronAPI && (window as any).electronAPI.getMigrations) {
+    let migrationList: MigrationFile[] = [];
+    if (typeof window !== 'undefined' && window.electronAPI?.getMigrations) {
         migrationList = await window.electronAPI.getMigrations();
     }
 
@@ -39,12 +40,24 @@ export async function checkMigrationStatus(): Promise<MigrationStatus> {
         let appliedHashes = new Set<string>();
         try {
             const result = await db.execute(sql`SELECT hash FROM public.__drizzle_migrations ORDER BY created_at ASC`);
-            appliedHashes = new Set(result.rows.map((r: any) => r.hash));
-        } catch (e: any) {
-            const msg = e?.message || String(e);
+            appliedHashes = new Set(
+                result.rows
+                    .map((row) => row.hash)
+                    .filter((hash): hash is string => typeof hash === 'string')
+            );
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            const maybeCode =
+                typeof e === 'object' && e !== null && 'code' in e
+                    ? (e as { code?: string }).code
+                    : undefined;
+            const maybeCauseCode =
+                typeof e === 'object' && e !== null && 'cause' in e && typeof (e as { cause?: unknown }).cause === 'object'
+                    ? ((e as { cause?: { code?: string } }).cause?.code)
+                    : undefined;
             // Check for "relation does not exist" error (Postgres code 42P01)
             // This means the migration table hasn't been created yet -> fresh DB.
-            if (e?.code === '42P01' || e?.cause?.code === '42P01' || /relation.*does not exist/i.test(msg) || /relation.*does not exist/i.test(JSON.stringify(e))) {
+            if (maybeCode === '42P01' || maybeCauseCode === '42P01' || /relation.*does not exist/i.test(msg) || /relation.*does not exist/i.test(JSON.stringify(e))) {
                 if (migrationList.length > 0) {
                     return { type: 'pending', pending: migrationList, fresh: true };
                 }

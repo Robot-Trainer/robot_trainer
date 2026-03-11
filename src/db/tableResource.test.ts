@@ -3,9 +3,9 @@ import { tableResource } from './tableResource';
 import { camerasTable, teleoperatorModelsTable } from './schema';
 import { migrate } from './migrate';
 import { db } from './db';
-import { eq } from 'drizzle-orm';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import path from 'node:path';
+import type { ElectronAPI } from '../types/electron';
 
 // Mock the db module to use an in-memory PGlite instance
 vi.mock('./db', async () => {
@@ -32,11 +32,11 @@ describe('tableResource', () => {
 
   beforeAll(async () => {
     // Mock the electronAPI for migrations
-    (window as any).electronAPI = {
+    window.electronAPI = {
       getMigrations: async () => {
         return readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') });
       }
-    };
+    } as unknown as ElectronAPI;
 
     // Run migrations to set up the schema in the in-memory DB
     await migrate();

@@ -5,7 +5,7 @@ import { migrate } from './migrate';
 import { db } from './db';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import path from 'node:path';
-import { sql } from 'drizzle-orm';
+import type { ElectronAPI } from '../types/electron';
 
 vi.mock('./db', async () => {
   const { PGlite } = await import("@electric-sql/pglite");
@@ -23,11 +23,11 @@ vi.mock('./db', async () => {
 
 describe('Seeding and Sequence Check', () => {
   beforeAll(async () => {
-    (window as any).electronAPI = {
+    window.electronAPI = {
       getMigrations: async () => {
         return readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') });
       }
-    };
+    } as unknown as ElectronAPI;
     await migrate();
   });
 

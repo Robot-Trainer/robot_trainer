@@ -1,9 +1,8 @@
 import { create } from "zustand";
 import { configResource } from "../db/resources";
+import type { JsonObject } from "../types/json";
 
-type JSONObject = { [k: string]: any };
-
-type UIState = {
+export type UIState = {
     currentPage: string;
     setCurrentPage: (p: string) => void;
     resourceManagerShowForm: boolean;
@@ -14,10 +13,10 @@ type UIState = {
     // and should not be auto-closed by background checks
     showSetupWizardForced: boolean;
     setShowSetupWizardForced: (v: boolean) => void;
-    config: JSONObject;
-    setConfig: (cfg: JSONObject) => void;
+    config: JsonObject;
+    setConfig: (cfg: JsonObject) => void;
     // update the local store without triggering a save
-    setConfigLocal: (cfg: JSONObject) => void;
+    setConfigLocal: (cfg: JsonObject) => void;
 };
 
 const useUIStore = create<UIState>((set) => ({
@@ -30,8 +29,8 @@ const useUIStore = create<UIState>((set) => ({
     showSetupWizardForced: false,
     setShowSetupWizardForced: (v: boolean) => set(() => ({ showSetupWizardForced: v })),
     config: {},
-    setConfig: (cfg: JSONObject) => set(() => ({ config: cfg })),
-    setConfigLocal: (cfg: JSONObject) => set(() => ({ config: cfg })),
+    setConfig: (cfg: JsonObject) => set(() => ({ config: cfg })),
+    setConfigLocal: (cfg: JsonObject) => set(() => ({ config: cfg })),
 }));
 
 export default useUIStore;
@@ -40,11 +39,11 @@ export default useUIStore;
 let suppressPersist = false;
 
 // on store config changes, persist to DB unless suppressed
-useUIStore.subscribe((s) => s.config, async (cfg, prev) => {
+useUIStore.subscribe((s) => s.config, async (cfg) => {
     if (suppressPersist) return;
     try {
         await configResource.setKey('uiStore', cfg);
-    } catch (e) {
+    } catch {
         // ignore persistence errors
     }
 });
@@ -59,7 +58,7 @@ useUIStore.subscribe((s) => s.config, async (cfg, prev) => {
             // release suppression on next tick
             setTimeout(() => { suppressPersist = false; }, 0);
         }
-    } catch (e) {
+    } catch {
         // ignore
     }
 })();

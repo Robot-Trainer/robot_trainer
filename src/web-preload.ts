@@ -13,6 +13,8 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import type { ElectronAPI, SystemSettings } from './types/electron';
+import type { JsonObject } from './types/json';
 
 // ---------------------------------------------------------------------------
 // Shared Socket.IO connection (lazy – created on first use)
@@ -30,49 +32,55 @@ function getSocket(): Socket {
 // ---------------------------------------------------------------------------
 // Helper: HTTP POST /api/:channel  →  promise of the result value
 // ---------------------------------------------------------------------------
-async function invokeApi(channel: string, ...args: any[]): Promise<any> {
+type ApiResultEnvelope<TResult> = {
+  result?: TResult;
+  error?: string;
+};
+
+async function invokeApi<TArgs extends unknown[], TResult>(channel: string, ...args: TArgs): Promise<TResult> {
   const res = await fetch(`/api/${encodeURIComponent(channel)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ args }),
   });
-  const data = await res.json();
+  const data = (await res.json()) as ApiResultEnvelope<TResult>;
   if (!res.ok) {
-    throw new Error((data as any)?.error ?? `API error (${res.status})`);
+    throw new Error(data.error ?? `API error (${res.status})`);
   }
-  return (data as any).result;
+  return data.result as TResult;
 }
 
 // ---------------------------------------------------------------------------
 // Helper: subscribe to a Socket.IO event; returns an unsubscribe function
 // ---------------------------------------------------------------------------
-function onEvent(channel: string, cb: (...args: any[]) => void): () => void {
+function onEvent<TArgs extends unknown[]>(channel: string, cb: (...args: TArgs) => void): () => void {
   const socket = getSocket();
-  socket.on(channel, cb);
-  return () => socket.off(channel, cb);
+  socket.on(channel, cb as (...args: unknown[]) => void);
+  return () => socket.off(channel, cb as (...args: unknown[]) => void);
 }
 
 // ---------------------------------------------------------------------------
 // window.electronAPI — matches the ElectronAPI interface in electron-api.d.ts
 // ---------------------------------------------------------------------------
-(window as any).electronAPI = {
+const electronAPI: ElectronAPI = {
   // ── Invoke-style calls ──────────────────────────────────────────────────
   getUsername: () => invokeApi("get-username"),
   getDefaultDatasetDir: (repoId: string) =>
     invokeApi("get-default-dataset-dir", repoId),
   selectDatasetDirectory: () => invokeApi("select-dataset-directory"),
   scanSerialPorts: () => invokeApi("scan-serial-ports"),
-  saveSystemSettings: (settings: any) =>
+  saveSystemSettings: (settings: SystemSettings) =>
     invokeApi("save-system-settings", settings),
+  loadSystemSettings: () => invokeApi("load-system-settings"),
   checkAnaconda: () => invokeApi("check-anaconda"),
   createAnacondaEnv: (name: string) => invokeApi("create-anaconda-env", name),
   installMiniconda: () => invokeApi("install-miniconda"),
   installLerobot: () => invokeApi("install-lerobot"),
   checkLerobot: () => invokeApi("check-lerobot"),
   scanMujocoMenagerie: () => invokeApi("scan-mujoco-menagerie"),
-  saveRobotConfig: (config: any) => invokeApi("save-robot-config", config),
+  saveRobotConfig: (config: JsonObject) => invokeApi("save-robot-config", config),
   // setConfig is an alias for saveRobotConfig — mirrors the Electron preload.ts alias.
-  setConfig: (config: any) => invokeApi("save-robot-config", config),
+  setConfig: (config: JsonObject) => invokeApi("save-robot-config", config),
   openAdminWindow: (dbName: string) => invokeApi("open-admin-window", dbName),
   getMigrations: () => invokeApi("get-migrations"),
   openVideoWindow: (url: string) => invokeApi("open-video-window", url),
@@ -85,17 +93,17 @@ function onEvent(channel: string, cb: (...args: any[]) => void): () => void {
     invokeApi("save-robot-model-file", sourceFilePath),
 
   // ── Reply helpers (renderer → server via Socket.IO) ─────────────────────
-  replyLoadSystemSettings: (settings: any) =>
+  replyLoadSystemSettings: (settings: SystemSettings) =>
     getSocket().emit("reply-load-system-settings", settings),
-  replySaveSystemSettings: (result: any) =>
+  replySaveSystemSettings: (result: JsonObject) =>
     getSocket().emit("reply-save-system-settings", result),
 
   // ── Event subscriptions (server → renderer via Socket.IO) ───────────────
   onRequestLoadSystemSettings: (cb: () => void) =>
     onEvent("request-load-system-settings", cb),
-  onRequestSaveSystemSettings: (cb: (settings: any) => void) =>
+  onRequestSaveSystemSettings: (cb: (settings: SystemSettings) => void) =>
     onEvent("request-save-system-settings", cb),
-  onSystemSettingsChanged: (cb: (data: any) => void) =>
+  onSystemSettingsChanged: (cb: (data: SystemSettings) => void) =>
     onEvent("system-settings-changed", cb),
   onOpenSetupWizard: (cb: () => void) => onEvent("open-setup-wizard", cb),
   onInstallMinicondaOutput: (cb: (data: string) => void) =>
@@ -105,3 +113,5 @@ function onEvent(channel: string, cb: (...args: any[]) => void): () => void {
   onInstallLerobotOutput: (cb: (data: string) => void) =>
     onEvent("install-lerobot-output", cb),
 };
+
+window.electronAPI = electronAPI;

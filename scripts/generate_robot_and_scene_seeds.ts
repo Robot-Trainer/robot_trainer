@@ -18,6 +18,13 @@ const SIMILARITY_THRESHOLD = 0.82;
 
 type RobotModelRecord = Partial<InferSelectModel<typeof robotModelsTable>>;
 
+type MenagerieConfiguration = {
+  name: string;
+  sceneXmlPath: string;
+  includedRobots: string[];
+  cameras: ReturnType<typeof parseMujocoCameras>;
+};
+
 function parseRobotXmlMetadata(xmlContent: string) {
   const dom = new JSDOM(xmlContent, { contentType: "text/xml" });
   const doc = dom.window.document;
@@ -158,7 +165,7 @@ function mergeRealRobotModalities(
 async function scanMenagerie() {
   const results = {
     robots: [] as RobotModelRecord[],
-    configurations: [] as any[],
+    configurations: [] as MenagerieConfiguration[],
   };
 
   try {
@@ -178,8 +185,6 @@ async function scanMenagerie() {
         const content = await fs.readFile(path.join(dirPath, file), "utf-8");
         if (content.includes("<actuator>")) {
           const metadata = parseRobotXmlMetadata(content);
-          const dirName = dirent.name;
-
 
           results.robots.push({
             name: dirent.name, // Robot name is directory name
@@ -231,8 +236,8 @@ async function scanMenagerie() {
 
     const realRobotDirNames = await getDirectoryNames(ROBOTS_PATH);
     mergeRealRobotModalities(results.robots, realRobotDirNames);
-  } catch (e) {
-    console.error("Error scanning menagerie:", e);
+  } catch (error) {
+    console.error("Error scanning menagerie:", error);
   }
   return results;
 }

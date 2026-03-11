@@ -33,7 +33,7 @@ export const MigrationRoot = () => {
     } catch (e) {
       setStatus({ type: 'corrupted', error: e });
     } finally {
-      if (typeof window !== 'undefined') (window as any).__appIdle = true; // Unblock loading
+      if (typeof window !== 'undefined') window.__appIdle = true; // Unblock loading
       setChecking(false);
     }
   };

@@ -1,10 +1,26 @@
 import { db } from "./db";
 import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable, camerasTable, sceneCamerasTable } from "./schema";
-import { sql, eq, and } from "drizzle-orm";
+import { sql, eq, and, type InferSelectModel } from "drizzle-orm";
 // Not strictly required to import type for seeding, but helpful if we want strict typing
 import { MjcfCamera } from "../lib/mujoco_parser";
-import { InferSelectModel } from "drizzle-orm";
 type RobotModelRecord = Partial<InferSelectModel<typeof robotModelsTable>>;
+
+type SeedCamera = Omit<MjcfCamera, 'pos' | 'quat' | 'xyaxes' | 'axis' | 'zaxis' | 'euler'> & {
+  pos?: number[];
+  quat?: number[];
+  xyaxes?: number[];
+  axis?: number[];
+  zaxis?: number[];
+  euler?: number[];
+};
+
+type SeedSceneRecord = {
+  id: number;
+  name: string;
+  sceneXmlPath: string;
+  includedRobots: string[];
+  cameras: SeedCamera[];
+};
 
 export const robotModelsData: RobotModelRecord[] = [
   /** START GENERATED MUJOCO MENAGERIE RECORDS */
@@ -79,7 +95,7 @@ export const robotModelsData: RobotModelRecord[] = [
   /** END GENERATED MUJOCO MENAGERIE RECORDS */
 ];
 
-export const scenesData = [
+export const scenesData: SeedSceneRecord[] = [
   /** START GENERATED MUJOCO MENAGERIE CONFIGURATIONS */
   {"name":"piper_scene","sceneXmlPath":"mujoco_menagerie/agilex_piper/scene.xml","includedRobots":["agilex_piper"],"cameras":[],"id":1},
   {"name":"cassie scene","sceneXmlPath":"mujoco_menagerie/agility_cassie/scene.xml","includedRobots":["agility_cassie"],"cameras":[],"id":2},
@@ -213,7 +229,6 @@ export async function seedRobotModels() {
 
     // Process Scenes
     for (const c of scenesData) {
-      // @ts-ignore
       const scenePath = c.sceneXmlPath;
       const existingConfig = await db.select().from(scenesTable).where(
         eq(scenesTable.sceneXmlPath, scenePath)
@@ -231,9 +246,7 @@ export async function seedRobotModels() {
 
       if (configId) {
         // Link robots
-        // @ts-ignore
-        if (c.includedRobots && Array.isArray(c.includedRobots)) {
-          // @ts-ignore
+        if (Array.isArray(c.includedRobots)) {
           for (const robotDirName of c.includedRobots) {
             const robotModelId = dirToRobotId.get(robotDirName);
             if (robotModelId) {
@@ -258,7 +271,7 @@ export async function seedRobotModels() {
 
         // Link cameras
         if (c.cameras && Array.isArray(c.cameras)) {
-          for (const cam of c.cameras as MjcfCamera[]) {
+          for (const cam of c.cameras) {
             const existingCameras = await db.select().from(camerasTable).where(
               and(
                 eq(camerasTable.name, cam.name),

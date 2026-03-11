@@ -36,15 +36,16 @@ test.describe('Robot Configuration Wizard', () => {
     await window.keyboard.press("Escape");
 
     await window.getByRole("button", { name: "Save Changes" }).click();
+    await expect(window.locator('h4:has-text("Edit Simulated Robot")')).toBeHidden();
+    await expect(window.getByLabel("Follower Robot")).toContainText('Simulated Robot');
 
     const leaderModelSelect = window.getByLabel("Teleoperator");
     await expect(leaderModelSelect).toBeVisible();
-    await expectPageScreenshot(window);
+    await expect(leaderModelSelect).toContainText(/.+/);
 
     await leaderModelSelect.click();
     const teleoperatorOptions = window.getByRole("option");
     await expect(teleoperatorOptions.first()).toBeVisible();
-    await expectPageScreenshot(window);
     expect(await teleoperatorOptions.count()).toBeGreaterThan(1);
   });
 });

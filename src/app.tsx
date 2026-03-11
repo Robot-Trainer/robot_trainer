@@ -8,10 +8,13 @@ import RobotModels from './views/RobotModels';
 import Skills from './views/Skills';
 import Scenes from './views/Scenes';
 import useUIStore from "./lib/uiStore";
+import type { UIState } from './lib/uiStore';
 import { configResource } from './db/resources';
+import type { JsonObject } from './types/json';
+import type { SystemSettings } from './types/electron';
 
 
-import { Activity, Robot, Dataset, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
+import { Robot, Dataset, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
 import { VideoPlayer } from './ui/VideoPlayer';
 import { ToastProvider } from './ui/ToastContext';
 import { AdminControl } from './ui/AdminControl';
@@ -51,13 +54,13 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
   }
 
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
-  const currentPage = useUIStore((s: any) => s.currentPage);
-  const setCurrentPage = useUIStore((s: any) => s.setCurrentPage);
-  const setResourceManagerShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
-  const setConfigLocal = useUIStore((s: any) => s.setConfigLocal);
-  const showSetupWizard = useUIStore((s: any) => s.showSetupWizard);
-  const setShowSetupWizard = useUIStore((s: any) => s.setShowSetupWizard);
-  const setShowSetupWizardForced = useUIStore((s: any) => s.setShowSetupWizardForced);
+  const currentPage = useUIStore((s: UIState) => s.currentPage);
+  const setCurrentPage = useUIStore((s: UIState) => s.setCurrentPage);
+  const setResourceManagerShowForm = useUIStore((s: UIState) => s.setResourceManagerShowForm);
+  const setConfigLocal = useUIStore((s: UIState) => s.setConfigLocal);
+  const showSetupWizard = useUIStore((s: UIState) => s.showSetupWizard);
+  const setShowSetupWizard = useUIStore((s: UIState) => s.setShowSetupWizard);
+  const setShowSetupWizardForced = useUIStore((s: UIState) => s.setShowSetupWizardForced);
 
   const checkConda = async () => {
     try {
@@ -66,14 +69,14 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
         return false;
       }
       // Check env
-      const hasEnv = res.envs.some((e: any) => e.name === 'robot_trainer');
+      const hasEnv = res.envs.some((env) => env.name === 'robot_trainer');
       if (!hasEnv) {
         return false;
       }
       // Check LeRobot
       const lr = await window.electronAPI.checkLerobot();
       return lr.installed;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -101,10 +104,15 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
     if (externalLoading) return;
     const load = async () => {
       // mark app as not idle while initial load is in progress
-      try { (window as any).__appIdle = false; } catch (e) { console.error(e); }
+      try {
+        window.__appIdle = false;
+      } catch (error) {
+        console.error(error);
+      }
       try {
         const cfg = await configResource.getAll();
-        (window as any).electronAPI.replyLoadSystemSettings(cfg);
+        const systemCfg = cfg as SystemSettings;
+        window.electronAPI.replyLoadSystemSettings(systemCfg);
         setConfigLocal(cfg);
         // If config missing python/conductor settings, show the setup wizard
         try {
@@ -113,69 +121,85 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
           let condaOk = false;
           try {
             condaOk = await checkConda();
-          } catch (e) { console.error(e); }
+          } catch (error) {
+            console.error(error);
+          }
 
-          if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
+          const condaRoot = typeof cfg.condaRoot === 'string' ? cfg.condaRoot : '';
+          const pythonPath = typeof cfg.pythonPath === 'string' ? cfg.pythonPath : '';
+
+          if (!condaRoot || !pythonPath || !condaOk) {
             setShowSetupWizard(true);
           }
 
           setIsCheckingEnv(false);
           // The main process may request the renderer to load/save settings via
           // the drizzle-backed users table. Register handlers to respond.
-          if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestLoadSystemSettings) {
+          if (window.electronAPI?.onRequestLoadSystemSettings) {
             // listen for main asking to load settings; reply using drizzle
-            (window as any).electronAPI.onRequestLoadSystemSettings(async () => {
+            window.electronAPI.onRequestLoadSystemSettings(async () => {
               try {
                 const cfg = await configResource.getAll();
-                (window as any).electronAPI.replyLoadSystemSettings(cfg);
+                const systemCfg = cfg as SystemSettings;
+                window.electronAPI.replyLoadSystemSettings(systemCfg);
                 setConfigLocal(cfg);
                 // Check env while showing "Loading env..." in nav
                 setIsCheckingEnv(true);
                 let condaOk = false;
                 try {
                   condaOk = await checkConda();
-                } catch (e) { console.error(e); }
+                } catch (error) {
+                  console.error(error);
+                }
+
+                const condaRoot = typeof cfg.condaRoot === 'string' ? cfg.condaRoot : '';
+                const pythonPath = typeof cfg.pythonPath === 'string' ? cfg.pythonPath : '';
 
                 // If config missing python/conductor settings, show the setup wizard
-                if ((!cfg || !cfg.condaRoot || !cfg.pythonPath) || !condaOk) {
+                if (!condaRoot || !pythonPath || !condaOk) {
                   setShowSetupWizard(true);
                 }
 
                 setIsCheckingEnv(false);
-              } catch (e) {
-                (window as any).electronAPI.replyLoadSystemSettings({});
+              } catch {
+                window.electronAPI.replyLoadSystemSettings({} as SystemSettings);
               }
             });
           }
-          if (window && (window as any).electronAPI && (window as any).electronAPI.onRequestSaveSystemSettings) {
-            (window as any).electronAPI.onRequestSaveSystemSettings(async (settings: any) => {
+          if (window.electronAPI?.onRequestSaveSystemSettings) {
+            window.electronAPI.onRequestSaveSystemSettings(async (settings: SystemSettings) => {
               try {
-                await configResource.setAll(settings);
-                (window as any).electronAPI.replySaveSystemSettings({ success: true, settings });
-                setConfigLocal(settings);
+                const persistableSettings = settings as unknown as JsonObject;
+                await configResource.setAll(persistableSettings);
+                window.electronAPI.replySaveSystemSettings({ success: true, settings: persistableSettings });
+                setConfigLocal(persistableSettings);
               } catch (e) {
-                (window as any).electronAPI.replySaveSystemSettings({ success: false, error: String(e) });
+                window.electronAPI.replySaveSystemSettings({ success: false, error: String(e) });
               }
             });
           }
-        } catch (e) {
+        } catch {
           // ignore silently
         }
-      } catch (e) {
-        (window as any).electronAPI.replyLoadSystemSettings({});
+      } catch {
+        window.electronAPI.replyLoadSystemSettings({} as SystemSettings);
       }
       // Indicate that initial app bootstrap is complete and app is idle
-      try { (window as any).__appIdle = true; } catch (e) { console.error(e); }
+      try {
+        window.__appIdle = true;
+      } catch (error) {
+        console.error(error);
+      }
     };
     load();
   }, [setConfigLocal, externalLoading]);
 
   // subscribe to runtime updates broadcast from main when settings change externally
   useEffect(() => {
-    if (window && (window as any).electronAPI && (window as any).electronAPI.onSystemSettingsChanged) {
+    if (window.electronAPI?.onSystemSettingsChanged) {
       // register listener exposed by preload
-      const off = (window as any).electronAPI.onSystemSettingsChanged((data: any) => {
-        if (data) setConfigLocal(data);
+      const off = window.electronAPI.onSystemSettingsChanged((data: SystemSettings) => {
+        setConfigLocal(data as unknown as JsonObject);
       });
       return () => off && off();
     }
@@ -184,8 +208,8 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
 
   // listen for main menu -> open setup wizard
   useEffect(() => {
-    if (window && (window as any).electronAPI && (window as any).electronAPI.onOpenSetupWizard) {
-      const off = (window as any).electronAPI.onOpenSetupWizard(() => {
+    if (window.electronAPI?.onOpenSetupWizard) {
+      const off = window.electronAPI.onOpenSetupWizard(() => {
         // mark as forced-open so background checks won't auto-close
         setShowSetupWizard(true);
         setShowSetupWizardForced(true);
