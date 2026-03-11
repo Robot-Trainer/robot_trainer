@@ -31,15 +31,15 @@ test.describe('Robot Configuration Wizard Input', () => {
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
     await expect(window.locator('h4:has-text("Edit Simulated Robot")')).toBeVisible();
-    await expectPageScreenshot(window);
     await dismissSetupWizard(window);
+    await expectPageScreenshot(window);
     await window.getByRole('button', { name: 'Save Changes' }).click({ force: true });
 
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Create New Simulated Robot' }).click();
     await expect(window.locator('h4:has-text("Edit Simulated Robot")')).toBeVisible();
-    await expectPageScreenshot(window);
     await dismissSetupWizard(window);
+    await expectPageScreenshot(window);
     await window.getByRole('button', { name: 'Save Changes' }).click({ force: true });
 
     await window.getByLabel('Follower Robot').click();

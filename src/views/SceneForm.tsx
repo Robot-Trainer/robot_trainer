@@ -29,7 +29,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const [sceneXmlPath, setSceneXmlPath] = useState('');
   const [xmlContent, setXmlContent] = useState('');
 
-  const [leaderType, setLeaderType] = useState<'keyboard' | 'gamepad' | 'real' | 'phone'>('keyboard');
   const [leaderModel, setLeaderModel] = useState<string>('');
   const [leaderConfig, setLeaderConfig] = useState<any>(null);
 
@@ -189,7 +188,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           setSelectedRobotId(r.robotId);
           const snap = r.snapshot as any;
           if (snap) {
-            if (snap.leaderType) setLeaderType(snap.leaderType);
             if (snap.leaderConfig) setLeaderConfig(snap.leaderConfig);
           }
         }
@@ -345,7 +343,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       const newRobotSnapshot = {
         ...selectedRobot,
         targetConfig: currentConfig,
-        leaderType,
         leaderConfig
       };
 
@@ -490,7 +487,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       const existingTeleop = existingTeleops[0];
 
       let desiredTeleopId: number | null = null;
-      if (leaderType === 'real' && leaderModel) {
+      if (leaderModel) {
         const parsed = parseInt(leaderModel, 10);
         if (!isNaN(parsed)) desiredTeleopId = parsed;
       }
@@ -511,12 +508,12 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           await db.insert(sceneTeleoperatorsTable).values({
             sceneId,
             teleoperatorId: desiredTeleopId,
-            snapshot: { config: leaderConfig, type: leaderType }
+            snapshot: { config: leaderConfig }
           });
         } else {
           // Same model: Update snapshot
           await db.update(sceneTeleoperatorsTable).set({
-            snapshot: { config: leaderConfig, type: leaderType }
+            snapshot: { config: leaderConfig }
           }).where(and(
             eq(sceneTeleoperatorsTable.sceneId, sceneId),
             eq(sceneTeleoperatorsTable.teleoperatorId, desiredTeleopId)
@@ -528,7 +525,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           await db.insert(sceneTeleoperatorsTable).values({
             sceneId,
             teleoperatorId: desiredTeleopId,
-            snapshot: { config: leaderConfig, type: leaderType }
+            snapshot: { config: leaderConfig}
           });
         }
       }
@@ -691,24 +688,8 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           <h3 className="text-lg font-medium mb-4">Leader Arm (Teleoperator)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Select
-                label="Type"
-                value={leaderType}
-                onChange={(e) => setLeaderType(e.target.value as any)}
-                options={[
-                  { label: 'Keyboard', value: 'keyboard' },
-                  { label: 'Gamepad', value: 'gamepad' },
-                  { label: 'Real Robot Teleoperation', value: 'real' },
-                  { label: 'Phone', value: 'phone' },
-                ]}
-              />
-            </div>
-
-            {leaderType === 'real' && (
-              <>
-                <div>
                   <Select
-                    label="Teleoperator Model"
+                    label="Teleoperator"
                     value={leaderModel}
                     onChange={(e) => setLeaderModel(e.target.value)}
                     options={availableTeleoperators}
@@ -742,8 +723,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
                     />
                   )}
                 </div>
-              </>
-            )}
           </div>
         </section>
 

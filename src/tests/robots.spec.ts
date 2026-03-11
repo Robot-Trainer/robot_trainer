@@ -38,6 +38,7 @@ test.describe('Robots CRUD', () => {
     await expect(updatedRow).toBeVisible({ timeout: 15000 });
     await expectPageScreenshot(window);
 
+    await updatedRow.hover();
     await updatedRow.locator('button[aria-label="Delete"]').click();
     await window.getByRole('dialog').getByRole('button', { name: /^Delete$/ }).click();
     await expect(window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' })).toHaveCount(0);

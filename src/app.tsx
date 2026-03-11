@@ -18,6 +18,7 @@ import { AdminControl } from './ui/AdminControl';
 
 const NavItem: React.FC<{ id: string; icon: React.ComponentType<{ className?: string }>; label: string; active: string; iconClassName?: string; onClick: (id: string) => void }> = ({ id, icon: Icon, label, active, iconClassName, onClick }) => (
   <button
+    id={id}
     onClick={() => onClick(id)}
     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors mb-1 ${active === id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
     <Icon className={`h-4 w-4 ${iconClassName || ''}`} />

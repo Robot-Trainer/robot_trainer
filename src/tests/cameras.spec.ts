@@ -32,6 +32,7 @@ test.describe('Cameras CRUD', () => {
     await expect(updatedRow).toBeVisible();
     await expectPageScreenshot(window);
 
+    await updatedRow.hover();
     await updatedRow.locator('button[aria-label="Delete"]').click();
     await window.getByRole('dialog').getByRole('button', { name: /^Delete$/ }).click();
     await expect(window.locator('.MuiDataGrid-row', { hasText: 'Front Camera v2' })).toHaveCount(0);

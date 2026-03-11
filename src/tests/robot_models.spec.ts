@@ -37,6 +37,7 @@ test.describe('Robot Models CRUD', () => {
     const updatedRow = window.locator('.MuiDataGrid-row', { hasText: 'Model Alpha v2' }).first();
     await expect(updatedRow).toBeVisible();
 
+    await updatedRow.hover();
     await updatedRow.locator('button[aria-label="Delete"]').click();
     const dialog = window.getByRole('dialog');
     await expect(dialog).toBeVisible();
