@@ -75,7 +75,7 @@ describe('CameraConfigurationForm', () => {
     fireEvent.click(cam2Option);
 
     // Save
-    const saveBtn = screen.getByText(/Save Configuration/i);
+    const saveBtn = screen.getByText(/Save Scene/i);
     fireEvent.click(saveBtn);
 
     expect(mockOnSave).toHaveBeenCalledWith(expect.arrayContaining([

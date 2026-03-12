@@ -20,7 +20,7 @@ test.describe('Scene Configuration Validation', () => {
       expect(dialog.message()).toContain('Please enter a scene name');
       await dialog.dismiss();
     });
-    await window.getByRole('button', { name: 'Save Configuration' }).click();
+    await window.getByRole('button', { name: 'Save Scene' }).click();
 
     await window.getByLabel('Scene Name').fill('Test Scene Validated');
 
@@ -28,13 +28,13 @@ test.describe('Scene Configuration Validation', () => {
       expect(dialog.message()).toContain('Please select a follower robot');
       await dialog.dismiss();
     });
-    await window.getByRole('button', { name: 'Save Configuration' }).click();
+    await window.getByRole('button', { name: 'Save Scene' }).click();
 
     await dismissSetupWizard(window);
     await window.getByLabel('Follower Robot').click();
     await window.getByRole('option', { name: 'Validation Robot' }).click();
 
-    await window.getByRole('button', { name: 'Save Configuration' }).click();
+    await window.getByRole('button', { name: 'Save Scene' }).click();
     await expect(window.getByLabel('Scene Name')).toHaveValue('Test Scene Validated');
 
     await window.getByRole('button', { name: 'Cancel' }).click();
