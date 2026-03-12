@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { TextField, MenuItem, Divider, ListSubheader, Box, IconButton } from '@mui/material';
 import { Pencil, Plus } from '../icons';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import Badge from '../ui/Badge';
 import { camerasResource } from '../db/resources';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CameraRecord = Record<string, any>;
+
 interface CameraEditorProps {
-  camera: any;
+  camera: CameraRecord;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -40,7 +43,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
 
   const handleSave = async () => {
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         name,
         serialNumber: isReal ? serialNumber : (camera.serialNumber || 'sim-cam-' + Date.now()),
         modality: isReal ? 'real' : 'simulated',
@@ -84,7 +87,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
       <Input
         label="Name"
         value={name}
-        onChange={(e: any) => setName(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setName(e.target.value)}
         placeholder="e.g. Overhead Camera"
       />
 
@@ -93,7 +96,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
           <Input
             label="Serial Number"
             value={serialNumber}
-            onChange={(e: any) => setSerialNumber(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSerialNumber(e.target.value)}
             placeholder="Device Serial Number"
           />
           <div className="text-xs text-gray-500">
@@ -106,7 +109,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
             <Select
               label="Resolution"
               value={resolution}
-              onChange={(e: any) => setResolution(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setResolution(e.target.value)}
               options={[
                 { label: '1280x720 (720p)', value: '1280x720' },
                 { label: '1920x1080 (1080p)', value: '1920x1080' },
@@ -118,38 +121,38 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
               label="FPS"
               type="number"
               value={fps}
-              onChange={(e: any) => setFps(parseInt(e.target.value))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFps(parseInt(e.target.value))}
             />
           </div>
 
           <div className="space-y-1">
             <label className="block text-xs font-medium text-gray-700">POS (x, y, z)</label>
             <div className="grid grid-cols-3 gap-2">
-              <Input placeholder="X" type="number" step="0.01" value={posX} onChange={(e: any) => setPosX(parseFloat(e.target.value))} />
-              <Input placeholder="Y" type="number" step="0.01" value={posY} onChange={(e: any) => setPosY(parseFloat(e.target.value))} />
-              <Input placeholder="Z" type="number" step="0.01" value={posZ} onChange={(e: any) => setPosZ(parseFloat(e.target.value))} />
+              <Input placeholder="X" type="number" step="0.01" value={posX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosX(parseFloat(e.target.value))} />
+              <Input placeholder="Y" type="number" step="0.01" value={posY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosY(parseFloat(e.target.value))} />
+              <Input placeholder="Z" type="number" step="0.01" value={posZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosZ(parseFloat(e.target.value))} />
             </div>
           </div>
 
           <div className="space-y-1">
             <label className="block text-xs font-medium text-gray-700">QUAT (w, x, y, z) <span className="font-light text-gray-400">Optional</span></label>
             <div className="grid grid-cols-4 gap-2">
-              <Input placeholder="W" type="number" step="0.01" value={quatW} onChange={(e: any) => setQuatW(parseFloat(e.target.value))} />
-              <Input placeholder="X" type="number" step="0.01" value={quatX} onChange={(e: any) => setQuatX(parseFloat(e.target.value))} />
-              <Input placeholder="Y" type="number" step="0.01" value={quatY} onChange={(e: any) => setQuatY(parseFloat(e.target.value))} />
-              <Input placeholder="Z" type="number" step="0.01" value={quatZ} onChange={(e: any) => setQuatZ(parseFloat(e.target.value))} />
+              <Input placeholder="W" type="number" step="0.01" value={quatW} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatW(parseFloat(e.target.value))} />
+              <Input placeholder="X" type="number" step="0.01" value={quatX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatX(parseFloat(e.target.value))} />
+              <Input placeholder="Y" type="number" step="0.01" value={quatY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatY(parseFloat(e.target.value))} />
+              <Input placeholder="Z" type="number" step="0.01" value={quatZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatZ(parseFloat(e.target.value))} />
             </div>
           </div>
 
           <div className="space-y-1">
             <label className="block text-xs font-medium text-gray-700">XYAXES (x1, y1, z1, x2, y2, z2) <span className="font-light text-gray-400">Optional</span></label>
             <div className="grid grid-cols-6 gap-1">
-              <Input placeholder="X1" type="number" step="0.01" value={xyaxesX1} onChange={(e: any) => setXyaxesX1(parseFloat(e.target.value))} />
-              <Input placeholder="Y1" type="number" step="0.01" value={xyaxesY1} onChange={(e: any) => setXyaxesY1(parseFloat(e.target.value))} />
-              <Input placeholder="Z1" type="number" step="0.01" value={xyaxesZ1} onChange={(e: any) => setXyaxesZ1(parseFloat(e.target.value))} />
-              <Input placeholder="X2" type="number" step="0.01" value={xyaxesX2} onChange={(e: any) => setXyaxesX2(parseFloat(e.target.value))} />
-              <Input placeholder="Y2" type="number" step="0.01" value={xyaxesY2} onChange={(e: any) => setXyaxesY2(parseFloat(e.target.value))} />
-              <Input placeholder="Z2" type="number" step="0.01" value={xyaxesZ2} onChange={(e: any) => setXyaxesZ2(parseFloat(e.target.value))} />
+              <Input placeholder="X1" type="number" step="0.01" value={xyaxesX1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX1(parseFloat(e.target.value))} />
+              <Input placeholder="Y1" type="number" step="0.01" value={xyaxesY1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY1(parseFloat(e.target.value))} />
+              <Input placeholder="Z1" type="number" step="0.01" value={xyaxesZ1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ1(parseFloat(e.target.value))} />
+              <Input placeholder="X2" type="number" step="0.01" value={xyaxesX2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX2(parseFloat(e.target.value))} />
+              <Input placeholder="Y2" type="number" step="0.01" value={xyaxesY2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY2(parseFloat(e.target.value))} />
+              <Input placeholder="Z2" type="number" step="0.01" value={xyaxesZ2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ2(parseFloat(e.target.value))} />
             </div>
           </div>
         </>
@@ -165,7 +168,7 @@ const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel })
 
 
 interface CameraSelectionDropdownProps {
-  cameras: any[];
+  cameras: CameraRecord[];
   selectedCameraId: number | null;
   onSelect: (id: number) => void;
   onCamerasChanged: () => void; // Trigger to refresh the camera list
@@ -183,7 +186,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
 }) => {
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const createCamera = async (data: any) => {
+  const createCamera = async (data: Record<string, unknown>) => {
     try {
       const res = await camerasResource.create(data);
       await onCamerasChanged();

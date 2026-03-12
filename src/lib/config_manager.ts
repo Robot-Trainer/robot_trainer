@@ -1,14 +1,14 @@
 import { EventEmitter } from 'events';
 import { configResource } from '../db/resources';
 
-type JSONObject = { [k: string]: any };
+type JSONObject = { [k: string]: unknown };
 
-function deepMerge(a: any, b: any): any {
+function deepMerge(a: unknown, b: unknown): unknown {
   if (Array.isArray(a) && Array.isArray(b)) return b;
   if (a && b && typeof a === 'object' && typeof b === 'object') {
-    const out: any = { ...a };
-    for (const k of Object.keys(b)) {
-      out[k] = deepMerge(a[k], b[k]);
+    const out: Record<string, unknown> = { ...(a as Record<string, unknown>) };
+    for (const k of Object.keys(b as Record<string, unknown>)) {
+      out[k] = deepMerge((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]);
     }
     return out;
   }
@@ -44,35 +44,35 @@ export default class ConfigManager extends EventEmitter {
   public get(key?: string) {
     if (!key) return deepMerge(this.defaults, this.userSettings);
     const parts = key.split('.');
-    let curUser: any = this.userSettings;
+    let curUser: unknown = this.userSettings;
     for (const p of parts) {
-      if (curUser && Object.prototype.hasOwnProperty.call(curUser, p)) curUser = curUser[p];
+      if (curUser && typeof curUser === 'object' && Object.prototype.hasOwnProperty.call(curUser, p)) curUser = (curUser as Record<string, unknown>)[p];
       else { curUser = undefined; break; }
     }
     if (curUser !== undefined) return curUser;
-    let curDef: any = this.defaults;
+    let curDef: unknown = this.defaults;
     for (const p of parts) {
-      if (curDef && Object.prototype.hasOwnProperty.call(curDef, p)) curDef = curDef[p];
+      if (curDef && typeof curDef === 'object' && Object.prototype.hasOwnProperty.call(curDef, p)) curDef = (curDef as Record<string, unknown>)[p];
       else { curDef = undefined; break; }
     }
     return curDef;
   }
 
-  public async set(key: string, value: any) {
+  public async set(key: string, value: unknown) {
     const task = async () => {
       const parts = key.split('.');
-      let o: any = this.userSettings || {};
+      let o: Record<string, unknown> = this.userSettings || {};
       for (let i = 0; i < parts.length - 1; i++) {
         const p = parts[i];
         if (!o[p] || typeof o[p] !== 'object') o[p] = {};
-        o = o[p];
+        o = o[p] as Record<string, unknown>;
       }
       o[parts[parts.length - 1]] = value;
 
       try {
         await configResource.setAll(this.userSettings);
         this.emit('changed', key, value);
-      } catch (err: any) {
+      } catch (err: unknown) {
         this.emit('error', err);
         throw err;
       }
@@ -91,7 +91,7 @@ export default class ConfigManager extends EventEmitter {
     this.writing = true;
     while (this.writeQueue.length) {
       const job = this.writeQueue.shift()!;
-      try { await job(); } catch (e) { /* swallow */ }
+      try { await job(); } catch { /* swallow */ }
     }
     this.writing = false;
   }

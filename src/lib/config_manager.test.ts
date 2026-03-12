@@ -4,16 +4,16 @@ import ConfigManager from './config_manager';
 import { configResource } from '../db/resources';
 
 describe('ConfigManager DB-backed behavior', () => {
-  let store: any;
+  let store: Record<string, unknown>;
 
   beforeEach(() => {
     store = {};
-    vi.spyOn(configResource, 'getAll' as any).mockImplementation(async () => store);
-    vi.spyOn(configResource, 'setAll' as any).mockImplementation(async (cfg: any) => { store = cfg; return { ok: true }; });
+    vi.spyOn(configResource, 'getAll' as keyof typeof configResource).mockImplementation(async () => store);
+    vi.spyOn(configResource, 'setAll' as keyof typeof configResource).mockImplementation(async (cfg: Record<string, unknown>) => { store = cfg; return { ok: true }; });
     vi.restoreAllMocks();
     // re-apply spies after restore to ensure clean state
-    vi.spyOn(configResource, 'getAll' as any).mockImplementation(async () => store);
-    vi.spyOn(configResource, 'setAll' as any).mockImplementation(async (cfg: any) => { store = cfg; return { ok: true }; });
+    vi.spyOn(configResource, 'getAll' as keyof typeof configResource).mockImplementation(async () => store);
+    vi.spyOn(configResource, 'setAll' as keyof typeof configResource).mockImplementation(async (cfg: Record<string, unknown>) => { store = cfg; return { ok: true }; });
   });
 
   afterEach(() => {
@@ -31,7 +31,7 @@ describe('ConfigManager DB-backed behavior', () => {
   it('emits changed events', async () => {
     const cm = new ConfigManager({});
     await new Promise((r) => cm.on('loaded', r));
-    const events: any[] = [];
+    const events: { k: string; v: unknown }[] = [];
     cm.on('changed', (k, v) => events.push({ k, v }));
     await cm.set('x', 5);
     expect(events.some(e => e.k === 'x' && e.v === 5)).toBe(true);
@@ -52,7 +52,7 @@ describe('ConfigManager DB-backed behavior', () => {
     const cm = new ConfigManager({});
     await new Promise((r) => cm.on('loaded', r));
     // make setAll throw once
-    (configResource.setAll as any).mockImplementationOnce(() => Promise.reject(new Error('db failure')));
+    (configResource.setAll as ReturnType<typeof vi.fn>).mockImplementationOnce(() => Promise.reject(new Error('db failure')));
     await expect(cm.set('k', 'v')).rejects.toThrow('db failure');
     cm.close();
   });

@@ -25,7 +25,7 @@ describe('CameraConfigurationForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (camerasResource.list as any).mockResolvedValue(mockCameras);
+    (camerasResource.list as ReturnType<typeof vi.fn>).mockResolvedValue(mockCameras);
   });
 
   afterEach(() => {

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Container, Typography, Stack, TextField, IconButton, Alert, Box } from '@mui/material';
+import { Card, CardContent, Container, Typography, Stack, TextField, IconButton, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import Input from '../ui/Input';
-import Button from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 import { useToast } from '../ui/ToastContext';
 import { configResource } from '../db/resources';
 
@@ -31,14 +31,14 @@ const SystemSettings: React.FC = () => {
       try {
         const loaded = await configResource.getAll();
         if (loaded && typeof loaded === 'object') setSettings(loaded as SystemSettingsShape);
-      } catch (err) {
+      } catch{
         // ignore
       }
     };
     load();
     // subscribe to external changes
-    const unsub = (window as any).electronAPI?.onSystemSettingsChanged
-      ? (window as any).electronAPI.onSystemSettingsChanged((data: any) => {
+    const unsub = window.electronAPI?.onSystemSettingsChanged
+      ? window.electronAPI.onSystemSettingsChanged((data: Record<string, unknown>) => {
         if (data && typeof data === 'object') setSettings(data as SystemSettingsShape);
       })
       : null;
@@ -53,15 +53,15 @@ const SystemSettings: React.FC = () => {
     setSaving(true);
     try {
       await configResource.setAll(settings);
-      if ((window as any).electronAPI?.saveSystemSettings) {
-        const res = await (window as any).electronAPI.saveSystemSettings(settings);
+      if (window.electronAPI?.saveSystemSettings) {
+        const res = await window.electronAPI.saveSystemSettings(settings);
         if (res && res.success === false) {
           throw new Error(res.error || 'Unknown error');
         }
       }
       toast.success('Settings saved');
-    } catch (err) {
-      toast.error(`Failed to save settings: ${err instanceof Error ? err.message : String(err)}`);
+    } catch (error) {
+      toast.error(`Failed to save settings: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSaving(false);
     }
@@ -101,7 +101,7 @@ const SystemSettings: React.FC = () => {
               <Input
                 label="Python Interpreter Path"
                 value={settings.pythonPath || ''}
-                onChange={(e: any) => update({ pythonPath: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ pythonPath: e.target.value })}
                 placeholder="/usr/bin/python3 or C:\\Python39\\python.exe"
               />
               <Typography variant="caption" color="textSecondary">
@@ -113,7 +113,7 @@ const SystemSettings: React.FC = () => {
               <Input
                 label="Virtual Environment Path"
                 value={settings.venvPath || ''}
-                onChange={(e: any) => update({ venvPath: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ venvPath: e.target.value })}
                 placeholder="/home/user/.venv/myenv"
               />
               <Typography variant="caption" color="textSecondary">
@@ -155,7 +155,7 @@ const SystemSettings: React.FC = () => {
                       <Input
                         label="Key"
                         value={env.key}
-                        onChange={(e: any) => setEnvVar(idx, 'key', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnvVar(idx, 'key', e.target.value)}
                         placeholder="MY_ENV_VAR"
                         className="mb-0" // override Input's default margin
                       />
@@ -164,7 +164,7 @@ const SystemSettings: React.FC = () => {
                       <Input
                         label="Value"
                         value={env.value}
-                        onChange={(e: any) => setEnvVar(idx, 'value', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnvVar(idx, 'value', e.target.value)}
                         placeholder="Value..."
                         className="mb-0" // override Input's default margin
                       />

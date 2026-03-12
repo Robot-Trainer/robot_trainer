@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import Button from '../ui/Button';
+import { Button } from '../ui/Button';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 import { useToast } from '../ui/ToastContext';
 import { camerasResource } from '../db/resources';
 
 interface CameraConfigurationFormProps {
-  initialCameras?: any[];
-  onSave?: (cameras: any[]) => void;
+  initialCameras?: Record<string, unknown>[];
+  onSave?: (cameras: Record<string, unknown>[]) => void;
   onCancel?: () => void;
 }
 
 const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initialCameras = [], onSave, onCancel }) => {
   const toast = useToast();
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([]);
-  const [availableCameras, setAvailableCameras] = useState<any[]>([]);
+  const [availableCameras, setAvailableCameras] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshCameras = async () => {
@@ -35,7 +35,7 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
       if (initialCameras && initialCameras.length > 0) {
         const slots = initialCameras.map((c, i) => {
           // Check if initial camera exists in DB
-          const exists = c.id && typeof c.id === 'number' && cams.find((dbCam: any) => dbCam.id === c.id);
+          const exists = c.id && typeof c.id === 'number' && cams.find((dbCam: Record<string, unknown>) => dbCam.id === c.id);
           return {
             id: exists ? c.id : null,
             key: Date.now() + i

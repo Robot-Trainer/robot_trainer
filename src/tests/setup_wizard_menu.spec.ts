@@ -17,7 +17,7 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
   });
 
   await window.evaluate(async () => {
-    await (window as any).electronAPI.saveSystemSettings({
+    await (window as unknown as Record<string, unknown>).electronAPI.saveSystemSettings({
       condaRoot: '/home/testuser/miniconda3',
       pythonPath: '/home/testuser/miniconda3/envs/robot_trainer/bin/python'
     });
@@ -36,9 +36,9 @@ test('File -> Setup Wizard opens the SetupWizard modal', async ({ window, electr
   await electronApp.evaluate(({ Menu }) => {
     const menu = Menu.getApplicationMenu();
     if (!menu) return;
-    const fileMenu = menu.items.find((i: any) => i.label === 'File');
+    const fileMenu = menu.items.find((i: Record<string, unknown>) => i.label === 'File');
     if (!fileMenu || !fileMenu.submenu) return;
-    const setupItem = fileMenu.submenu.items.find((si: any) => si.label === 'Setup Wizard');
+    const setupItem = fileMenu.submenu.items.find((si: Record<string, unknown>) => si.label === 'Setup Wizard');
     if (setupItem && typeof setupItem.click === 'function') setupItem.click();
   });
 
@@ -54,15 +54,15 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
   await setIpcHandlers({
     'check-anaconda': async () => ({ found: false, path: null, envs: [], platform: 'linux' }),
     'install-miniconda': async () => {
-      const { BrowserWindow } = globalThis as any;
+      const { BrowserWindow } = globalThis as unknown as Record<string, unknown>;
       const wins = BrowserWindow.getAllWindows();
-      wins.forEach((w: any) => {
+      wins.forEach((w: Record<string, unknown>) => {
         w.webContents.send('install-miniconda-output', 'Miniconda installed successfully\n');
       });
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      wins.forEach((w: any) => {
+      wins.forEach((w: Record<string, unknown>) => {
         w.webContents.send('install-miniconda-output', 'Done.');
       });
       return { success: true, path: '/tmp/miniconda', output: 'Miniconda installed successfully\nDone.' };
@@ -73,7 +73,7 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
 
   // Force open wizard via menu
   await window.evaluate(async () => {
-    await (window as any).electronAPI.saveSystemSettings({});
+    await (window as unknown as Record<string, unknown>).electronAPI.saveSystemSettings({});
   });
 
   await window.reload();
@@ -82,8 +82,8 @@ test('Setup Wizard steps show details', async ({ window, electronApp, setIpcHand
 
   await electronApp.evaluate(({ Menu }) => {
     const menu = Menu.getApplicationMenu();
-    const fileMenu = menu?.items.find((i: any) => i.label === 'File');
-    const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+    const fileMenu = menu?.items.find((i: Record<string, unknown>) => i.label === 'File');
+    const setupItem = fileMenu?.submenu?.items.find((si: Record<string, unknown>) => si.label === 'Setup Wizard');
     setupItem?.click();
   });
 

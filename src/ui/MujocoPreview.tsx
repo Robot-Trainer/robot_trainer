@@ -193,7 +193,7 @@ export const MujocoPreview: React.FC<MujocoPreviewProps> = ({
             // Check if this geom was already added at top-level
             // (querySelectorAll('geom') catches all nested geoms)
             // So we handle positioning here
-            const geomName = geom.getAttribute('name') || '';
+            const _geomName = geom.getAttribute('name') || '';
             const existing = meshesRef.current.find(
               (m) => m.userData.geomElement === geom
             );
@@ -213,8 +213,8 @@ export const MujocoPreview: React.FC<MujocoPreviewProps> = ({
         autoFitCamera();
 
         onSuccess?.();
-      } catch (e: any) {
-        onError?.(e.message || String(e));
+      } catch (e: unknown) {
+        onError?.(e instanceof Error ? e.message : String(e));
       }
     },
     [clearMeshes, onError, onSuccess]

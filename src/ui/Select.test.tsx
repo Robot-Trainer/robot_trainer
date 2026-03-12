@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import Select from './Select';
+import { Select } from './Select';
 
 describe('ui/Select', () => {
   it('renders a disabled placeholder when the current value is not in options', () => {

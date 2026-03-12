@@ -17,7 +17,7 @@ vi.mock('../db/resources', () => ({
 
 // Mock Monaco Editor (heavy dependency, not needed for form logic tests)
 vi.mock('@monaco-editor/react', () => ({
-  default: ({ value, onChange }: any) => (
+  default: ({ value, onChange }: Record<string, unknown>) => (
     <textarea
       data-testid="monaco-editor"
       value={value || ''}
@@ -28,26 +28,26 @@ vi.mock('@monaco-editor/react', () => ({
 
 // Mock MujocoPreview (Three.js/WebGL not available in jsdom)
 vi.mock('../ui/MujocoPreview', () => ({
-  default: ({ xml, onError, onSuccess }: any) => (
+  default: ({ xml, _onError, _onSuccess }: Record<string, unknown>) => (
     <div data-testid="mujoco-preview" data-xml={xml || ''} />
   ),
-  MujocoPreview: ({ xml, onError, onSuccess }: any) => (
+  MujocoPreview: ({ xml, _onError, _onSuccess }: Record<string, unknown>) => (
     <div data-testid="mujoco-preview" data-xml={xml || ''} />
   ),
 }));
 
 // Mock CameraDiscovery (navigator.mediaDevices not available in jsdom)
 vi.mock('../ui/CameraDiscovery', () => ({
-  default: ({ cameras, onAdd, onRemove }: any) => (
+  default: ({ cameras, _onAdd, _onRemove }: Record<string, unknown>) => (
     <div data-testid="camera-discovery">
-      {cameras?.map((c: any) => (
+      {cameras?.map((c: Record<string, unknown>) => (
         <div key={c.name} data-testid={`camera-${c.name}`}>{c.name}</div>
       ))}
     </div>
   ),
-  CameraDiscovery: ({ cameras, onAdd, onRemove }: any) => (
+  CameraDiscovery: ({ cameras, _onAdd, _onRemove }: Record<string, unknown>) => (
     <div data-testid="camera-discovery">
-      {cameras?.map((c: any) => (
+      {cameras?.map((c: Record<string, unknown>) => (
         <div key={c.name} data-testid={`camera-${c.name}`}>{c.name}</div>
       ))}
     </div>
@@ -76,10 +76,10 @@ describe('RobotForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (robotModelsResource.list as any).mockResolvedValue(mockRobotModels);
+    (robotModelsResource.list as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockRobotModels);
 
     // Mock electronAPI
-    (global as any).window.electronAPI = {
+    (global as unknown as Record<string, unknown>).window.electronAPI = {
       scanSerialPorts: vi.fn().mockResolvedValue(mockSerialPorts),
     };
   });
@@ -102,7 +102,7 @@ describe('RobotForm', () => {
     fireEvent.click(scanBtns[0]);
 
     await waitFor(() => {
-      expect((global as any).window.electronAPI.scanSerialPorts).toHaveBeenCalled();
+      expect((global as unknown as Record<string, unknown>).window.electronAPI.scanSerialPorts).toHaveBeenCalled();
       // Check if serial ports are displayed in the list
       // "Acme" might appear in the card list and potentially in the connected device dropdown
       const acmeElements = screen.getAllByText(/Acme/);

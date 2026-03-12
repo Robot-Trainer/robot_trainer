@@ -8,7 +8,7 @@ import { eq, and } from 'drizzle-orm';
 import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
-import { parseMujocoCameras, MjcfCamera } from '../lib/mujoco_parser';
+import { parseMujocoCameras } from '../lib/mujoco_parser';
 import DatasetForm from './DatasetForm';
 import { Dialog, DialogContent } from '@mui/material';
 
@@ -17,8 +17,8 @@ import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 
 interface SceneFormProps {
   onCancel?: () => void;
-  onSaved?: (config: any) => Promise<any> | void;
-  initialData?: any;
+  onSaved?: (config: Record<string, unknown>) => Promise<unknown> | void;
+  initialData?: Record<string, unknown>;
 }
 
 export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initialData }) => {
@@ -30,34 +30,34 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const [xmlContent, setXmlContent] = useState('');
 
   const [leaderModel, setLeaderModel] = useState<string>('');
-  const [leaderConfig, setLeaderConfig] = useState<any>(null);
+  const [leaderConfig, setLeaderConfig] = useState<Record<string, unknown> | null>(null);
 
   const [availableRobots, setAvailableRobots] = useState<{ label: string, value: string }[]>([]);
-  const [robotModels, setRobotModels] = useState<any[]>([]);
-  const [xmlCameras, setXmlCameras] = useState<any[]>([]);
+  const [robotModels, setRobotModels] = useState<Record<string, unknown>[]>([]);
+  const [xmlCameras, setXmlCameras] = useState<Record<string, unknown>[]>([]);
 
   const [availableTeleoperators, setAvailableTeleoperators] = useState<{ label: string, value: string }[]>([]);
 
-  const [knownRobots, setKnownRobots] = useState<any[]>([]);
-  const [serialPorts, setSerialPorts] = useState<any[]>([]);
+  const [knownRobots, setKnownRobots] = useState<Record<string, unknown>[]>([]);
+  const [serialPorts, setSerialPorts] = useState<Record<string, unknown>[]>([]);
   const [scanning, setScanning] = useState(false);
 
-  const [availableCameras, setAvailableCameras] = useState<any[]>([]);
+  const [availableCameras, setAvailableCameras] = useState<Record<string, unknown>[]>([]);
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
 
   const toast = useToast();
   const [openDatasetDialog, setOpenDatasetDialog] = useState(false);
-  const [datasetInitialData, setDatasetInitialData] = useState<any | null>(null);
+  const [datasetInitialData, setDatasetInitialData] = useState<Record<string, unknown> | null>(null);
 
   const fetchData = async () => {
     try {
       const robots = await robotModelsResource.list();
       setRobotModels(robots);
-      const rOpts = robots.map((r: any) => ({ label: r.name, value: String(r.id) }));
+      const rOpts = robots.map((r: Record<string, unknown>) => ({ label: r.name, value: String(r.id) }));
       setAvailableRobots(rOpts);
 
       const teleops = await teleoperatorModelsResource.list();
-      const tOpts = teleops.map((t: any) => ({ label: t.data?.name || t.id, value: t.id }));
+      const tOpts = teleops.map((t: Record<string, unknown> & { data?: Record<string, unknown> }) => ({ label: t.data?.name || t.id, value: t.id }));
       setAvailableTeleoperators(tOpts);
 
       const kRobots = await robotsResource.list();
@@ -96,7 +96,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   // Update XML cameras list whenever XML content changes or selected Robot changes
   useEffect(() => {
     const parseXmlCameras = async () => {
-      const newXmlCameras: any[] = [];
+      const newXmlCameras: Record<string, unknown>[] = [];
       const seenNames = new Set<string>();
 
       // 1. From Scene XML
@@ -128,7 +128,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
             const model = robotModels.find(m => m.id === robot.robotModelId);
             if (model && model.modelPath) {
               // Read model file to get metadata (cached by main process usually fast)
-              const res = await (window as any).electronAPI.readModelFile(model.modelPath);
+              const res = await window.electronAPI.readModelFile(model.modelPath);
               if (res && res.metadata && res.metadata.cameras) {
                 res.metadata.cameras.forEach((name: string) => {
                   if (!seenNames.has(name)) {
@@ -167,7 +167,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
         if (initialData.sceneXmlPath) {
           try {
-            const res = await (window as any).electronAPI.readModelFile(initialData.sceneXmlPath);
+            const res = await window.electronAPI.readModelFile(initialData.sceneXmlPath);
             // Handle new object return type from readModelFile
             if (typeof res === 'object' && res.content !== undefined) {
               setXmlContent(res.content);
@@ -186,7 +186,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         if (robotRows.length > 0) {
           const r = robotRows[0];
           setSelectedRobotId(r.robotId);
-          const snap = r.snapshot as any;
+          const snap = r.snapshot as Record<string, unknown>;
           if (snap) {
             if (snap.leaderConfig) setLeaderConfig(snap.leaderConfig);
           }
@@ -215,7 +215,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const scanPorts = async () => {
     setScanning(true);
     try {
-      const ports = await (window as any).electronAPI.scanSerialPorts();
+      const ports = await window.electronAPI.scanSerialPorts();
       setSerialPorts(ports || []);
     } catch (e) {
       console.error("Failed to scan ports", e);
@@ -259,7 +259,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     setCameraSlots(newSlots);
   };
 
-  const getDeviceLabel = (port: any) => {
+  const getDeviceLabel = (port: Record<string, unknown>) => {
     const known = knownRobots.find(r => r.serialNumber === port.serialNumber);
     if (known) {
       return `${known.name} - (SN: ${port.serialNumber})`;
@@ -295,7 +295,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     // Save XML if in advanced mode or if content available and we have a path
     if (sceneXmlPath && xmlContent) {
       try {
-        await (window as any).electronAPI.saveSceneXml(sceneXmlPath, xmlContent);
+        await window.electronAPI.saveSceneXml(sceneXmlPath, xmlContent);
       } catch (e) {
         console.error("Failed to save XML", e);
         // Continue anyway? Or stop? Let's log and continue but maybe warn user
@@ -324,7 +324,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     }
 
     try {
-      const parentResult: any = await onSaved({
+      const parentResult: Record<string, unknown> = await onSaved({
         name: sceneName,
         sceneXmlPath
       });
@@ -388,13 +388,13 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           const xmlCam = xmlCameras.find(c => c.id === id);
           if (xmlCam) {
             // Check if exists in DB by name and is simulated
-            const existing = availableCameras.find((c: any) => c.name === xmlCam.name && c.modality === 'simulated');
+            const existing = availableCameras.find((c: Record<string, unknown>) => c.name === xmlCam.name && c.modality === 'simulated');
             if (existing) {
               finalSelectedIds.add(existing.id);
             } else {
               // Create it
               try {
-                const camAttrs = (xmlCam as any).attributes || {};
+                const camAttrs = (xmlCam as Record<string, unknown>).attributes || {};
                 // MJCF attributes
                 const pos = camAttrs.pos || [0, 0, 0];
                 const quat = camAttrs.quat || [1, 0, 0, 0];
@@ -431,7 +431,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
                   finalSelectedIds.add(created.id);
                   // Update available cameras locally so we don't recreate next time
                   // Note: check type compatibility
-                  setAvailableCameras((prev: any[]) => [...prev, created]);
+                  setAvailableCameras((prev: Record<string, unknown>[]) => [...prev, created]);
                 }
               } catch (e) {
                 console.error("Failed to create DB entry for XML camera", xmlCam.name, e);
@@ -463,7 +463,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       const allDbCameras = await camerasResource.list();
 
       for (const newId of finalSelectedIds) {
-        const cam = allDbCameras.find((c: any) => c.id === newId);
+        const cam = allDbCameras.find((c: Record<string, unknown>) => c.id === newId);
         if (!cam) continue;
 
         if (existingCamIds.has(newId)) {
@@ -557,7 +557,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     setOpenDatasetDialog(true);
   };
 
-  const handleDatasetSavedFromDialog = async (payload: any) => {
+  const handleDatasetSavedFromDialog = async (payload: Record<string, unknown>) => {
     try {
       const [saved] = await db.insert(datasetsTable).values({
         name: payload.name || `Dataset - ${new Date().toLocaleString()}`,

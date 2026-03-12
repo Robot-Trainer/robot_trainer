@@ -3,12 +3,12 @@ import { EventEmitter } from 'events';
 
 export interface SimulationCommand {
   command: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SimulationResponse {
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class VideoManager extends EventEmitter {
@@ -58,7 +58,7 @@ export class VideoManager extends EventEmitter {
               const response: SimulationResponse = JSON.parse(line.slice(8));
 
               this.emit('simulation-response', response);
-            } catch (e) {
+            } catch {
               console.error('Failed to parse simulation response:', line);
             }
           } else if (line.trim()) {

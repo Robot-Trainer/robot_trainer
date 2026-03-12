@@ -7,7 +7,7 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import CameraDiscovery, { type CameraEntry } from "./CameraDiscovery";
+import { CameraDiscovery, type CameraEntry } from "./CameraDiscovery";
 
 type MockTrack = { stop: ReturnType<typeof vi.fn> };
 type MockStream = MediaStream & {
@@ -61,10 +61,10 @@ describe("CameraDiscovery", () => {
     Object.defineProperty(HTMLMediaElement.prototype, "srcObject", {
       configurable: true,
       get() {
-        return (this as any).__srcObject ?? null;
+        return (this as unknown as Record<string, unknown>).__srcObject ?? null;
       },
       set(value) {
-        (this as any).__srcObject = value;
+        (this as unknown as Record<string, unknown>).__srcObject = value;
       },
     });
   });

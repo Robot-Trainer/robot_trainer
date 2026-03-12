@@ -3,8 +3,8 @@ import { TextField } from '@mui/material';
 
 type Props = {
   label?: string;
-  value?: any;
-  onChange?: (e: any) => void;
+  value?: string | number | readonly string[];
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: string;
   className?: string;

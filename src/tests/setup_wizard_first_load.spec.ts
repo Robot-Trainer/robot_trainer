@@ -11,9 +11,9 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
   test.beforeEach(async ({ window }) => {
     // Provide basic renderer reply handlers used in other tests
     await window.evaluate(() => {
-      const win = window as any;
+      const win = window as unknown as Record<string, unknown>;
       if (win.electronAPI && win.electronAPI.onRequestSaveSystemSettings) {
-        win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+        win.electronAPI.onRequestSaveSystemSettings((settings: Record<string, unknown>) => {
           win.electronAPI.replySaveSystemSettings({ success: true, settings });
         });
       }
@@ -45,8 +45,8 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     await window.waitForLoadState('domcontentloaded');
     await electronApp.evaluate(({ Menu }) => {
       const menu = Menu.getApplicationMenu();
-      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
-      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      const fileMenu = menu?.items.find((i: Record<string, unknown>) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: Record<string, unknown>) => si.label === 'Setup Wizard');
       setupItem?.click();
     });
 
@@ -72,8 +72,8 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     await window.waitForLoadState('domcontentloaded');
     await electronApp.evaluate(({ Menu }) => {
       const menu = Menu.getApplicationMenu();
-      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
-      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      const fileMenu = menu?.items.find((i: Record<string, unknown>) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: Record<string, unknown>) => si.label === 'Setup Wizard');
       setupItem?.click();
     });
 
@@ -97,8 +97,8 @@ test.describe('Setup Wizard - first load scenarios (screenshots)', () => {
     await window.waitForLoadState('domcontentloaded');
     await electronApp.evaluate(({ Menu }) => {
       const menu = Menu.getApplicationMenu();
-      const fileMenu = menu?.items.find((i: any) => i.label === 'File');
-      const setupItem = fileMenu?.submenu?.items.find((si: any) => si.label === 'Setup Wizard');
+      const fileMenu = menu?.items.find((i: Record<string, unknown>) => i.label === 'File');
+      const setupItem = fileMenu?.submenu?.items.find((si: Record<string, unknown>) => si.label === 'Setup Wizard');
       setupItem?.click();
     });
 

@@ -20,7 +20,7 @@ export default class Camera {
     };
   }
 
-  static fromJSON(obj: any) {
+  static fromJSON(obj: Record<string, unknown>) {
     return new Camera({
       serialNumber: obj.serialNumber || '',
       name: obj.name || '',

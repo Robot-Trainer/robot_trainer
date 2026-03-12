@@ -2,24 +2,24 @@ import React from 'react';
 import Form from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFSchema } from '@rjsf/utils';
-import Card from '../ui/Card';
+import { Card } from '../ui/Card';
 
 interface ConfigFormProps {
     schema: RJSFSchema;
-    formData?: any;
-    onSubmit?: (data: any) => void;
+    formData?: Record<string, unknown>;
+    onSubmit?: (data: Record<string, unknown>) => void;
     title?: string;
 }
 
 const ConfigForm: React.FC<ConfigFormProps> = ({ schema, formData, onSubmit, title = "Configuration" }) => {
-  const handleSubmit = ({ formData }: { formData: any }) => {
+  const handleSubmit = ({ formData }: { formData: Record<string, unknown> }) => {
     console.log('Form submitted:', formData);
     if (onSubmit) {
         onSubmit(formData);
     }
   };
 
-  const handleError = (errors: any) => {
+  const handleError = (errors: Record<string, unknown>) => {
     console.error('Form errors:', errors);
   };
 

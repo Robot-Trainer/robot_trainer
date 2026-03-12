@@ -11,16 +11,16 @@ import {
 import UsbIcon from "@mui/icons-material/Usb";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
-import Select from "../ui/Select";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Select } from "../ui/Select";
 import { robotModelsResource } from "../db/resources";
 import { db } from "../db/db";
 import { eq } from "drizzle-orm";
 import { robotModelsTable, scenesTable, sceneRobotsTable } from "../db/schema";
-import Editor from "@monaco-editor/react";
-import MujocoPreview from "../ui/MujocoPreview";
-import CameraDiscovery, { type CameraEntry } from "../ui/CameraDiscovery";
+import MonacoEditor from "@monaco-editor/react";
+import { MujocoPreview } from "../ui/MujocoPreview";
+import { CameraDiscovery, type CameraEntry } from "../ui/CameraDiscovery";
 import Badge from "../ui/Badge";
 
 interface SerialPort {
@@ -33,18 +33,18 @@ interface SerialPort {
 }
 
 interface RobotFormProps {
-  onSaved?: (item: any) => Promise<any> | void;
+  onSaved?: (item: Record<string, unknown>) => Promise<unknown> | void;
   onCancel?: () => void;
-  initialData?: any;
+  initialData?: Record<string, unknown>;
 }
 
 type RobotModality = "real" | "simulated";
 
 const extractCameraSerialNumber = (camera: CameraEntry): string => {
-  const explicitSerial = String((camera as any).serialNumber || "").trim();
+  const explicitSerial = String((camera as Record<string, unknown>).serialNumber || "").trim();
   if (explicitSerial) return explicitSerial;
 
-  const label = String((camera as any).deviceLabel || "");
+  const label = String((camera as Record<string, unknown>).deviceLabel || "");
   const serialMatch = label.match(/serial[:\s#-]*([a-zA-Z0-9._-]+)/i);
   if (serialMatch?.[1]) return serialMatch[1];
 
@@ -67,7 +67,7 @@ const getCameraResolutionAndFps = (
   };
 };
 
-const getModelModalities = (model: any): RobotModality[] => {
+const getModelModalities = (model: Record<string, unknown>): RobotModality[] => {
   if (Array.isArray(model?.supportedModalities)) {
     const normalized = model.supportedModalities.filter(
       (m: unknown): m is RobotModality => m === "real" || m === "simulated",
@@ -100,7 +100,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const [modality, setModality] = useState<RobotModality>("real");
   const [robotModelId, setRobotModelId] = useState<string>("");
   const [serialNumber, setSerialNumber] = useState<string>("");
-  const [modelOptions, setModelOptions] = useState<any[]>([]);
+  const [modelOptions, setModelOptions] = useState<Record<string, unknown>[]>([]);
   const [modelOptionItems, setModelOptionItems] = useState<
     { label: string; value: string }[]
   >([]);
@@ -144,9 +144,9 @@ const RobotForm: React.FC<RobotFormProps> = ({
         const models = await robotModelsResource.list();
         setModelOptions(models);
         setModelOptionItems(
-          models.map((m: any) => ({ label: m.name, value: String(m.id) })),
+          models.map((m: Record<string, unknown>) => ({ label: m.name, value: String(m.id) })),
         );
-      } catch (e) {
+      } catch (_e) {
         setModelOptions([]);
         setModelOptionItems([]);
       }
@@ -190,7 +190,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
   }, [initialData]);
 
   const selectedModel = modelOptions.find(
-    (m: any) => String(m.id) === String(robotModelId),
+    (m: Record<string, unknown>) => String(m.id) === String(robotModelId),
   );
   const selectedModelModalities = getModelModalities(selectedModel);
   const selectedModelModality =
@@ -252,12 +252,12 @@ const RobotForm: React.FC<RobotFormProps> = ({
 
         if (modelFilePath) {
           if (modelFileData.format === "zip") {
-            const result = await (window as any).electronAPI.saveRobotModelZip(
+            const result = await window.electronAPI.saveRobotModelZip(
               modelFilePath,
             );
             pathForDb = result.modelPath;
           } else {
-            const result = await (window as any).electronAPI.saveRobotModelFile(
+            const result = await window.electronAPI.saveRobotModelFile(
               modelFilePath,
             );
             pathForDb = result.modelPath;
@@ -329,7 +329,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
       const payloadData = {
         ...(initialData?.data || {}),
         type: modality === "real" ? "real" : "simulation",
-      } as any;
+      } as Record<string, unknown>;
 
       if (modality === "real") {
         payloadData.config = {
@@ -393,13 +393,13 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const handleSelectModelFile = async () => {
     setModelFileError(null);
     try {
-      const filePath = await (window as any).electronAPI.selectModelFile();
+      const filePath = await window.electronAPI.selectModelFile();
       if (!filePath) return;
       setModelFilePath(filePath);
-      const data = await (window as any).electronAPI.readModelFile(filePath);
+      const data = await window.electronAPI.readModelFile(filePath);
       setModelFileData(data);
       if (!name) setName(data.baseName);
-    } catch (e) {
+    } catch (_e) {
       setModelFileError(e instanceof Error ? e.message : String(e));
       setModelFileData(null);
     }
@@ -409,7 +409,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
     setScanning(true);
     setScanError(null);
     try {
-      const ports = await (window as any).electronAPI.scanSerialPorts();
+      const ports = await window.electronAPI.scanSerialPorts();
       setSerialPorts(ports || []);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -438,7 +438,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           <Input
             label="Robot Name"
             value={name}
-            onChange={(e: any) => setName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             placeholder="e.g. My Primary Arm"
           />
         </Grid>
@@ -446,7 +446,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           <Select
             label="Robot Model"
             value={robotModelId}
-            onChange={(e: any) => setRobotModelId(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotModelId(e.target.value)}
             options={[
               { label: "Select Robot Model...", value: "" },
               ...modelOptionItems,
@@ -454,7 +454,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
             renderOption={(opt) => {
               if (opt.value === "") return opt.label;
               const model = modelOptions.find(
-                (m: any) => String(m.id) === String(opt.value),
+                (m: Record<string, unknown>) => String(m.id) === String(opt.value),
               );
               const modalities = getModelModalities(model);
               return (
@@ -487,7 +487,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
             <Select
               label="Modality"
               value={modality}
-              onChange={(e: any) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setModality(e.target.value as RobotModality)
               }
               options={[
@@ -507,7 +507,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           <Input
             label="Notes"
             value={notes}
-            onChange={(e: any) => setNotes(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
             placeholder="Optional notes"
           />
         </Grid>
@@ -609,7 +609,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
             <Input
               label="Connected Device Serial (Manual)"
               value={serialNumber}
-              onChange={(e: any) => setSerialNumber(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSerialNumber(e.target.value)}
               placeholder="Select from list above or enter manually"
             />
           </Box>
@@ -619,7 +619,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Input
                 label="LeRobot Port"
                 value={realPortPath}
-                onChange={(e: any) => setRealPortPath(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRealPortPath(e.target.value)}
                 placeholder="/dev/ttyUSB0"
               />
             </Grid>
@@ -627,7 +627,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Select
                 label="Disable Torque on Disconnect"
                 value={disableTorqueOnDisconnect ? "true" : "false"}
-                onChange={(e: any) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setDisableTorqueOnDisconnect(e.target.value === "true")
                 }
                 options={[
@@ -640,7 +640,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Select
                 label="Use Degrees"
                 value={useDegrees ? "true" : "false"}
-                onChange={(e: any) => setUseDegrees(e.target.value === "true")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUseDegrees(e.target.value === "true")}
                 options={[
                   { label: "False", value: "false" },
                   { label: "True", value: "true" },
@@ -651,7 +651,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Input
                 label="Max Relative Target"
                 value={maxRelativeTarget}
-                onChange={(e: any) => setMaxRelativeTarget(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxRelativeTarget(e.target.value)}
                 placeholder="e.g. 5"
               />
             </Grid>
@@ -659,7 +659,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Input
                 label="LeRobot Robot ID"
                 value={robotConfigId}
-                onChange={(e: any) => setRobotConfigId(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotConfigId(e.target.value)}
                 placeholder="optional"
               />
             </Grid>
@@ -667,7 +667,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
               <Input
                 label="Calibration Directory"
                 value={calibrationDir}
-                onChange={(e: any) => setCalibrationDir(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCalibrationDir(e.target.value)}
                 placeholder="optional path"
               />
             </Grid>
@@ -774,7 +774,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
                   height: 500,
                 }}
               >
-                <Editor
+                <MonacoEditor
                   height="100%"
                   language="xml"
                   theme="vs-dark"

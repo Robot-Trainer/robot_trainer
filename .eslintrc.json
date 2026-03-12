@@ -13,6 +13,13 @@
     "plugin:import/typescript"
   ],
   "parser": "@typescript-eslint/parser",
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["error", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_",
+      "caughtErrorsIgnorePattern": "^_"
+    }]
+  },
 "ignorePatterns": [
   "dist/",
   "build/",
@@ -20,6 +27,7 @@
   "public/",
   "coverage/",
   "mujoco_menagerie/",
-  "src/mujoco/"
+  "src/mujoco/",
+  "scratch/"
 ]
 }
