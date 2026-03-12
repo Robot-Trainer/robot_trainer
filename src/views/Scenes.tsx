@@ -1,8 +1,8 @@
 import React from "react";
-import ResourceManager, { GridCol } from "../ui/ResourceManager";
+import ResourceManagerView, { GridCol } from "../ui/ResourceManager";
 import { scenesTable } from "../db/schema";
 import { scenesResource } from "../db/resources";
-import SceneForm from "./SceneForm";
+import SceneFormView from "./SceneForm";
 import { Typography } from "@mui/material";
 import Badge from "../ui/Badge";
 
@@ -42,12 +42,12 @@ const gridCols: GridCol[] = [
 const ScenesView: React.FC = () => {
   return (
     <div className="p-6">
-      <ResourceManager
+      <ResourceManagerView
         title="Scenes"
         table={scenesTable}
         resource={scenesResource}
         gridCols={gridCols}
-        renderForm={(props) => <SceneForm {...props} />}
+        renderForm={(props) => <SceneFormView {...props} />}
       />
     </div>
   );

@@ -110,7 +110,7 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
         {onSave && (
           <div className="mt-8 flex justify-end gap-2 border-t pt-4">
             {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
-            <Button onClick={handleSave}>Save Configuration</Button>
+            <Button onClick={handleSave}>Save Scene</Button>
           </div>
         )}
       </div>

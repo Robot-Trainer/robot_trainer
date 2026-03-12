@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import Select from '../ui/Select';
-import Input from '../ui/Input';
+import UiCard from '../ui/Card';
+import UiButton from '../ui/Button';
+import UiSelect from '../ui/Select';
+import UiInput from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
 import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
 import { parseMujocoCameras } from '../lib/mujoco_parser';
-import DatasetForm from './DatasetForm';
+import DatasetFormView from './DatasetForm';
 import { Dialog, DialogContent } from '@mui/material';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
@@ -582,12 +582,12 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     return (
       <div className="max-w-4xl mx-auto">
         <div className="mb-4">
-          <Button onClick={() => setShowAdvanced(false)} variant="secondary">
+          <UiButton onClick={() => setShowAdvanced(false)} variant="secondary">
             &larr; Back to Basic Config
-          </Button>
+          </UiButton>
         </div>
 
-        <Card className="p-4 bg-white">
+        <UiCard className="p-4 bg-white">
           <h3 className="text-lg font-medium mb-2">Scene XML Editor</h3>
           <p className="text-sm text-gray-500 mb-2">
             Edit the MuJoCo XML definition for this scene directly.
@@ -599,23 +599,23 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           />
           <div className="mt-4 flex justify-end">
             <div className="flex gap-2">
-              {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
-              <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
+              {onCancel && <UiButton onClick={onCancel} variant="secondary">Cancel</UiButton>}
+              <UiButton onClick={saveConfiguration} variant="primary">Save Scene</UiButton>
             </div>
           </div>
-        </Card>
+        </UiCard>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="p-8 space-y-8 shadow-none border-0">
+      <UiCard className="p-8 space-y-8 shadow-none border-0">
         <div className="mb-6 flex items-start gap-4">
           {onCancel && (
-            <Button variant="ghost" onClick={onCancel} className="mr-4">
+            <UiButton variant="ghost" onClick={onCancel} className="mr-4">
               &larr; Back
-            </Button>
+            </UiButton>
           )}
           <div>
             <h2 className="text-2xl font-semibold text-gray-900 text-left">Scene Setup</h2>
@@ -625,14 +625,14 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
         
         <section>
-          <Input
+          <UiInput
             label="Scene Name"
             value={sceneName}
             onChange={(e) => setSceneName(e.target.value)}
             placeholder="e.g. Table Top Manipulation"
           />
           <div className="mt-4">
-            <Input
+            <UiInput
               label="Scene XML Path"
               value={sceneXmlPath}
               onChange={(e) => setSceneXmlPath(e.target.value)}
@@ -654,9 +654,9 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
             onRobotsChanged={fetchData}
           />
           <div className="mt-1 flex justify-end">
-            <Button variant="ghost" className="text-xs text-gray-500" onClick={scanPorts} disabled={scanning}>
+            <UiButton variant="ghost" className="text-xs text-gray-500" onClick={scanPorts} disabled={scanning}>
               {scanning ? 'Scanning...' : 'Refresh Devices'}
-            </Button>
+            </UiButton>
           </div>
         </section>
         {/* Camera Configuration */}
@@ -676,9 +676,9 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
             ))}
 
             <div className="pt-2">
-              <Button variant="secondary" onClick={addCameraSlot} className="text-sm">
+              <UiButton variant="secondary" onClick={addCameraSlot} className="text-sm">
                 + Add Another Camera
-              </Button>
+              </UiButton>
             </div>
           </div>
         </section>
@@ -688,7 +688,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           <h3 className="text-lg font-medium mb-4">Leader Arm (Teleoperator)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                  <Select
+                  <UiSelect
                     label="Teleoperator"
                     value={leaderModel}
                     onChange={(e) => setLeaderModel(e.target.value)}
@@ -700,20 +700,20 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
                     <label className="block text-sm font-medium text-gray-700">Connected Device</label>
                     <div className="flex items-center gap-2">
                       {scanning && <span className="text-xs text-gray-500">Scanning...</span>}
-                      <Button
+                      <UiButton
                         onClick={scanPorts}
                         variant="secondary"
                         disabled={scanning}
                         className="text-xs py-1 px-2 h-auto"
                       >
                         Refresh Ports
-                      </Button>
+                      </UiButton>
                     </div>
                   </div>
                   {serialPorts.length === 0 ? (
                     <div className="text-sm text-gray-500 italic p-2 border rounded bg-gray-50">No devices found. Connect via USB.</div>
                   ) : (
-                    <Select
+                    <UiSelect
                       value={leaderConfig?.path || ''}
                       onChange={(e) => handleLeaderPortSelect(e.target.value)}
                       options={[
@@ -727,26 +727,26 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         </section>
 
         <div className="flex justify-between pt-4">
-          <Button onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</Button>
+          <UiButton onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</UiButton>
           <div className="flex gap-2">
-            <Button
+            <UiButton
               variant="ghost"
               onClick={handleCreateDatasetForScene}
               disabled={!initialData?.id && !sceneName}
               title={!initialData?.id ? 'Save the scene first or click Save then create a dataset' : 'Create a new dataset for this scene'}
             >
               Create Dataset
-            </Button>
-            {onCancel && <Button onClick={onCancel} variant="secondary">Cancel</Button>}
-            <Button onClick={saveConfiguration} variant="primary">Save Configuration</Button>
+            </UiButton>
+            {onCancel && <UiButton onClick={onCancel} variant="secondary">Cancel</UiButton>}
+            <UiButton onClick={saveConfiguration} variant="primary">Save Scene</UiButton>
           </div>
         </div>
-      </Card>
+      </UiCard>
 
       {/* DatasetForm dialog (create a new Dataset preselected to this Scene) */}
       <Dialog open={openDatasetDialog} onClose={() => setOpenDatasetDialog(false)} maxWidth="lg" fullWidth>
         <DialogContent dividers>
-          <DatasetForm
+          <DatasetFormView
             initialData={datasetInitialData || { sceneId: initialData?.id }}
             onCancel={() => setOpenDatasetDialog(false)}
             onSaved={handleDatasetSavedFromDialog}
