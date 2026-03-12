@@ -21,11 +21,11 @@ export async function removeDir(dir: string): Promise<void> {
   try {
     // Node 14+ supports rm with recursive flag.
     await fs.rm(dir, { recursive: true, force: true });
-  } catch (e) {
+  } catch {
     // fallback to rmdir for older Node versions
     try {
-      await fs.rmdir(dir, { recursive: true } as any);
-    } catch (err) {
+      await fs.rmdir(dir, { recursive: true } as Parameters<typeof fs.rmdir>[1]);
+    } catch {
       // ignore
     }
   }

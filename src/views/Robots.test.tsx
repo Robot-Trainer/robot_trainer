@@ -18,11 +18,11 @@ vi.mock('../db/db', async () => {
 });
 
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
-vi.mock('../lib/uiStore', () => ({ default: (cb: any) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
+vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Record<string, unknown>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
 describe('RobotsView Deletion', () => {
   beforeAll(async () => {
-    (window as any).electronAPI = {
+    (window as unknown as Record<string, unknown>).electronAPI = {
       getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') })
     };
     await migrate();

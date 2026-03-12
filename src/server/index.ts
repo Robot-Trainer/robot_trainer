@@ -16,7 +16,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import express, { Request, Response, NextFunction } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
-import rateLimit from 'express-rate-limit';
+import createRateLimit from 'express-rate-limit';
 
 const app = express();
 app.use(express.json());
@@ -26,7 +26,7 @@ app.use(express.json());
 // security best practices.  The limits are generous for a local dev/robot
 // control server but still protect the Node.js process from runaway clients.
 // ---------------------------------------------------------------------------
-const limiter = rateLimit({
+const limiter = createRateLimit({
   windowMs: 60 * 1000, // 1 minute
   limit: 300,          // max 300 requests per IP per window
   standardHeaders: 'draft-8',
@@ -84,7 +84,7 @@ const stubs: Record<string, StubFn> = {
   }),
   'check-lerobot': () => ({ installed: false }),
   'scan-mujoco-menagerie': () => [],
-  'save-robot-config': (_config: any) => ({ ok: true }),
+  'save-robot-config': (_config: unknown) => ({ ok: true }),
   'open-admin-window': (_dbName: string) => undefined,
   'get-migrations': () => ({}),
   'select-model-file': () => null,
@@ -110,7 +110,7 @@ const stubs: Record<string, StubFn> = {
 // ---------------------------------------------------------------------------
 app.post('/api/:channel', (req: Request, res: Response) => {
   const { channel } = req.params;
-  const args: any[] = Array.isArray(req.body?.args) ? req.body.args : [];
+  const args: unknown[] = Array.isArray(req.body?.args) ? req.body.args : [];
 
   const stub = stubs[channel];
   if (!stub) {

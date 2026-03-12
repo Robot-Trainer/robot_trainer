@@ -4,10 +4,10 @@ import { dismissSetupWizard } from './helpers';
 
 test.describe('Robot Models CRUD', () => {
   test('create, edit, delete robot model', async ({ window, setIpcHandlers }) => {
-    const store: Record<string, any> = {};
+    const store: Record<string, unknown> = {};
     await setIpcHandlers({
       'get-config': async (key: string) => store[key] || [],
-      'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
+      'set-config': async (key: string, value: unknown) => { store[key] = value; return { ok: true }; }
     });
 
     await dismissSetupWizard(window);

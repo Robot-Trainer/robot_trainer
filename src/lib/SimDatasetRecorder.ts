@@ -112,7 +112,7 @@ export class SimDatasetRecorder {
     const timestamp = performance.now() / 1000 - this._startTime;
 
     // Build the frame for LeRobotEpisode
-    const frame: any = {
+    const frame: Record<string, unknown> = {
       timestamp,
       episode_index: this._episodeIndex,
       task_index: 0,
@@ -186,7 +186,7 @@ export class SimDatasetRecorder {
   }
 
   /** Get regularised episode data at the configured FPS. */
-  getRegularisedEpisodes(): any[] {
+  getRegularisedEpisodes(): { index: number; frames: unknown[]; status: string }[] {
     return this._episodes.map((ep, idx) => {
       const regularised = ep.getInterpolatedRegularEpisode(this._fps, 0);
       return {
@@ -254,7 +254,7 @@ export class SimDatasetRecorder {
     const numJoints = this._sim.joints.length;
     const stateSize = numJoints * 2 + (this._sim.hasGripper ? 1 : 0);
 
-    const info: Record<string, any> = {
+    const info: Record<string, unknown> = {
       codebase_version: 'v2.1',
       robot_type: 'simulated',
       total_episodes: this._episodes.length,

@@ -9,7 +9,7 @@ export type Fixtures = {
   window: Page;
   setIpcHandlers: (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    handlers: Record<string, (...args: any[]) => any>
+    handlers: Record<string, (...args: unknown[]) => unknown>
   ) => Promise<void>;
 };
 
@@ -32,13 +32,13 @@ export const test = base.extend<Fixtures>({
     await app.close();
     try {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   },
 
   setIpcHandlers: async ({ electronApp }, use) => {
-    await use(async (handlers: Record<string, (...args: any[]) => any>) => {
+    await use(async (handlers: Record<string, (...args: unknown[]) => unknown>) => {
       const serialized: Record<string, string> = {};
       for (const [channel, fn] of Object.entries(handlers))
         serialized[channel] = fn.toString();
@@ -50,7 +50,7 @@ export const test = base.extend<Fixtures>({
           for (const channel of Object.keys(handlerMap)) {
             try {
               ipcMain.removeHandler(channel);
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
             const fn = eval(`(${handlerMap[channel]})`);
             ipcMain.handle(channel, fn);
           }

@@ -12,9 +12,9 @@ import VideocamIcon from '@mui/icons-material/Videocam';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import Button from './Button';
-import Input from './Input';
-import Select from './Select';
+import { Button } from './Button';
+import { Input } from './Input';
+import { Select } from './Select';
 import Badge from './Badge';
 
 export interface CameraEntry {
@@ -114,9 +114,9 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
       if (videoDevices.length > 0 && !selectedDeviceId) {
         await switchPreview(videoDevices[0].deviceId);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setPermissionState('denied');
-      setError(e.message || String(e));
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsLoading(false);
     }
@@ -140,8 +140,8 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
 
         setPreviewStream(newStream);
         setSelectedDeviceId(deviceId);
-      } catch (e: any) {
-        setError(`Failed to access camera: ${e.message || String(e)}`);
+      } catch (e: unknown) {
+        setError(`Failed to access camera: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
     [previewStream]
@@ -221,7 +221,7 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
               <Select
                 label="Select Camera Device"
                 value={selectedDeviceId}
-                onChange={(e: any) => switchPreview(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => switchPreview(e.target.value)}
                 options={availableCameras.map((cam) => ({
                   label: cam.label || `Camera (${cam.deviceId.slice(0, 12)}...)`,
                   value: cam.deviceId,
@@ -263,7 +263,7 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
                   <Input
                     label="Camera Name"
                     value={cameraName}
-                    onChange={(e: any) => setCameraName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setCameraName(e.target.value)}
                     placeholder="e.g. main, wrist, overhead"
                   />
                 </Box>

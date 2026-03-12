@@ -20,7 +20,7 @@ export default class Robot {
     };
   }
 
-  static fromJSON(obj: any) {
+  static fromJSON(obj: Record<string, unknown>) {
     return new Robot({
       serialNumber: obj.serialNumber || '',
       name: obj.name || '',

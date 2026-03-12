@@ -19,12 +19,12 @@
 import { test as base, Page } from '@playwright/test';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type HandlerMap = Record<string, (...args: any[]) => any>;
+type HandlerMap = Record<string, (...args: unknown[]) => unknown>;
 
 export type WebFixtures = {
   /** No-op stub — web tests have no Electron process. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  electronApp: any;
+  electronApp: unknown;
   /** The browser page under test, navigated to the web server's root. */
   window: Page;
   /**
@@ -39,7 +39,7 @@ export type WebFixtures = {
 };
 
 export const test = base.extend<WebFixtures>({
-  electronApp: async ({}, use) => {
+  electronApp: async (_, use) => {
     // Provide a stub so tests that reference electronApp compile without errors.
     // Electron-specific methods (evaluate, etc.) are no-ops in web mode.
     await use({
@@ -73,7 +73,7 @@ export const test = base.extend<WebFixtures>({
           async (route) => {
             const postData = route.request().postData();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let args: any[] = [];
+            let args: unknown[] = [];
             try {
               const body = JSON.parse(postData ?? '{}');
               if (Array.isArray(body.args)) args = body.args;

@@ -10,12 +10,24 @@ interface VideoPlayerProps {
   channel?: string;
 }
 
+interface JSMpegWindow {
+  JSMpeg?: { Player: new (url: string, opts: Record<string, unknown>) => JSMpegPlayer };
+  jsmpeg?: JSMpegWindow['JSMpeg'];
+  __JSMpegLoading?: Promise<void>;
+}
+
+interface JSMpegPlayer {
+  destroy(): void;
+}
+
+const win = window as unknown as JSMpegWindow;
+
 async function ensureJSMpegLoaded(): Promise<void> {
   // If already available, resolve immediately
-  if ((window as any).JSMpeg) return;
+  if (win.JSMpeg) return;
 
   // Prevent multiple concurrent loads
-  const existing = (window as any).__JSMpegLoading as Promise<void> | undefined;
+  const existing = win.__JSMpegLoading;
   if (existing) return existing;
 
   const p = new Promise<void>((resolve, reject) => {
@@ -26,30 +38,30 @@ async function ensureJSMpegLoaded(): Promise<void> {
       script.async = true;
       script.onload = () => {
         // jsmpeg defines a global `JSMpeg` var; ensure it's exposed on window
-        if ((window as any).JSMpeg) {
+        if (win.JSMpeg) {
           resolve();
-        } else if ((window as any).jsmpeg) {
+        } else if (win.jsmpeg) {
           // some builds export lowercase
-          (window as any).JSMpeg = (window as any).jsmpeg;
+          win.JSMpeg = win.jsmpeg;
           resolve();
         } else {
           reject(new Error('JSMpeg script loaded but global not found'));
         }
       };
-      script.onerror = (e) => reject(new Error('Failed to load JSMpeg script'));
+      script.onerror = () => reject(new Error('Failed to load JSMpeg script'));
       document.head.appendChild(script);
     } catch (e) {
       reject(e);
     }
   });
 
-  (window as any).__JSMpegLoading = p;
-  return p.finally(() => { (window as any).__JSMpegLoading = undefined; });
+  win.__JSMpegLoading = p;
+  return p.finally(() => { win.__JSMpegLoading = undefined; });
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<JSMpegPlayer | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -58,7 +70,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
 
     // Destroy previous player/socket if exists
     if (playerRef.current) {
-      try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
+      try { playerRef.current.destroy(); } catch { /* ignore */ }
       playerRef.current = null;
     }
     if (socketRef.current) {
@@ -107,7 +119,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
         try {
           await ensureJSMpegLoaded();
           if (!mounted) return;
-          const JSMpeg = (window as any).JSMpeg;
+          const JSMpeg = win.JSMpeg;
           if (!JSMpeg || !JSMpeg.Player) {
             console.error('JSMpeg not available after load');
             return;
@@ -130,7 +142,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, className, channe
     return () => {
       mounted = false;
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) { /* ignore */ }
+        try { playerRef.current.destroy(); } catch { /* ignore */ }
         playerRef.current = null;
       }
       if (socketRef.current) {

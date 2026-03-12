@@ -83,8 +83,8 @@ describe('parseMujocoCameras', () => {
   });
 
   it('should handle invalid input gracefully', () => {
-    const cameras = parseMujocoCameras('<invalid xml>');
-    expect(cameras).toEqual([]);
+    const result = parseMujocoCameras('<invalid xml>');
+    expect(result).toEqual([]);
   });
 
   it('should handle missing name gracefully (skip or generate name?)', () => {
@@ -92,7 +92,7 @@ describe('parseMujocoCameras', () => {
     // The implementation checks for name attribute.
     // Let's verify behavior.
     const xml = `<mujoco><worldbody><camera pos="0 0 0"/></worldbody></mujoco>`;
-    const cameras = parseMujocoCameras(xml);
+    const _cameras = parseMujocoCameras(xml);
     // If name is strict requirement:
     // expect(cameras).toHaveLength(0);
     // OR if generated:

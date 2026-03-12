@@ -1,48 +1,48 @@
 import React from 'react';
 
-export const ChevronRight = (props: any) => (
+export const ChevronRight = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {...props}>
     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
   </svg>
 );
 
-export const CheckCircle = (props: any) => (
+export const CheckCircle = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.3 7.3l-4.99 5a1 1 0 01-1.42 0l-2.5-2.5a1 1 0 111.42-1.42l1.79 1.79L14.88 7.7a1 1 0 111.42 1.42z" />
   </svg>
 );
 
-export const Play = (props: any) => (
+export const Play = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
     <path d="M6 4l10 6-10 6V4z" />
   </svg>
 );
 
-export const Zap = (props: any) => (
+export const Zap = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
   </svg>
 );
 
-export const Home = (props: any) => (
+export const Home = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1V9.5z" />
   </svg>
 );
 
-export const Activity = (props: any) => (
+export const Activity = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M3 12h3l3-8 4 16 3-8h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 );
 
-export const Cpu = (props: any) => (
+export const Cpu = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <rect x="7" y="7" width="10" height="10" rx="2" />
   </svg>
 );
 
-export const Robot = (props: any) => (
+export const Robot = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       d="M 11,6 V 5 c 0,0 0,-1 1,-1 v 0 c 0,0 1,0 1,1 v 1" id="path17" />
@@ -69,57 +69,57 @@ export const Robot = (props: any) => (
   </svg>
 );
 
-export const Layout = (props: any) => (
+export const Layout = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M3 3h18v18H3V3zm4 4v10h10V7H7z" />
   </svg>
 );
 
-export const Plus = (props: any) => (
+export const Plus = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
     <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
   </svg>
 );
 
-export const Settings = (props: any) => (
+export const Settings = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M12 8a4 4 0 100 8 4 4 0 000-8zm7.4 3a6.5 6.5 0 01-.1 1l2 1.5-2 3.5-2.1-1a6.4 6.4 0 01-1.2.7L15 20h-6l-.9-3.3c-.4-.2-.8-.5-1.2-.7L4.8 21 2.8 17.5l2-1.5a6.7 6.7 0 010-2l-2-1.5L4.8 8l2.1 1a6.4 6.4 0 011.2-.7L9 4h6l.9 3.3c.4.2.8.5 1.2.7l2.1-1L21.2 11z" />
   </svg>
 );
 
-export const Loader = (props: any) => (
+export const Loader = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
-export const Pause = (props: any) => (
+export const Pause = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
 );
-export const Stop = (props: any) => (
+export const Stop = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M6 6h12v12H6z" /></svg>
 );
-export const RefreshCw = (props: any) => (
+export const RefreshCw = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
   </svg>
 );
-export const XCircle = (props: any) => (
+export const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
   </svg>
 );
-export const Circle = (props: any) => (
+export const Circle = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}><circle cx="12" cy="12" r="8" /></svg>
 );
 
-export const ExternalLink = (props: any) => (
+export const ExternalLink = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     <polyline points="15 3 21 3 21 9" />
     <line x1="10" y1="14" x2="21" y2="3" />
   </svg>
 );
-export const RobotConfiguration = (props: any) => (
+export const RobotConfiguration = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -140,18 +140,18 @@ export const RobotConfiguration = (props: any) => (
   </svg>
 );
 
-export const Pencil = (props: any) => (
+export const Pencil = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
   </svg>
 );
 
-export const Camera = (props: any) => (
+export const Camera = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
   </svg>
 );
-export const Dataset = (props: any) => (
+export const Dataset = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     {/* Solid central square representing the model/compute unit.
         Uses fill="currentColor" inherited from the svg tag. */}

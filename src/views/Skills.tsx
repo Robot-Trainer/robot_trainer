@@ -1,5 +1,5 @@
 import React from "react";
-import ResourceManager from "../ui/ResourceManager";
+import { ResourceManager } from "../ui/ResourceManager";
 import { skillsTable } from "../db/schema";
 
 const SkillsView: React.FC = () => {

@@ -15,7 +15,7 @@
  */
 
 import * as THREE from 'three';
-import type { MainModule, MjModel, MjData, MjvScene as MjvSceneType } from 'mujoco_wasm/dist/mujoco_wasm.js';
+import type { MainModule, MjModel, MjData, MjvScene as MjvSceneType, MjvOption, MjvPerturb, MjvCamera, MjvGeom } from 'mujoco_wasm/dist/mujoco_wasm.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -97,9 +97,9 @@ export class MujocoSimulation {
   private mjModel!: MjModel;
   private mjData!: MjData;
   private mjvScene!: MjvSceneType;
-  private mjvOption: any;
-  private mjvPerturb: any;
-  private mjvCamera: any;
+  private mjvOption!: MjvOption;
+  private mjvPerturb!: MjvPerturb;
+  private mjvCamera!: MjvCamera;
 
   // Three.js
   readonly scene = new THREE.Scene();
@@ -154,7 +154,7 @@ export class MujocoSimulation {
     const wasmBinaryUrl = new URL('mujoco_wasm/mujoco_wasm.wasm', pageBaseUrl).href;
 
     const loadMujocoModule = await import(/* @vite-ignore */ wasmModuleUrl);
-    const loadMujoco = loadMujocoModule.default as (moduleArg?: any) => Promise<MainModule>;
+    const loadMujoco = loadMujocoModule.default as (moduleArg?: Record<string, unknown>) => Promise<MainModule>;
 
     this.mujoco = await loadMujoco({
       locateFile: (path: string) => {
@@ -165,8 +165,8 @@ export class MujocoSimulation {
     const mj = this.mujoco;
 
     // Set up in-memory file system for model files
-    try { (mj as any).FS.mkdir('/working'); } catch { /* already exists */ }
-    try { (mj as any).FS.mount((mj as any).MEMFS, { root: '.' }, '/working'); } catch { /* already mounted */ }
+    try { (mj as unknown as { FS: { mkdir: (p: string) => void } }).FS.mkdir('/working'); } catch { /* already exists */ }
+    try { (mj as unknown as { FS: { mount: (fs: unknown, opts: unknown, path: string) => void; MEMFS: unknown } }).FS.mount((mj as unknown as { MEMFS: unknown }).MEMFS, { root: '.' }, '/working'); } catch { /* already mounted */ }
 
     // Build the MJCF XML
     let xml = this._resolveModelXml(config);
@@ -178,7 +178,7 @@ export class MujocoSimulation {
     }
 
     // Write to virtual FS and load
-    (mj as any).FS.writeFile('/working/model.xml', xml);
+    (mj as unknown as { FS: { writeFile: (p: string, data: string) => void } }).FS.writeFile('/working/model.xml', xml);
     this.mjModel = mj.MjModel.mj_loadXML('/working/model.xml');
     if (!this.mjModel) throw new Error('Failed to load MuJoCo model from XML');
 
@@ -194,7 +194,7 @@ export class MujocoSimulation {
     // Discover joints, actuators, cameras, gripper
     this._discoverJoints();
     this._discoverActuators();
-    this._discoverCameras(config.cameras);
+    this._discoverCameras();
     this._detectGripper();
     this._resolveHomePosition(config.homePosition);
 
@@ -286,7 +286,7 @@ export class MujocoSimulation {
     }
   }
 
-  private _discoverCameras(configCameras?: CameraSpec[]): void {
+  private _discoverCameras(): void {
     const mj = this.mujoco;
     const model = this.mjModel;
 
@@ -487,7 +487,7 @@ export class MujocoSimulation {
 
   // ── Three.js scene update (from demo_app/app.ts) ──────────────────────
 
-  private _getBufferGeometry(mjvGeom: any): THREE.BufferGeometry {
+  private _getBufferGeometry(mjvGeom: MjvGeom): THREE.BufferGeometry {
     const mj = this.mujoco;
     const key = JSON.stringify([mjvGeom.type, mjvGeom.size, mjvGeom.dataid]);
     const found = this.bufferGeometryCache.get(key);
@@ -727,6 +727,6 @@ export class MujocoSimulation {
     if (this.mjModel) { try { this.mjModel.delete(); } catch { /* ok */ } }
 
     // Unmount FS
-    try { (this.mujoco as any).FS.unmount('/working'); } catch { /* ok */ }
+    try { (this.mujoco as unknown as { FS: { unmount: (p: string) => void } }).FS.unmount('/working'); } catch { /* ok */ }
   }
 }

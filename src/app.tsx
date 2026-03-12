@@ -11,7 +11,6 @@ import useUIStore from "./lib/uiStore";
 import type { UIState } from './lib/uiStore';
 import { configResource } from './db/resources';
 import type { JsonObject } from './types/json';
-import type { SystemSettings } from './types/electron';
 
 
 import { Robot, Dataset, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';

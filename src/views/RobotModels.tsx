@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Stack, Typography } from '@mui/material';
-import ResourceManager, { type GridCol } from '../ui/ResourceManager';
+import { Box, Typography } from '@mui/material';
+import { ResourceManager, type GridCol } from '../ui/ResourceManager';
 import { robotModelsTable } from '../db/schema';
 import Badge from '../ui/Badge';
 
