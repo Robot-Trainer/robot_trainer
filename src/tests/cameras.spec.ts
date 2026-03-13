@@ -1,18 +1,17 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard, expectPageScreenshot } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot, waitForLoadingIndicator } from './helpers';
 
 test.describe('Cameras CRUD', () => {
   test('create, edit, delete camera', async ({ window }) => {
+    await waitForLoadingIndicator(window);
     await dismissSetupWizard(window);
 
     await window.getByRole('button', { name: 'Cameras' }).click();
     await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
-    await dismissSetupWizard(window);
 
     await window.getByRole('button', { name: 'Add Camera' }).click();
 
-    await window.getByLabel('Serial Number').fill('CAM-1');
     await window.getByLabel('Name').fill('Front Cam');
     await window.getByLabel('Resolution').fill('1920x1080');
     await window.getByLabel('Fps').fill('30');
@@ -23,7 +22,7 @@ test.describe('Cameras CRUD', () => {
     await expectPageScreenshot(window);
     await expect(window.getByLabel('Name')).toHaveValue('Front Cam');
     await window.getByLabel('Name').fill('Front Camera v2');
-    await dismissSetupWizard(window);
+
     await window.getByRole('button', { name: 'Save' }).click();
     await expect(window.getByLabel('Name')).toHaveValue('Front Camera v2');
 
@@ -39,9 +38,9 @@ test.describe('Cameras CRUD', () => {
   });
 
   test('validation: numeric field should reject non-numbers', async ({ window }) => {
+    await waitForLoadingIndicator(window);
     await dismissSetupWizard(window);
     await window.getByRole('button', { name: 'Cameras' }).click({ force: true });
-    await dismissSetupWizard(window);
 
     await window.getByRole('button', { name: 'Add Camera' }).click({ force: true });
 

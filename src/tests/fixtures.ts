@@ -60,6 +60,8 @@ export const test = base.extend<Fixtures>({
     });
   },
 
+
+
   window: async ({ electronApp }, use) => {
     const isAppWindow = (w: Page) => {
       const url = w.url();

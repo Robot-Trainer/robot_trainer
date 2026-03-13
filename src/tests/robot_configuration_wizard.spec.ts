@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard, expectPageScreenshot } from './helpers';
+import { dismissSetupWizard, expectPageScreenshot, waitForLoadingIndicator } from './helpers';
 
 test.describe('Robot Configuration Wizard', () => {
   test('should verify robot and teleoperator models are populated', async ({ window }) => {
     // Guard against racing interactions while the environment check nav item is still shown.
-    await window.waitForFunction(() => !document.querySelector('#loading-env'), undefined, { timeout: 60000 });
+    await waitForLoadingIndicator(window);
     await dismissSetupWizard(window);
 
     await window.getByRole("button", { name: "Scenes" }).click();
@@ -23,7 +23,6 @@ test.describe('Robot Configuration Wizard', () => {
       window.locator('h4:has-text("Edit Simulated Robot")'),
     ).toBeVisible();
     await expectPageScreenshot(window);
-    await dismissSetupWizard(window);
 
     const followerModelLabel = window.getByLabel("Model");
     await expect(followerModelLabel).toBeVisible();
