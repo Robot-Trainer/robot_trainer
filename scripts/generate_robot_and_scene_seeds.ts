@@ -262,12 +262,8 @@ async function main() {
   }));
 
   let robotIdCounter = 1;
-  const robots: any[] = [];
-  const sceneRobots: any[] = [];
-
-  let cameraIdCounter = 1;
-  const cameras: any[] = [];
-  const sceneCameras: any[] = [];
+  const robots: Record<string, unknown>[] = [];
+  const sceneRobots: Record<string, unknown>[] = [];
 
   const dirToRobotModelId = new Map(robotModels.map((r) => [r.dirName, r.id]));
   const robotModelToRobotId = new Map();
@@ -303,73 +299,31 @@ async function main() {
       }
     }
 
-    for (const cam of c.cameras) {
-      const existingCam = cameras.find(existing => existing.name === cam.name && existing.modality === 'simulated');
-      let camId;
-      if (existingCam) {
-        camId = existingCam.id;
-      } else {
-        camId = cameraIdCounter++;
-        cameras.push({
-          id: camId,
-          name: cam.name,
-          modality: "simulated",
-          data: cam,
-          posX: cam.pos ? cam.pos[0] : 0,
-          posY: cam.pos ? cam.pos[1] : 0,
-          posZ: cam.pos ? cam.pos[2] : 0,
-          quatW: cam.quat ? cam.quat[0] : 1,
-          quatX: cam.quat ? cam.quat[1] : 0,
-          quatY: cam.quat ? cam.quat[2] : 0,
-          quatZ: cam.quat ? cam.quat[3] : 0,
-          xyaxesX1: cam.xyaxes ? cam.xyaxes[0] : 1,
-          xyaxesY1: cam.xyaxes ? cam.xyaxes[1] : 0,
-          xyaxesZ1: cam.xyaxes ? cam.xyaxes[2] : 0,
-          xyaxesX2: cam.xyaxes ? cam.xyaxes[3] : 0,
-          xyaxesY2: cam.xyaxes ? cam.xyaxes[4] : 1,
-          xyaxesZ2: cam.xyaxes ? cam.xyaxes[5] : 0,
-        });
-      }
-
-      sceneCameras.push({
-        sceneId: sceneId,
-        cameraId: camId,
-        snapshot: cam
-      });
-    }
   }
 
   const output = `import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { robotModelsTable, robotsTable, scenesTable, camerasTable, sceneRobotsTable, sceneCamerasTable } from "./schema";
+import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
 
 const robotModelsData = ${JSON.stringify(robotModels, null, 2)};
 const robotsData = ${JSON.stringify(robots, null, 2)};
 const scenesData = ${JSON.stringify(scenes, null, 2)};
-const camerasData = ${JSON.stringify(cameras, null, 2)};
 const sceneRobotsData = ${JSON.stringify(sceneRobots, null, 2)};
-const sceneCamerasData = ${JSON.stringify(sceneCameras, null, 2)};
 
 export async function seedRobotModels() {
   console.log("Seeding robot models...");
   try {
     if (robotModelsData.length > 0) {
-      await db.insert(robotModelsTable).values(robotModelsData as any[]).onConflictDoNothing();
+      await db.insert(robotModelsTable).values(robotModelsData as (typeof robotModelsTable.$inferInsert)[]).onConflictDoNothing();
     }
     if (robotsData.length > 0) {
-      await db.insert(robotsTable).values(robotsData as any[]).onConflictDoNothing();
+      await db.insert(robotsTable).values(robotsData as (typeof robotsTable.$inferInsert)[]).onConflictDoNothing();
     }
     if (scenesData.length > 0) {
-      await db.insert(scenesTable).values(scenesData as any[]).onConflictDoNothing();
-    }
-    if (camerasData.length > 0) {
-      await db.insert(camerasTable).values(camerasData as any[]).onConflictDoNothing();
+      await db.insert(scenesTable).values(scenesData as (typeof scenesTable.$inferInsert)[]).onConflictDoNothing();
     }
     if (sceneRobotsData.length > 0) {
-      await db.insert(sceneRobotsTable).values(sceneRobotsData as any[]).onConflictDoNothing();
-    }
-    if (sceneCamerasData.length > 0) {
-      await db.insert(sceneCamerasTable).values(sceneCamerasData as any[]).onConflictDoNothing();
+      await db.insert(sceneRobotsTable).values(sceneRobotsData as (typeof sceneRobotsTable.$inferInsert)[]).onConflictDoNothing();
     }
 
     await db.execute(sql\`SELECT setval(pg_get_serial_sequence('robot_models', 'id'), (SELECT MAX(id) FROM robot_models))\`);
