@@ -7,9 +7,7 @@ import {
   scenesTable,
   skillsTable,
   sceneRobotsTable,
-  sceneCamerasTable,
   sceneTeleoperatorsTable,
-  camerasTable,
   robotsTable,
   episodesTable
 } from '../db/schema';
@@ -24,6 +22,7 @@ import type { MuJoCoSimViewHandle } from '../ui/MuJoCoSimView';
 import { MujocoSimulation } from '../lib/MujocoSimulation';
 import type { CameraSpec, ObservationData, SimulationState } from '../lib/MujocoSimulation';
 import { SimDatasetRecorder } from '../lib/SimDatasetRecorder';
+import { normalizeCameraList } from '../types/camera';
 
 type SceneStatus = {
   ready: boolean;
@@ -247,21 +246,18 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     sceneId: number,
     getPorts: () => Promise<Record<string, unknown>[]>
   ): Promise<SceneStatus> => {
-    const [robotRows, cameraRows, teleopRows] = await Promise.all([
+    const [robotRows, sceneRows, teleopRows] = await Promise.all([
       db.select({ robot: robotsTable })
         .from(sceneRobotsTable)
         .innerJoin(robotsTable, eq(sceneRobotsTable.robotId, robotsTable.id))
         .where(eq(sceneRobotsTable.sceneId, sceneId)),
-      db.select({ camera: camerasTable })
-        .from(sceneCamerasTable)
-        .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
-        .where(eq(sceneCamerasTable.sceneId, sceneId)),
+      db.select().from(scenesTable).where(eq(scenesTable.id, sceneId)).limit(1),
       db.select().from(sceneTeleoperatorsTable)
         .where(eq(sceneTeleoperatorsTable.sceneId, sceneId))
     ]);
 
     const robots = robotRows.map(r => r.robot);
-    const cameras = cameraRows.map(r => r.camera);
+    const cameras = normalizeCameraList(sceneRows[0]?.data && (sceneRows[0].data as Record<string, unknown>).cameras);
     const teleops = teleopRows;
 
     const hasRobot = robots.length > 0;
@@ -443,15 +439,8 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     }
     const fetchCameras = async () => {
       try {
-        // Join sceneCameras and cameras
-        const result = await db.select({
-          camera: camerasTable
-        })
-          .from(sceneCamerasTable)
-          .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
-          .where(eq(sceneCamerasTable.sceneId, selectedSceneId));
-
-        setCameras(result.map(r => r.camera));
+        const [scene] = await db.select().from(scenesTable).where(eq(scenesTable.id, selectedSceneId)).limit(1);
+        setCameras(normalizeCameraList(scene?.data && (scene.data as Record<string, unknown>).cameras));
       } catch (e) {
         console.error("Failed to fetch cameras", e);
       }
@@ -568,12 +557,10 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
       // Build camera specs from snapshot
       const cameraSpecs: CameraSpec[] = snapshot.cameras.map((c: Record<string, unknown>) => {
         const rawData = c.data?.mujoco || c.data || {};
-        const hasDbPos = typeof c.posX === 'number' && typeof c.posY === 'number' && typeof c.posZ === 'number';
-        const pos = hasDbPos ? [c.posX, c.posY, c.posZ] : (rawData.pos || [0, 0, 0]);
-        const hasDbQuat = typeof c.quatW === 'number';
-        const quat = hasDbQuat ? [c.quatW, c.quatX, c.quatY, c.quatZ] : rawData.quat;
-        const hasDbXyaxes = typeof c.xyaxesX1 === 'number';
-        const xyaxes = hasDbXyaxes ? [c.xyaxesX1, c.xyaxesY1, c.xyaxesZ1, c.xyaxesX2, c.xyaxesY2, c.xyaxesZ2] : rawData.xyaxes;
+        const pose = c.pose || {};
+        const pos = pose.pos || rawData.pos || [0, 0, 0];
+        const quat = pose.quat || rawData.quat;
+        const xyaxes = pose.xyaxes || rawData.xyaxes;
 
         return {
           name: c.name || `camera_${c.id}`,

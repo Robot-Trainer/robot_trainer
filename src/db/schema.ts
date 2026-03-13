@@ -1,7 +1,6 @@
-import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum, real } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum } from "drizzle-orm/pg-core";
 
 export const robotModalityEnum = pgEnum("robotModality", ["real", "simulated"]);
-export const cameraModalityEnum = pgEnum("cameraModality", ["real", "simulated"]);
 
 export const userConfigTable = pgTable("user_config", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
@@ -50,36 +49,7 @@ export const scenesTable = pgTable("scenes", {
   name: varchar("name").notNull(),
   sceneXmlPath: varchar('scene_xml_path'),
   notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-
-
-export const camerasTable = pgTable("cameras", {
-  id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  serialNumber: varchar('serial_number').default(''),
-  name: varchar('name').default(''),
-  resolution: varchar('resolution').default(''),
-  fps: integer('fps').default(0),
-  
-  // MJCF variants
-  posX: real('pos_x').default(0),
-  posY: real('pos_y').default(0),
-  posZ: real('pos_z').default(0),
-
-  quatW: real('quat_w').default(1),
-  quatX: real('quat_x').default(0),
-  quatY: real('quat_y').default(0),
-  quatZ: real('quat_z').default(0),
-
-  xyaxesX1: real('xyaxes_x1').default(1),
-  xyaxesY1: real('xyaxes_y1').default(0),
-  xyaxesZ1: real('xyaxes_z1').default(0),
-  xyaxesX2: real('xyaxes_x2').default(0),
-  xyaxesY2: real('xyaxes_y2').default(1),
-  xyaxesZ2: real('xyaxes_z2').default(0),
-
-  data: json('data').default({}),
-  modality: cameraModalityEnum('modality').default('real'),
+  data: json("data").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -98,14 +68,6 @@ export const sceneRobotsTable = pgTable("scene_robots", {
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
   primaryKey({ columns: [t.sceneId, t.robotId] }),
-]);
-
-export const sceneCamerasTable = pgTable("scene_cameras", {
-  sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
-  cameraId: integer("camera_id").references(() => camerasTable.id, { onDelete: "cascade" }).notNull(),
-  snapshot: jsonb("snapshot").notNull(),
-}, (t) => [
-  primaryKey({ columns: [t.sceneId, t.cameraId] }),
 ]);
 
 export const sceneTeleoperatorsTable = pgTable("scene_teleoperators", {
@@ -144,4 +106,3 @@ export const episodesTable = pgTable("episodes", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
-

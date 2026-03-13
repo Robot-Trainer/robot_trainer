@@ -1,179 +1,158 @@
-import React, { useState } from 'react';
-import { TextField, MenuItem, Divider, ListSubheader, Box, IconButton } from '@mui/material';
-import { Pencil, Plus } from '../icons';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-import Badge from '../ui/Badge';
-import { camerasResource } from '../db/resources';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CameraRecord = Record<string, any>;
+import React, { useMemo, useState } from "react";
+import {
+  Box,
+  Divider,
+  IconButton,
+  ListSubheader,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { Pencil, Plus } from "../icons";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Select } from "../ui/Select";
+import Badge from "../ui/Badge";
+import { normalizeCamera, type CameraData } from "../types/camera";
 
 interface CameraEditorProps {
-  camera: CameraRecord;
-  onSave: () => void;
+  camera: CameraData;
+  onSave: (next: CameraData) => void;
   onCancel: () => void;
 }
 
-const CameraEditor: React.FC<CameraEditorProps> = ({ camera, onSave, onCancel }) => {
-  const [name, setName] = useState(camera.name || '');
-  const [serialNumber, setSerialNumber] = useState(camera.serialNumber || '');
-  const [resolution, setResolution] = useState(camera.resolution || '1280x720');
+const CameraEditor: React.FC<CameraEditorProps> = ({
+  camera,
+  onSave,
+  onCancel,
+}) => {
+  const [name, setName] = useState(camera.name);
+  const [serialNumber, setSerialNumber] = useState(camera.serialNumber);
+  const [resolution, setResolution] = useState(camera.resolution || "1280x720");
   const [fps, setFps] = useState<number>(camera.fps || 30);
 
-  // Simulation params (MJCF)
-  const [posX, setPosX] = useState<number>(camera.posX || 0);
-  const [posY, setPosY] = useState<number>(camera.posY || 0);
-  const [posZ, setPosZ] = useState<number>(camera.posZ || 0);
-  
-  const [quatW, setQuatW] = useState<number>(camera.quatW !== undefined ? camera.quatW : 1);
-  const [quatX, setQuatX] = useState<number>(camera.quatX || 0);
-  const [quatY, setQuatY] = useState<number>(camera.quatY || 0);
-  const [quatZ, setQuatZ] = useState<number>(camera.quatZ || 0);
+  const [posX, setPosX] = useState<number>(camera.pose.pos[0]);
+  const [posY, setPosY] = useState<number>(camera.pose.pos[1]);
+  const [posZ, setPosZ] = useState<number>(camera.pose.pos[2]);
+  const [quatW, setQuatW] = useState<number>(camera.pose.quat[0]);
+  const [quatX, setQuatX] = useState<number>(camera.pose.quat[1]);
+  const [quatY, setQuatY] = useState<number>(camera.pose.quat[2]);
+  const [quatZ, setQuatZ] = useState<number>(camera.pose.quat[3]);
+  const [xyaxesX1, setXyaxesX1] = useState<number>(camera.pose.xyaxes[0]);
+  const [xyaxesY1, setXyaxesY1] = useState<number>(camera.pose.xyaxes[1]);
+  const [xyaxesZ1, setXyaxesZ1] = useState<number>(camera.pose.xyaxes[2]);
+  const [xyaxesX2, setXyaxesX2] = useState<number>(camera.pose.xyaxes[3]);
+  const [xyaxesY2, setXyaxesY2] = useState<number>(camera.pose.xyaxes[4]);
+  const [xyaxesZ2, setXyaxesZ2] = useState<number>(camera.pose.xyaxes[5]);
 
-  const [xyaxesX1, setXyaxesX1] = useState<number>(camera.xyaxesX1 !== undefined ? camera.xyaxesX1 : 1);
-  const [xyaxesY1, setXyaxesY1] = useState<number>(camera.xyaxesY1 || 0);
-  const [xyaxesZ1, setXyaxesZ1] = useState<number>(camera.xyaxesZ1 || 0);
-  const [xyaxesX2, setXyaxesX2] = useState<number>(camera.xyaxesX2 || 0);
-  const [xyaxesY2, setXyaxesY2] = useState<number>(camera.xyaxesY2 !== undefined ? camera.xyaxesY2 : 1);
-  const [xyaxesZ2, setXyaxesZ2] = useState<number>(camera.xyaxesZ2 || 0);
+  const isReal = camera.modality === "real";
 
-  const isReal = camera.modality === 'real';
-
-  const handleSave = async () => {
-    try {
-      const updates: Record<string, unknown> = {
+  const handleSave = () => {
+    onSave(
+      normalizeCamera({
+        ...camera,
         name,
-        serialNumber: isReal ? serialNumber : (camera.serialNumber || 'sim-cam-' + Date.now()),
-        modality: isReal ? 'real' : 'simulated',
-      };
-
-      if (!isReal) {
-        updates.resolution = resolution;
-        updates.fps = fps;
-        
-        updates.posX = posX;
-        updates.posY = posY;
-        updates.posZ = posZ;
-
-        updates.quatW = quatW;
-        updates.quatX = quatX;
-        updates.quatY = quatY;
-        updates.quatZ = quatZ;
-
-        updates.xyaxesX1 = xyaxesX1;
-        updates.xyaxesY1 = xyaxesY1;
-        updates.xyaxesZ1 = xyaxesZ1;
-        updates.xyaxesX2 = xyaxesX2;
-        updates.xyaxesY2 = xyaxesY2;
-        updates.xyaxesZ2 = xyaxesZ2;
-      }
-      // For real cameras, we preserve existing values or set defaults if needed, 
-      // but UI doesn't allow changing them as requested.
-
-      await camerasResource.update(camera.id, updates);
-      onSave();
-    } catch (e) {
-      console.error("Failed to save camera", e);
-      alert("Failed to save camera details");
-    }
+        serialNumber: isReal
+          ? serialNumber
+          : serialNumber || `sim-cam-${camera.id}`,
+        modality: isReal ? "real" : "simulated",
+        resolution,
+        fps,
+        pose: {
+          pos: [posX, posY, posZ],
+          quat: [quatW, quatX, quatY, quatZ],
+          xyaxes: [xyaxesX1, xyaxesY1, xyaxesZ1, xyaxesX2, xyaxesY2, xyaxesZ2],
+        },
+      }),
+    );
   };
 
   return (
     <div className="border rounded-md p-4 bg-gray-50 space-y-4 shadow-sm relative">
-      <h4 className="font-semibold text-sm text-gray-700">Edit {isReal ? 'Real' : 'Simulated'} Camera</h4>
+      <h4 className="font-semibold text-sm text-gray-700">
+        Edit {isReal ? "Real" : "Simulated"} Camera
+      </h4>
 
       <Input
         label="Name"
         value={name}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setName(e.target.value)}
-        placeholder="e.g. Overhead Camera"
+        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+          setName(e.target.value)
+        }
       />
 
       {isReal ? (
-        <div className="space-y-4">
-          <Input
-            label="Serial Number"
-            value={serialNumber}
-            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSerialNumber(e.target.value)}
-            placeholder="Device Serial Number"
-          />
-          <div className="text-xs text-gray-500">
-            Resolution, FPS, and Position settings are not manually configurable for Real cameras.
-          </div>
-        </div>
+        <Input
+          label="Serial Number"
+          value={serialNumber}
+          onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            setSerialNumber(e.target.value)
+          }
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
             <Select
               label="Resolution"
               value={resolution}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setResolution(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                setResolution(e.target.value)
+              }
               options={[
-                { label: '1280x720 (720p)', value: '1280x720' },
-                { label: '1920x1080 (1080p)', value: '1920x1080' },
-                { label: '640x480 (480p)', value: '640x480' },
-                { label: 'Custom', value: 'custom' }
+                { label: "1280x720 (720p)", value: "1280x720" },
+                { label: "1920x1080 (1080p)", value: "1920x1080" },
+                { label: "640x480 (480p)", value: "640x480" },
               ]}
             />
             <Input
               label="FPS"
               type="number"
               value={fps}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFps(parseInt(e.target.value))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                setFps(Number(e.target.value))
+              }
             />
           </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700">POS (x, y, z)</label>
-            <div className="grid grid-cols-3 gap-2">
-              <Input placeholder="X" type="number" step="0.01" value={posX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosX(parseFloat(e.target.value))} />
-              <Input placeholder="Y" type="number" step="0.01" value={posY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosY(parseFloat(e.target.value))} />
-              <Input placeholder="Z" type="number" step="0.01" value={posZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosZ(parseFloat(e.target.value))} />
-            </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Input placeholder="POS X" type="number" value={posX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosX(Number(e.target.value))} />
+            <Input placeholder="POS Y" type="number" value={posY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosY(Number(e.target.value))} />
+            <Input placeholder="POS Z" type="number" value={posZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPosZ(Number(e.target.value))} />
           </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700">QUAT (w, x, y, z) <span className="font-light text-gray-400">Optional</span></label>
-            <div className="grid grid-cols-4 gap-2">
-              <Input placeholder="W" type="number" step="0.01" value={quatW} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatW(parseFloat(e.target.value))} />
-              <Input placeholder="X" type="number" step="0.01" value={quatX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatX(parseFloat(e.target.value))} />
-              <Input placeholder="Y" type="number" step="0.01" value={quatY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatY(parseFloat(e.target.value))} />
-              <Input placeholder="Z" type="number" step="0.01" value={quatZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatZ(parseFloat(e.target.value))} />
-            </div>
+          <div className="grid grid-cols-4 gap-2">
+            <Input placeholder="QUAT W" type="number" value={quatW} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatW(Number(e.target.value))} />
+            <Input placeholder="QUAT X" type="number" value={quatX} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatX(Number(e.target.value))} />
+            <Input placeholder="QUAT Y" type="number" value={quatY} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatY(Number(e.target.value))} />
+            <Input placeholder="QUAT Z" type="number" value={quatZ} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setQuatZ(Number(e.target.value))} />
           </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700">XYAXES (x1, y1, z1, x2, y2, z2) <span className="font-light text-gray-400">Optional</span></label>
-            <div className="grid grid-cols-6 gap-1">
-              <Input placeholder="X1" type="number" step="0.01" value={xyaxesX1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX1(parseFloat(e.target.value))} />
-              <Input placeholder="Y1" type="number" step="0.01" value={xyaxesY1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY1(parseFloat(e.target.value))} />
-              <Input placeholder="Z1" type="number" step="0.01" value={xyaxesZ1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ1(parseFloat(e.target.value))} />
-              <Input placeholder="X2" type="number" step="0.01" value={xyaxesX2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX2(parseFloat(e.target.value))} />
-              <Input placeholder="Y2" type="number" step="0.01" value={xyaxesY2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY2(parseFloat(e.target.value))} />
-              <Input placeholder="Z2" type="number" step="0.01" value={xyaxesZ2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ2(parseFloat(e.target.value))} />
-            </div>
+          <div className="grid grid-cols-6 gap-2">
+            <Input placeholder="X1" type="number" value={xyaxesX1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX1(Number(e.target.value))} />
+            <Input placeholder="Y1" type="number" value={xyaxesY1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY1(Number(e.target.value))} />
+            <Input placeholder="Z1" type="number" value={xyaxesZ1} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ1(Number(e.target.value))} />
+            <Input placeholder="X2" type="number" value={xyaxesX2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesX2(Number(e.target.value))} />
+            <Input placeholder="Y2" type="number" value={xyaxesY2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesY2(Number(e.target.value))} />
+            <Input placeholder="Z2" type="number" value={xyaxesZ2} onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setXyaxesZ2(Number(e.target.value))} />
           </div>
         </>
       )}
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} className="text-xs">Cancel</Button>
-        <Button onClick={handleSave} className="text-xs">Save Changes</Button>
+        <Button variant="ghost" onClick={onCancel} className="text-xs">
+          Cancel
+        </Button>
+        <Button onClick={handleSave} className="text-xs">
+          Save Changes
+        </Button>
       </div>
     </div>
   );
 };
 
-
 interface CameraSelectionDropdownProps {
-  cameras: CameraRecord[];
+  cameras: CameraData[];
   selectedCameraId: number | null;
   onSelect: (id: number) => void;
-  onCamerasChanged: () => void; // Trigger to refresh the camera list
+  onCamerasChanged: (next: CameraData[]) => void;
   label?: string;
-  onRemove?: (id: number) => void; // If we want to allow removing from selection list
+  onRemove?: (id: number) => void;
 }
 
 export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = ({
@@ -182,64 +161,71 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
   onSelect,
   onCamerasChanged,
   label,
-  onRemove
+  onRemove,
 }) => {
   const [editingId, setEditingId] = useState<number | null>(null);
+  const normalized = useMemo(() => cameras.map((c) => normalizeCamera(c)), [cameras]);
 
-  const createCamera = async (data: Record<string, unknown>) => {
-    try {
-      const res = await camerasResource.create(data);
-      await onCamerasChanged();
-      if (res && res.id) {
-        onSelect(res.id);
-        setEditingId(res.id); // Immediately edit
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Failed to create camera");
-    }
+  const createCamera = (data: Record<string, unknown>) => {
+    const created = normalizeCamera(data);
+    const next = [...normalized, created];
+    onCamerasChanged(next);
+    onSelect(created.id);
+    setEditingId(created.id);
   };
 
-  const xmlCameras = cameras.filter(c => c.isXml);
-  const realCameras = cameras.filter(c => c.modality === 'real' && !c.isXml);
-  const simCameras = cameras.filter(c => c.modality === 'simulated' && !c.isXml);
-  const selectedCamera = cameras.find(c => c.id === selectedCameraId);
+  const updateCamera = (camera: CameraData) => {
+    const next = normalized.map((c) => (c.id === camera.id ? camera : c));
+    onCamerasChanged(next);
+    setEditingId(null);
+  };
+
+  const xmlCameras = normalized.filter((c) => c.isXml);
+  const realCameras = normalized.filter((c) => c.modality === "real" && !c.isXml);
+  const simCameras = normalized.filter((c) => c.modality === "simulated" && !c.isXml);
+  const selectedCamera = normalized.find((c) => c.id === selectedCameraId);
 
   if (editingId !== null) {
-    const cam = cameras.find(c => c.id === editingId);
+    const cam = normalized.find((c) => c.id === editingId);
     if (cam) {
       return (
         <div className="mb-4">
-          {label && <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
+          {label && (
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              {label}
+            </label>
+          )}
           <CameraEditor
             camera={cam}
-            onSave={() => { setEditingId(null); onCamerasChanged(); }}
+            onSave={updateCamera}
             onCancel={() => setEditingId(null)}
           />
         </div>
-      )
+      );
     }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    if (val === '__create_real__') {
+    if (val === "__create_real__") {
       createCamera({
+        id: Date.now(),
         name: `Real Camera ${new Date().toLocaleString()}`,
-        modality: 'real'
+        modality: "real",
       });
-    } else if (val === '__create_sim__') {
-      createCamera({
-        name: `Simulated Camera ${new Date().toLocaleString()}`,
-        modality: 'simulated',
-        resolution: '1280x720',
-        fps: 30,
-        positionX: 0, positionY: 0, positionZ: 0,
-        rotationX: 0, rotationY: 0, rotationZ: 0
-      });
-    } else if (val) {
-      onSelect(Number(val));
+      return;
     }
+    if (val === "__create_sim__") {
+      createCamera({
+        id: Date.now(),
+        name: `Simulated Camera ${new Date().toLocaleString()}`,
+        modality: "simulated",
+        resolution: "1280x720",
+        fps: 30,
+      });
+      return;
+    }
+    if (val) onSelect(Number(val));
   };
 
   return (
@@ -248,16 +234,22 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
         <TextField
           select
           label={label || "Camera"}
-          value={selectedCameraId || ''}
+          value={selectedCameraId || ""}
           onChange={handleChange}
           fullWidth
           size="small"
           InputLabelProps={{ shrink: true }}
           SelectProps={{
             renderValue: (selected) => {
-              const c = cameras.find(c => c.id === selected);
+              const c = normalized.find((cam) => cam.id === selected);
               if (!c) {
-                if (selected) return <span className="text-gray-700 font-medium">Unknown camera (id: {String(selected)})</span>;
+                if (selected) {
+                  return (
+                    <span className="text-gray-700 font-medium">
+                      Unknown camera (id: {String(selected)})
+                    </span>
+                  );
+                }
                 return <span className="text-gray-500">Select or create camera...</span>;
               }
               return (
@@ -265,47 +257,49 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
                   <span className="font-medium">{c.name}</span>
                   {c.isXml ? (
                     <Badge color="purple" tooltip="Defined in XML">xml</Badge>
+                  ) : c.modality === "real" ? (
+                    <Badge color="green">real</Badge>
                   ) : (
-                    c.modality === 'real' ? <Badge color="green">real</Badge> : <Badge color="blue">simulated</Badge>
+                    <Badge color="blue">simulated</Badge>
                   )}
                 </Box>
               );
-            }
+            },
           }}
         >
-          {/* If the selected camera isn't present in the options (e.g. DB entry not loaded), show a disabled placeholder so MUI doesn't warn */}
           {selectedCameraId !== null && !selectedCamera && (
-            <MenuItem key="__selected_missing_camera__" value={selectedCameraId} disabled sx={{ fontStyle: 'italic' }}>
+            <MenuItem
+              key="__selected_missing_camera__"
+              value={selectedCameraId}
+              disabled
+              sx={{ fontStyle: "italic" }}
+            >
               Unknown camera (id: {selectedCameraId})
             </MenuItem>
           )}
-
           {realCameras.length > 0 && <ListSubheader>Real</ListSubheader>}
-          {realCameras.map(c => (
+          {realCameras.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}
             </MenuItem>
-          ))} 
-
+          ))}
           {simCameras.length > 0 && <ListSubheader>Simulated</ListSubheader>}
-          {simCameras.map(c => (
+          {simCameras.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}
             </MenuItem>
           ))}
-
           {xmlCameras.length > 0 && <ListSubheader>XML Defined</ListSubheader>}
-          {xmlCameras.map(c => (
+          {xmlCameras.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}
             </MenuItem>
           ))}
-
           <Divider />
-          <MenuItem value="__create_real__" sx={{ color: 'primary.main', gap: 1 }}>
+          <MenuItem value="__create_real__" sx={{ color: "primary.main", gap: 1 }}>
             <Plus className="w-4 h-4" /> Create New Real Camera
           </MenuItem>
-          <MenuItem value="__create_sim__" sx={{ color: 'primary.main', gap: 1 }}>
+          <MenuItem value="__create_sim__" sx={{ color: "primary.main", gap: 1 }}>
             <Plus className="w-4 h-4" /> Create New Simulated Camera
           </MenuItem>
         </TextField>
@@ -314,12 +308,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
           <IconButton
             onClick={() => setEditingId(selectedCamera.id)}
             size="small"
-            sx={{
-              border: '1px solid #e5e7eb',
-              borderRadius: 1,
-              p: '8px',
-              mt: '2px' // Align approximately with input
-            }}
+            sx={{ border: "1px solid #e5e7eb", borderRadius: 1, p: "8px", mt: "2px" }}
             title="Edit Camera Properties"
           >
             <Pencil className="w-5 h-5 text-gray-500" />
@@ -327,10 +316,10 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
         )}
         {onRemove && (
           <IconButton
-            onClick={() => onRemove(selectedCameraId!)}
+            onClick={() => onRemove(selectedCameraId ?? -1)}
             size="small"
             color="default"
-            sx={{ mt: '2px' }}
+            sx={{ mt: "2px" }}
             title="Remove Camera slot"
           >
             <span className="text-lg font-bold leading-none">×</span>

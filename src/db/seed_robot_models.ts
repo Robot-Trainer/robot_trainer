@@ -1,8 +1,9 @@
 import { db } from "./db";
-import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable, camerasTable, sceneCamerasTable } from "./schema";
+import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
 import { sql, eq, and, type InferSelectModel } from "drizzle-orm";
 // Not strictly required to import type for seeding, but helpful if we want strict typing
 import { MjcfCamera } from "../lib/mujoco_parser";
+import { normalizeCameraList } from "../types/camera";
 type RobotModelRecord = Partial<InferSelectModel<typeof robotModelsTable>>;
 
 type SeedCamera = Omit<MjcfCamera, 'pos' | 'quat' | 'xyaxes' | 'axis' | 'zaxis' | 'euler'> & {
@@ -239,7 +240,8 @@ export async function seedRobotModels() {
       if (!configId) {
         const [insertedConfig] = await db.insert(scenesTable).values({
           name: c.name,
-          sceneXmlPath: scenePath
+          sceneXmlPath: scenePath,
+          data: { cameras: normalizeCameraList(c.cameras ?? []) }
         }).returning();
         configId = insertedConfig.id;
       }
@@ -269,57 +271,6 @@ export async function seedRobotModels() {
           }
         }
 
-        // Link cameras
-        if (c.cameras && Array.isArray(c.cameras)) {
-          for (const cam of c.cameras) {
-            const existingCameras = await db.select().from(camerasTable).where(
-              and(
-                eq(camerasTable.name, cam.name),
-                eq(camerasTable.modality, 'simulated')
-              )
-            );
-
-            let cameraId: number | null = null;
-
-            if (existingCameras.length > 0) {
-              cameraId = existingCameras[0].id;
-            } else {
-              const [insertedCamera] = await db.insert(camerasTable).values({
-                name: cam.name,
-                modality: 'simulated',
-                data: cam, 
-                // Map MJCF properties to columns
-                posX: cam.pos ? cam.pos[0] : 0,
-                posY: cam.pos ? cam.pos[1] : 0,
-                posZ: cam.pos ? cam.pos[2] : 0,
-
-                quatW: cam.quat ? cam.quat[0] : 1, // MuJoCo w,x,y,z
-                quatX: cam.quat ? cam.quat[1] : 0,
-                quatY: cam.quat ? cam.quat[2] : 0,
-                quatZ: cam.quat ? cam.quat[3] : 0,
-
-                xyaxesX1: cam.xyaxes ? cam.xyaxes[0] : 1,
-                xyaxesY1: cam.xyaxes ? cam.xyaxes[1] : 0,
-                xyaxesZ1: cam.xyaxes ? cam.xyaxes[2] : 0,
-                xyaxesX2: cam.xyaxes ? cam.xyaxes[3] : 0,
-                xyaxesY2: cam.xyaxes ? cam.xyaxes[4] : 1,
-                xyaxesZ2: cam.xyaxes ? cam.xyaxes[5] : 0,
-
-              }).returning();
-              cameraId = insertedCamera.id;
-            }
-
-            if (cameraId) {
-
-
-              await db.insert(sceneCamerasTable).values({
-                sceneId: configId,
-                cameraId: cameraId,
-                snapshot: cam // Store the specific configuration (pos, quat, fovy) for this scene
-              }).onConflictDoNothing();
-            }
-          }
-        }
       }
     }
 
