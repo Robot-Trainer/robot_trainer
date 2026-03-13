@@ -4,7 +4,7 @@ import { ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material';
 import { db } from "../db/db";
 import { 
   userConfigTable, robotModelsTable, robotsTable, teleoperatorsTable, scenesTable, 
-  camerasTable, teleoperatorModelsTable, sceneRobotsTable, sceneCamerasTable, 
+  teleoperatorModelsTable, sceneRobotsTable,
   sceneTeleoperatorsTable, skillsTable, datasetsTable, episodesTable 
 } from "../db/schema";
 import { seedRobotModels } from "../db/seed_robot_models";
@@ -44,12 +44,10 @@ export const AdminControl = () => {
         await db.delete(episodesTable);
         await db.delete(datasetsTable);
         await db.delete(sceneTeleoperatorsTable);
-        await db.delete(sceneCamerasTable);
         await db.delete(sceneRobotsTable);
         await db.delete(skillsTable);
         await db.delete(teleoperatorsTable);
         await db.delete(teleoperatorModelsTable);
-        await db.delete(camerasTable);
         await db.delete(robotsTable);
         await db.delete(robotModelsTable);
         await db.delete(scenesTable);

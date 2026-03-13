@@ -22,6 +22,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { MujocoPreview } from "../ui/MujocoPreview";
 import { CameraDiscovery, type CameraEntry } from "../ui/CameraDiscovery";
 import Badge from "../ui/Badge";
+import { normalizeCameraList } from "../types/camera";
 
 interface SerialPort {
   path: string;
@@ -344,16 +345,21 @@ const RobotForm: React.FC<RobotFormProps> = ({
 
         // Save discovered cameras metadata (without live streams)
         if (discoveredCameras.length > 0) {
-          payloadData.cameras = discoveredCameras.map((c) => {
-            const { resolution, fps } = getCameraResolutionAndFps(c);
-            return {
-              name: c.name,
-              resolution,
-              fps,
-              serial_number: extractCameraSerialNumber(c),
-              modality: "real",
-            };
-          });
+          payloadData.cameras = normalizeCameraList(
+            discoveredCameras.map((c) => {
+              const { resolution, fps } = getCameraResolutionAndFps(c);
+              return {
+                id: Date.now() + Math.floor(Math.random() * 100000),
+                name: c.name,
+                resolution,
+                fps,
+                serialNumber: extractCameraSerialNumber(c),
+                modality: "real",
+              };
+            }),
+          );
+        } else {
+          payloadData.cameras = [];
         }
       } else if (payloadData.config) {
         delete payloadData.config;

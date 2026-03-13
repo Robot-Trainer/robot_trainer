@@ -1,5 +1,5 @@
 import { db } from './db';
-import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, camerasTable, scenesTable, sceneRobotsTable, sceneCamerasTable } from './schema';
+import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, scenesTable, sceneRobotsTable } from './schema';
 import { tableResource } from './tableResource';
 import { eq, sql } from 'drizzle-orm';
 import type { JsonObject, JsonValue } from '../types/json';
@@ -7,7 +7,6 @@ import type { JsonObject, JsonValue } from '../types/json';
 export const robotModelsResource = tableResource(robotModelsTable);
 export const teleoperatorModelsResource = tableResource(teleoperatorModelsTable);
 export const robotsResource = tableResource(robotsTable);
-export const camerasResource = tableResource(camerasTable);
 
 export const scenesResource = {
   ...tableResource(scenesTable),
@@ -20,7 +19,7 @@ export const scenesResource = {
       createdAt: scenesTable.createdAt,
       robotName: robotsTable.name,
       robotModality: robotsTable.modality,
-      cameraCount: sql<number>`(SELECT count(*) FROM ${sceneCamerasTable} WHERE ${sceneCamerasTable.sceneId} = ${scenesTable.id})`.mapWith(Number)
+      cameraCount: sql<number>`COALESCE(jsonb_array_length((${scenesTable.data})::jsonb -> 'cameras'), 0)`.mapWith(Number)
     })
     .from(scenesTable)
     .leftJoin(sceneRobotsTable, eq(scenesTable.id, sceneRobotsTable.sceneId))
