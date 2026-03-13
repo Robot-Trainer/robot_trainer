@@ -57,6 +57,8 @@ type Props = {
   renderForm?: (opts: {
     onCancel: () => void;
     onSaved: (item: ResourceRecord) => void;
+    onRefresh?: () => Promise<void>;
+
     initialData?: ResourceRecord;
   }) => React.ReactNode;
 };
@@ -460,6 +462,7 @@ export const ResourceManager: React.FC<Props> = ({
                 onSaved: async (item: ResourceRecord) => {
                   return await onSave(item);
                 },
+                onRefresh: async () => await load(),
                 initialData: editing || undefined,
               })
             ) : (

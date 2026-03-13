@@ -19,46 +19,72 @@ import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 interface SceneFormProps {
   onCancel?: () => void;
   onSaved?: (config: Record<string, unknown>) => Promise<unknown> | void;
+  onRefresh?: () => Promise<void>; // Add this line
   initialData?: Record<string, unknown>;
 }
 
-export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initialData }) => {
+export const SceneForm: React.FC<SceneFormProps> = ({
+  onCancel,
+  onSaved,
+  onRefresh,
+  initialData,
+}) => {
   const [selectedRobotId, setSelectedRobotId] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [sceneName, setSceneName] = useState('');
-  const [sceneXmlPath, setSceneXmlPath] = useState('');
-  const [xmlContent, setXmlContent] = useState('');
+  const [sceneName, setSceneName] = useState("");
+  const [sceneXmlPath, setSceneXmlPath] = useState("");
+  const [xmlContent, setXmlContent] = useState("");
 
-  const [leaderModel, setLeaderModel] = useState<string>('');
-  const [leaderConfig, setLeaderConfig] = useState<Record<string, unknown> | null>(null);
+  const [leaderModel, setLeaderModel] = useState<string>("");
+  const [leaderConfig, setLeaderConfig] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
-  const [availableRobots, setAvailableRobots] = useState<{ label: string, value: string }[]>([]);
+  const [availableRobots, setAvailableRobots] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [robotModels, setRobotModels] = useState<Record<string, unknown>[]>([]);
   const [xmlCameras, setXmlCameras] = useState<CameraData[]>([]);
 
-  const [availableTeleoperators, setAvailableTeleoperators] = useState<{ label: string, value: string }[]>([]);
+  const [availableTeleoperators, setAvailableTeleoperators] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const [knownRobots, setKnownRobots] = useState<Record<string, unknown>[]>([]);
   const [serialPorts, setSerialPorts] = useState<Record<string, unknown>[]>([]);
   const [scanning, setScanning] = useState(false);
 
   const [availableCameras, setAvailableCameras] = useState<CameraData[]>([]);
-  const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
+  const [cameraSlots, setCameraSlots] = useState<
+    { id: number | null; key: number }[]
+  >([{ id: null, key: Date.now() }]);
 
   const toast = useToast();
   const [openDatasetDialog, setOpenDatasetDialog] = useState(false);
-  const [datasetInitialData, setDatasetInitialData] = useState<Record<string, unknown> | null>(null);
+  const [datasetInitialData, setDatasetInitialData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const fetchData = async () => {
     try {
       const robots = await robotModelsResource.list();
       setRobotModels(robots);
-      const rOpts = robots.map((r: Record<string, unknown>) => ({ label: r.name, value: String(r.id) }));
+      const rOpts = robots.map((r: Record<string, unknown>) => ({
+        label: r.name,
+        value: String(r.id),
+      }));
       setAvailableRobots(rOpts);
 
       const teleops = await teleoperatorModelsResource.list();
-      const tOpts = teleops.map((t: Record<string, unknown> & { data?: Record<string, unknown> }) => ({ label: t.data?.name || t.id, value: t.id }));
+      const tOpts = teleops.map(
+        (t: Record<string, unknown> & { data?: Record<string, unknown> }) => ({
+          label: t.data?.name || t.id,
+          value: t.id,
+        }),
+      );
       setAvailableTeleoperators(tOpts);
 
       const kRobots = await robotsResource.list();
@@ -70,7 +96,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
       scanPorts();
     } catch (e) {
-      console.error('Error initializing models:', e);
+      console.error("Error initializing models:", e);
     }
   };
 
@@ -78,7 +104,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const getXmlCameraId = (name: string) => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-      hash = ((hash << 5) - hash) + name.charCodeAt(i);
+      hash = (hash << 5) - hash + name.charCodeAt(i);
       hash |= 0;
     }
     // Ensure negative and non-zero. Use 10000 offset to avoid small negative conflicts if any
@@ -87,7 +113,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
   // Initialize defaults
   useEffect(() => {
-    console.log('SceneForm mounted');
+    console.log("SceneForm mounted");
     fetchData();
   }, []);
 
@@ -101,17 +127,23 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       if (xmlContent) {
         try {
           const parsedCams = parseMujocoCameras(xmlContent);
-          parsedCams.forEach(cam => {
+          parsedCams.forEach((cam) => {
             if (cam.name && !seenNames.has(cam.name)) {
               seenNames.add(cam.name);
-              newXmlCameras.push(normalizeCamera({
-                id: getXmlCameraId(cam.name),
-                name: cam.name,
-                isXml: true,
-                modality: 'simulated',
-                data: { source: 'xml', readOnly: true, mujoco: cam },
-                pose: { pos: cam.pos ?? [0, 0, 0], quat: cam.quat ?? [1, 0, 0, 0], xyaxes: cam.xyaxes ?? [1, 0, 0, 0, 1, 0] },
-              }));
+              newXmlCameras.push(
+                normalizeCamera({
+                  id: getXmlCameraId(cam.name),
+                  name: cam.name,
+                  isXml: true,
+                  modality: "simulated",
+                  data: { source: "xml", readOnly: true, mujoco: cam },
+                  pose: {
+                    pos: cam.pos ?? [0, 0, 0],
+                    quat: cam.quat ?? [1, 0, 0, 0],
+                    xyaxes: cam.xyaxes ?? [1, 0, 0, 0, 1, 0],
+                  },
+                }),
+              );
             }
           });
         } catch (e) {
@@ -122,22 +154,26 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       // 2. From Robot Model XML
       if (selectedRobotId) {
         try {
-          const robot = knownRobots.find(r => r.id === selectedRobotId);
+          const robot = knownRobots.find((r) => r.id === selectedRobotId);
           if (robot && robot.robotModelId) {
-            const model = robotModels.find(m => m.id === robot.robotModelId);
+            const model = robotModels.find((m) => m.id === robot.robotModelId);
             if (model && model.modelPath) {
               // Read model file to get metadata (cached by main process usually fast)
-              const res = await window.electronAPI.readModelFile(model.modelPath);
+              const res = await window.electronAPI.readModelFile(
+                model.modelPath,
+              );
               if (res && res.metadata && res.metadata.cameras) {
                 res.metadata.cameras.forEach((name: string) => {
                   if (!seenNames.has(name)) {
                     seenNames.add(name);
-                    newXmlCameras.push(normalizeCamera({
-                      id: getXmlCameraId(name),
-                      name: name,
-                      isXml: true,
-                      modality: 'simulated'
-                    }));
+                    newXmlCameras.push(
+                      normalizeCamera({
+                        id: getXmlCameraId(name),
+                        name: name,
+                        isXml: true,
+                        modality: "simulated",
+                      }),
+                    );
                   }
                 });
               }
@@ -154,34 +190,38 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     parseXmlCameras();
   }, [xmlContent, selectedRobotId, knownRobots, robotModels]);
 
-
   // If opened for editing, populate simple top-level fields from the initial data
   useEffect(() => {
     if (!initialData) return;
 
     const hydrate = async () => {
       try {
-        setSceneName(initialData.name || '');
-        setSceneXmlPath(initialData.sceneXmlPath || '');
+        setSceneName(initialData.name || "");
+        setSceneXmlPath(initialData.sceneXmlPath || "");
 
         if (initialData.sceneXmlPath) {
           try {
-            const res = await window.electronAPI.readModelFile(initialData.sceneXmlPath);
+            const res = await window.electronAPI.readModelFile(
+              initialData.sceneXmlPath,
+            );
             // Handle new object return type from readModelFile
-            if (typeof res === 'object' && res.content !== undefined) {
+            if (typeof res === "object" && res.content !== undefined) {
               setXmlContent(res.content);
             } else {
               setXmlContent(res);
             }
           } catch (e) {
-            console.error('Failed to read XML file:', e);
+            console.error("Failed to read XML file:", e);
           }
         }
 
         if (!initialData.id) return;
 
         // Fetch Scene Robots
-        const robotRows = await db.select().from(sceneRobotsTable).where(eq(sceneRobotsTable.sceneId, initialData.id));
+        const robotRows = await db
+          .select()
+          .from(sceneRobotsTable)
+          .where(eq(sceneRobotsTable.sceneId, initialData.id));
         if (robotRows.length > 0) {
           const r = robotRows[0];
           setSelectedRobotId(r.robotId);
@@ -194,17 +234,24 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         const hydratedCameras = normalizeCameraList(initialData.data?.cameras);
         setAvailableCameras(hydratedCameras);
         if (hydratedCameras.length > 0) {
-          setCameraSlots(hydratedCameras.map((camera, i) => ({ id: camera.id, key: Date.now() + i })));
+          setCameraSlots(
+            hydratedCameras.map((camera, i) => ({
+              id: camera.id,
+              key: Date.now() + i,
+            })),
+          );
         }
 
         // Fetch Scene Teleoperators
-        const teleopRows = await db.select().from(sceneTeleoperatorsTable).where(eq(sceneTeleoperatorsTable.sceneId, initialData.id));
+        const teleopRows = await db
+          .select()
+          .from(sceneTeleoperatorsTable)
+          .where(eq(sceneTeleoperatorsTable.sceneId, initialData.id));
         if (teleopRows.length > 0) {
           setLeaderModel(teleopRows[0].teleoperatorId.toString());
         }
-
       } catch (e) {
-        console.warn('Failed to hydrate initialData into SceneForm', e);
+        console.warn("Failed to hydrate initialData into SceneForm", e);
       }
     };
 
@@ -225,10 +272,10 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
   const handleRobotChange = (id: number | null) => {
     setSelectedRobotId(id);
-    const robot = knownRobots.find(r => r.id === id);
+    const robot = knownRobots.find((r) => r.id === id);
     if (!robot) return;
 
-    if (robot.modality === 'real') {
+    if (robot.modality === "real") {
       scanPorts();
     }
   };
@@ -254,24 +301,24 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   };
 
   const getDeviceLabel = (port: Record<string, unknown>) => {
-    const known = knownRobots.find(r => r.serialNumber === port.serialNumber);
+    const known = knownRobots.find((r) => r.serialNumber === port.serialNumber);
     if (known) {
       return `${known.name} - (SN: ${port.serialNumber})`;
     }
-    return `${port.manufacturer || 'Device'} (${port.path})`;
+    return `${port.manufacturer || "Device"} (${port.path})`;
   };
 
   // Used for Leader selection if needed
   const getDeviceOptions = () => {
-    return serialPorts.map(p => ({
+    return serialPorts.map((p) => ({
       label: getDeviceLabel(p),
       value: p.path,
-      original: p
+      original: p,
     }));
   };
 
   const handleLeaderPortSelect = (path: string) => {
-    const port = serialPorts.find(p => p.path === path);
+    const port = serialPorts.find((p) => p.path === path);
     setLeaderConfig(port);
   };
 
@@ -293,7 +340,9 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       } catch (e) {
         console.error("Failed to save XML", e);
         // Continue anyway? Or stop? Let's log and continue but maybe warn user
-        alert("Failed to save XML content to disk. Saving database record only.");
+        alert(
+          "Failed to save XML content to disk. Saving database record only.",
+        );
       }
     }
 
@@ -301,17 +350,21 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       .map((s) => s.id)
       .filter((id): id is number => id !== null);
     const cameraLookup = new Map<number, CameraData>(
-      [...availableCameras, ...xmlCameras].map((camera) => [camera.id, normalizeCamera(camera)]),
+      [...availableCameras, ...xmlCameras].map((camera) => [
+        camera.id,
+        normalizeCamera(camera),
+      ]),
     );
     const selectedCameras = selectedCameraIds
       .map((id) => cameraLookup.get(id))
       .filter((camera): camera is CameraData => Boolean(camera));
 
-
     // Try to find current port info if connected
     let currentConfig = selectedRobot.data?.config;
-    if (selectedRobot.modality === 'real' && selectedRobot.serialNumber) {
-      const port = serialPorts.find(p => p.serialNumber === selectedRobot.serialNumber);
+    if (selectedRobot.modality === "real" && selectedRobot.serialNumber) {
+      const port = serialPorts.find(
+        (p) => p.serialNumber === selectedRobot.serialNumber,
+      );
       if (port) {
         currentConfig = port;
       }
@@ -341,47 +394,62 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       const sceneId = parentResult.id;
 
       // 2. Save Follower (Upsert / Replace)
-      const existingRobots = await db.select().from(sceneRobotsTable).where(eq(sceneRobotsTable.sceneId, sceneId));
+      const existingRobots = await db
+        .select()
+        .from(sceneRobotsTable)
+        .where(eq(sceneRobotsTable.sceneId, sceneId));
       const existingRobot = existingRobots[0]; // Assuming 1 to 1 for this wizard
 
       const newRobotSnapshot = {
         ...selectedRobot,
         targetConfig: currentConfig,
-        leaderConfig
+        leaderConfig,
       };
 
       if (existingRobot) {
         if (existingRobot.robotId !== selectedRobot.id) {
           // ID changed: Remove old, add new
-          await db.delete(sceneRobotsTable).where(and(
-            eq(sceneRobotsTable.sceneId, sceneId),
-            eq(sceneRobotsTable.robotId, existingRobot.robotId)
-          ));
+          await db
+            .delete(sceneRobotsTable)
+            .where(
+              and(
+                eq(sceneRobotsTable.sceneId, sceneId),
+                eq(sceneRobotsTable.robotId, existingRobot.robotId),
+              ),
+            );
           await db.insert(sceneRobotsTable).values({
             sceneId,
             robotId: selectedRobot.id,
-            snapshot: newRobotSnapshot
+            snapshot: newRobotSnapshot,
           });
         } else {
           // ID same: Update snapshot
-          await db.update(sceneRobotsTable).set({
-            snapshot: newRobotSnapshot
-          }).where(and(
-            eq(sceneRobotsTable.sceneId, sceneId),
-            eq(sceneRobotsTable.robotId, selectedRobot.id)
-          ));
+          await db
+            .update(sceneRobotsTable)
+            .set({
+              snapshot: newRobotSnapshot,
+            })
+            .where(
+              and(
+                eq(sceneRobotsTable.sceneId, sceneId),
+                eq(sceneRobotsTable.robotId, selectedRobot.id),
+              ),
+            );
         }
       } else {
         // No existing: Insert
         await db.insert(sceneRobotsTable).values({
           sceneId,
           robotId: selectedRobot.id,
-          snapshot: newRobotSnapshot
+          snapshot: newRobotSnapshot,
         });
       }
 
       // 3. Save Teleoperator (Diff & Upsert)
-      const existingTeleops = await db.select().from(sceneTeleoperatorsTable).where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
+      const existingTeleops = await db
+        .select()
+        .from(sceneTeleoperatorsTable)
+        .where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
       const existingTeleop = existingTeleops[0];
 
       let desiredTeleopId: number | null = null;
@@ -393,29 +461,48 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
       if (existingTeleop) {
         if (desiredTeleopId === null) {
           // Was present, now removed
-          await db.delete(sceneTeleoperatorsTable).where(and(
-            eq(sceneTeleoperatorsTable.sceneId, sceneId),
-            eq(sceneTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
-          ));
+          await db
+            .delete(sceneTeleoperatorsTable)
+            .where(
+              and(
+                eq(sceneTeleoperatorsTable.sceneId, sceneId),
+                eq(
+                  sceneTeleoperatorsTable.teleoperatorId,
+                  existingTeleop.teleoperatorId,
+                ),
+              ),
+            );
         } else if (existingTeleop.teleoperatorId !== desiredTeleopId) {
           // Changed model: Delete old, Insert new
-          await db.delete(sceneTeleoperatorsTable).where(and(
-            eq(sceneTeleoperatorsTable.sceneId, sceneId),
-            eq(sceneTeleoperatorsTable.teleoperatorId, existingTeleop.teleoperatorId)
-          ));
+          await db
+            .delete(sceneTeleoperatorsTable)
+            .where(
+              and(
+                eq(sceneTeleoperatorsTable.sceneId, sceneId),
+                eq(
+                  sceneTeleoperatorsTable.teleoperatorId,
+                  existingTeleop.teleoperatorId,
+                ),
+              ),
+            );
           await db.insert(sceneTeleoperatorsTable).values({
             sceneId,
             teleoperatorId: desiredTeleopId,
-            snapshot: { config: leaderConfig }
+            snapshot: { config: leaderConfig },
           });
         } else {
           // Same model: Update snapshot
-          await db.update(sceneTeleoperatorsTable).set({
-            snapshot: { config: leaderConfig }
-          }).where(and(
-            eq(sceneTeleoperatorsTable.sceneId, sceneId),
-            eq(sceneTeleoperatorsTable.teleoperatorId, desiredTeleopId)
-          ));
+          await db
+            .update(sceneTeleoperatorsTable)
+            .set({
+              snapshot: { config: leaderConfig },
+            })
+            .where(
+              and(
+                eq(sceneTeleoperatorsTable.sceneId, sceneId),
+                eq(sceneTeleoperatorsTable.teleoperatorId, desiredTeleopId),
+              ),
+            );
         }
       } else {
         // No existing, but have desired
@@ -423,17 +510,18 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           await db.insert(sceneTeleoperatorsTable).values({
             sceneId,
             teleoperatorId: desiredTeleopId,
-            snapshot: { config: leaderConfig}
+            snapshot: { config: leaderConfig },
           });
         }
       }
-
+      if (onRefresh) {
+        await onRefresh();
+      }
       // return parentResult so callers (like "Create Dataset" flow) can continue
       return parentResult;
-
     } catch (e) {
       console.error(e);
-      alert('Failed to save scene details');
+      alert("Failed to save scene details");
       return;
     }
   };
@@ -455,26 +543,31 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     setOpenDatasetDialog(true);
   };
 
-  const handleDatasetSavedFromDialog = async (payload: Record<string, unknown>) => {
+  const handleDatasetSavedFromDialog = async (
+    payload: Record<string, unknown>,
+  ) => {
     try {
-      const [saved] = await db.insert(datasetsTable).values({
-        name: payload.name || `Dataset - ${new Date().toLocaleString()}`,
-        sceneId: payload.sceneId,
-        skillId: payload.skillId || null,
-        data: payload
-      }).returning();
-      toast?.success?.('Dataset created');
+      const [saved] = await db
+        .insert(datasetsTable)
+        .values({
+          name: payload.name || `Dataset - ${new Date().toLocaleString()}`,
+          sceneId: payload.sceneId,
+          skillId: payload.skillId || null,
+          data: payload,
+        })
+        .returning();
+      toast?.success?.("Dataset created");
       setOpenDatasetDialog(false);
       return saved;
     } catch (e) {
-      console.error('Failed to create dataset', e);
-      toast?.error?.('Failed to create dataset');
+      console.error("Failed to create dataset", e);
+      toast?.error?.("Failed to create dataset");
       throw e;
     }
   };
 
   const deviceOptions = getDeviceOptions();
-  const selectedRobot = knownRobots.find(r => r.id === selectedRobotId);
+  const selectedRobot = knownRobots.find((r) => r.id === selectedRobotId);
 
   if (showAdvanced) {
     return (
@@ -497,8 +590,14 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           />
           <div className="mt-4 flex justify-end">
             <div className="flex gap-2">
-              {onCancel && <UiButton onClick={onCancel} variant="secondary">Cancel</UiButton>}
-              <UiButton onClick={saveConfiguration} variant="primary">Save Scene</UiButton>
+              {onCancel && (
+                <UiButton onClick={onCancel} variant="secondary">
+                  Cancel
+                </UiButton>
+              )}
+              <UiButton onClick={saveConfiguration} variant="primary">
+                Save Scene
+              </UiButton>
             </div>
           </div>
         </UiCard>
@@ -516,12 +615,15 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
             </UiButton>
           )}
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900 text-left">Scene Setup</h2>
-            <p className="text-gray-500 mt-1 text-left">Configure your scene, robot, and leader devices</p>
+            <h2 className="text-2xl font-semibold text-gray-900 text-left">
+              Scene Setup
+            </h2>
+            <p className="text-gray-500 mt-1 text-left">
+              Configure your scene, robot, and leader devices
+            </p>
           </div>
         </div>
 
-        
         <section>
           <UiInput
             label="Scene Name"
@@ -538,7 +640,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
               className="font-mono text-sm"
             />
           </div>
-
         </section>
         {/* Follower Configuration */}
         <section>
@@ -552,8 +653,13 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
             onRobotsChanged={fetchData}
           />
           <div className="mt-1 flex justify-end">
-            <UiButton variant="ghost" className="text-xs text-gray-500" onClick={scanPorts} disabled={scanning}>
-              {scanning ? 'Scanning...' : 'Refresh Devices'}
+            <UiButton
+              variant="ghost"
+              className="text-xs text-gray-500"
+              onClick={scanPorts}
+              disabled={scanning}
+            >
+              {scanning ? "Scanning..." : "Refresh Devices"}
             </UiButton>
           </div>
         </section>
@@ -569,12 +675,20 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
                 selectedCameraId={slot.id}
                 onSelect={(id) => updateCameraSlot(idx, id)}
                 onCamerasChanged={refreshCameras}
-                onRemove={cameraSlots.length > 1 ? () => removeCameraSlot(idx) : undefined}
+                onRemove={
+                  cameraSlots.length > 1
+                    ? () => removeCameraSlot(idx)
+                    : undefined
+                }
               />
             ))}
 
             <div className="pt-2">
-              <UiButton variant="secondary" onClick={addCameraSlot} className="text-sm">
+              <UiButton
+                variant="secondary"
+                onClick={addCameraSlot}
+                className="text-sm"
+              >
                 + Add Another Camera
               </UiButton>
             </div>
@@ -583,66 +697,91 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
         {/* Leader Configuration */}
         <section>
-          <h3 className="text-lg font-medium mb-4">Leader Arm (Teleoperator)</h3>
+          <h3 className="text-lg font-medium mb-4">
+            Leader Arm (Teleoperator)
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                  <UiSelect
-                    label="Teleoperator"
-                    value={leaderModel}
-                    onChange={(e) => setLeaderModel(e.target.value)}
-                    options={availableTeleoperators}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">Connected Device</label>
-                    <div className="flex items-center gap-2">
-                      {scanning && <span className="text-xs text-gray-500">Scanning...</span>}
-                      <UiButton
-                        onClick={scanPorts}
-                        variant="secondary"
-                        disabled={scanning}
-                        className="text-xs py-1 px-2 h-auto"
-                      >
-                        Refresh Ports
-                      </UiButton>
-                    </div>
-                  </div>
-                  {serialPorts.length === 0 ? (
-                    <div className="text-sm text-gray-500 italic p-2 border rounded bg-gray-50">No devices found. Connect via USB.</div>
-                  ) : (
-                    <UiSelect
-                      value={leaderConfig?.path || ''}
-                      onChange={(e) => handleLeaderPortSelect(e.target.value)}
-                      options={[
-                        { label: 'Select a device...', value: '' },
-                        ...deviceOptions
-                      ]}
-                    />
+              <UiSelect
+                label="Teleoperator"
+                value={leaderModel}
+                onChange={(e) => setLeaderModel(e.target.value)}
+                options={availableTeleoperators}
+              />
+            </div>
+            <div className="col-span-2">
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Connected Device
+                </label>
+                <div className="flex items-center gap-2">
+                  {scanning && (
+                    <span className="text-xs text-gray-500">Scanning...</span>
                   )}
+                  <UiButton
+                    onClick={scanPorts}
+                    variant="secondary"
+                    disabled={scanning}
+                    className="text-xs py-1 px-2 h-auto"
+                  >
+                    Refresh Ports
+                  </UiButton>
                 </div>
+              </div>
+              {serialPorts.length === 0 ? (
+                <div className="text-sm text-gray-500 italic p-2 border rounded bg-gray-50">
+                  No devices found. Connect via USB.
+                </div>
+              ) : (
+                <UiSelect
+                  value={leaderConfig?.path || ""}
+                  onChange={(e) => handleLeaderPortSelect(e.target.value)}
+                  options={[
+                    { label: "Select a device...", value: "" },
+                    ...deviceOptions,
+                  ]}
+                />
+              )}
+            </div>
           </div>
         </section>
 
         <div className="flex justify-between pt-4">
-          <UiButton onClick={() => setShowAdvanced(true)} variant="secondary">Advanced Mode</UiButton>
+          <UiButton onClick={() => setShowAdvanced(true)} variant="secondary">
+            Advanced Mode
+          </UiButton>
           <div className="flex gap-2">
             <UiButton
               variant="ghost"
               onClick={handleCreateDatasetForScene}
               disabled={!initialData?.id && !sceneName}
-              title={!initialData?.id ? 'Save the scene first or click Save then create a dataset' : 'Create a new dataset for this scene'}
+              title={
+                !initialData?.id
+                  ? "Save the scene first or click Save then create a dataset"
+                  : "Create a new dataset for this scene"
+              }
             >
               Create Dataset
             </UiButton>
-            {onCancel && <UiButton onClick={onCancel} variant="secondary">Cancel</UiButton>}
-            <UiButton onClick={saveConfiguration} variant="primary">Save Scene</UiButton>
+            {onCancel && (
+              <UiButton onClick={onCancel} variant="secondary">
+                Cancel
+              </UiButton>
+            )}
+            <UiButton onClick={saveConfiguration} variant="primary">
+              Save Scene
+            </UiButton>
           </div>
         </div>
       </UiCard>
 
       {/* DatasetForm dialog (create a new Dataset preselected to this Scene) */}
-      <Dialog open={openDatasetDialog} onClose={() => setOpenDatasetDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog
+        open={openDatasetDialog}
+        onClose={() => setOpenDatasetDialog(false)}
+        maxWidth="lg"
+        fullWidth
+      >
         <DialogContent dividers>
           <DatasetFormView
             initialData={datasetInitialData || { sceneId: initialData?.id }}
