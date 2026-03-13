@@ -1,6 +1,10 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { robotModelsTable, robotsTable, scenesTable, camerasTable, sceneRobotsTable, sceneCamerasTable } from "./schema";
+import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
+import { sql, eq, and, type InferSelectModel } from "drizzle-orm";
+// Not strictly required to import type for seeding, but helpful if we want strict typing
+import { MjcfCamera } from "../lib/mujoco_parser";
+type RobotModelRecord = Partial<InferSelectModel<typeof robotModelsTable>>;
 
 const robotModelsData = [
   {
@@ -6084,20 +6088,13 @@ export async function seedRobotModels() {
     if (scenesData.length > 0) {
       await db.insert(scenesTable).values(scenesData as any[]).onConflictDoNothing();
     }
-    if (camerasData.length > 0) {
-      await db.insert(camerasTable).values(camerasData as any[]).onConflictDoNothing();
-    }
     if (sceneRobotsData.length > 0) {
       await db.insert(sceneRobotsTable).values(sceneRobotsData as any[]).onConflictDoNothing();
-    }
-    if (sceneCamerasData.length > 0) {
-      await db.insert(sceneCamerasTable).values(sceneCamerasData as any[]).onConflictDoNothing();
     }
 
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('robot_models', 'id'), (SELECT MAX(id) FROM robot_models))`);
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('robots', 'id'), (SELECT MAX(id) FROM robots))`);
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('scenes', 'id'), (SELECT MAX(id) FROM scenes))`);
-    await db.execute(sql`SELECT setval(pg_get_serial_sequence('cameras', 'id'), (SELECT MAX(id) FROM cameras))`);
 
     console.log("Seeding complete.");
   } catch (error) {

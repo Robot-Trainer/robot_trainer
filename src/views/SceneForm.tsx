@@ -5,12 +5,13 @@ import UiSelect from '../ui/Select';
 import UiInput from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { sceneRobotsTable, sceneCamerasTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
-import { robotModelsResource, teleoperatorModelsResource, robotsResource, camerasResource } from '../db/resources';
+import { sceneRobotsTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
+import { robotModelsResource, teleoperatorModelsResource, robotsResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
 import { parseMujocoCameras } from '../lib/mujoco_parser';
 import DatasetFormView from './DatasetForm';
 import { Dialog, DialogContent } from '@mui/material';
+import { normalizeCamera, normalizeCameraList, type CameraData } from '../types/camera';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
@@ -34,7 +35,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
   const [availableRobots, setAvailableRobots] = useState<{ label: string, value: string }[]>([]);
   const [robotModels, setRobotModels] = useState<Record<string, unknown>[]>([]);
-  const [xmlCameras, setXmlCameras] = useState<Record<string, unknown>[]>([]);
+  const [xmlCameras, setXmlCameras] = useState<CameraData[]>([]);
 
   const [availableTeleoperators, setAvailableTeleoperators] = useState<{ label: string, value: string }[]>([]);
 
@@ -42,7 +43,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   const [serialPorts, setSerialPorts] = useState<Record<string, unknown>[]>([]);
   const [scanning, setScanning] = useState(false);
 
-  const [availableCameras, setAvailableCameras] = useState<Record<string, unknown>[]>([]);
+  const [availableCameras, setAvailableCameras] = useState<CameraData[]>([]);
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([{ id: null, key: Date.now() }]);
 
   const toast = useToast();
@@ -62,9 +63,6 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
 
       const kRobots = await robotsResource.list();
       setKnownRobots(kRobots);
-
-      const kCameras = await camerasResource.list();
-      setAvailableCameras(kCameras);
 
       if (tOpts.length > 0 && !leaderModel) {
         setLeaderModel(tOpts[0].value);
@@ -96,7 +94,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
   // Update XML cameras list whenever XML content changes or selected Robot changes
   useEffect(() => {
     const parseXmlCameras = async () => {
-      const newXmlCameras: Record<string, unknown>[] = [];
+      const newXmlCameras: CameraData[] = [];
       const seenNames = new Set<string>();
 
       // 1. From Scene XML
@@ -106,13 +104,14 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           parsedCams.forEach(cam => {
             if (cam.name && !seenNames.has(cam.name)) {
               seenNames.add(cam.name);
-              newXmlCameras.push({
+              newXmlCameras.push(normalizeCamera({
                 id: getXmlCameraId(cam.name),
                 name: cam.name,
                 isXml: true,
                 modality: 'simulated',
-                attributes: cam // Store full attributes for later DB saving
-              });
+                data: { source: 'xml', readOnly: true, mujoco: cam },
+                pose: { pos: cam.pos ?? [0, 0, 0], quat: cam.quat ?? [1, 0, 0, 0], xyaxes: cam.xyaxes ?? [1, 0, 0, 0, 1, 0] },
+              }));
             }
           });
         } catch (e) {
@@ -133,12 +132,12 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
                 res.metadata.cameras.forEach((name: string) => {
                   if (!seenNames.has(name)) {
                     seenNames.add(name);
-                    newXmlCameras.push({
+                    newXmlCameras.push(normalizeCamera({
                       id: getXmlCameraId(name),
                       name: name,
                       isXml: true,
                       modality: 'simulated'
-                    });
+                    }));
                   }
                 });
               }
@@ -192,10 +191,10 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
           }
         }
 
-        // Fetch Scene Cameras
-        const cameraRows = await db.select().from(sceneCamerasTable).where(eq(sceneCamerasTable.sceneId, initialData.id));
-        if (cameraRows.length > 0) {
-          setCameraSlots(cameraRows.map((c, i) => ({ id: c.cameraId, key: Date.now() + i })));
+        const hydratedCameras = normalizeCameraList(initialData.data?.cameras);
+        setAvailableCameras(hydratedCameras);
+        if (hydratedCameras.length > 0) {
+          setCameraSlots(hydratedCameras.map((camera, i) => ({ id: camera.id, key: Date.now() + i })));
         }
 
         // Fetch Scene Teleoperators
@@ -234,13 +233,8 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     }
   };
 
-  const refreshCameras = async () => {
-    try {
-      const cams = await camerasResource.list();
-      setAvailableCameras(cams);
-    } catch (e) {
-      console.error("Failed to load cameras", e);
-    }
+  const refreshCameras = (next: CameraData[]) => {
+    setAvailableCameras(normalizeCameraList(next));
   };
 
   const addCameraSlot = () => {
@@ -306,6 +300,12 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     const selectedCameraIds = cameraSlots
       .map((s) => s.id)
       .filter((id): id is number => id !== null);
+    const cameraLookup = new Map<number, CameraData>(
+      [...availableCameras, ...xmlCameras].map((camera) => [camera.id, normalizeCamera(camera)]),
+    );
+    const selectedCameras = selectedCameraIds
+      .map((id) => cameraLookup.get(id))
+      .filter((camera): camera is CameraData => Boolean(camera));
 
 
     // Try to find current port info if connected
@@ -326,7 +326,11 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
     try {
       const parentResult: Record<string, unknown> = await onSaved({
         name: sceneName,
-        sceneXmlPath
+        sceneXmlPath,
+        data: {
+          ...(initialData?.data || {}),
+          cameras: selectedCameras,
+        },
       });
 
       if (!parentResult || !parentResult.id) {
@@ -376,113 +380,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({ onCancel, onSaved, initial
         });
       }
 
-      // 3. Save Cameras (Diff & Upsert)
-      const existingCameras = await db.select().from(sceneCamerasTable).where(eq(sceneCamerasTable.sceneId, sceneId));
-      const existingCamIds = new Set(existingCameras.map(c => c.cameraId));
-
-      // Resolve IDs (handle XML cameras)
-      const finalSelectedIds = new Set<number>();
-      for (const id of selectedCameraIds) {
-        if (id < 0) {
-          // It's an XML camera. Check if we need to create a DB entry for it.
-          const xmlCam = xmlCameras.find(c => c.id === id);
-          if (xmlCam) {
-            // Check if exists in DB by name and is simulated
-            const existing = availableCameras.find((c: Record<string, unknown>) => c.name === xmlCam.name && c.modality === 'simulated');
-            if (existing) {
-              finalSelectedIds.add(existing.id);
-            } else {
-              // Create it
-              try {
-                const camAttrs = (xmlCam as Record<string, unknown>).attributes || {};
-                // MJCF attributes
-                const pos = camAttrs.pos || [0, 0, 0];
-                const quat = camAttrs.quat || [1, 0, 0, 0];
-                const xyaxes = camAttrs.xyaxes || [1, 0, 0, 0, 1, 0];
-
-                const created = await camerasResource.create({
-                  name: xmlCam.name,
-                  modality: 'simulated',
-                  
-                  // Map MJCF properties
-                  posX: pos[0],
-                  posY: pos[1],
-                  posZ: pos[2],
-
-                  quatW: quat[0],
-                  quatX: quat[1],
-                  quatY: quat[2],
-                  quatZ: quat[3],
-
-                  xyaxesX1: xyaxes[0],
-                  xyaxesY1: xyaxes[1],
-                  xyaxesZ1: xyaxes[2],
-                  xyaxesX2: xyaxes[3],
-                  xyaxesY2: xyaxes[4],
-                  xyaxesZ2: xyaxes[5],
-
-                  data: {
-                    source: 'xml',
-                    readOnly: true,
-                    mujoco: camAttrs
-                  }
-                });
-                if (created && created.id) {
-                  finalSelectedIds.add(created.id);
-                  // Update available cameras locally so we don't recreate next time
-                  // Note: check type compatibility
-                  setAvailableCameras((prev: Record<string, unknown>[]) => [...prev, created]);
-                }
-              } catch (e) {
-                console.error("Failed to create DB entry for XML camera", xmlCam.name, e);
-              }
-            }
-          }
-        } else {
-          finalSelectedIds.add(id);
-        }
-      }
-
-      // Remove deleted cameras
-      for (const oldId of existingCamIds) {
-        if (!finalSelectedIds.has(oldId)) {
-          await db.delete(sceneCamerasTable).where(and(
-            eq(sceneCamerasTable.sceneId, sceneId),
-            eq(sceneCamerasTable.cameraId, oldId)
-          ));
-        }
-      }
-
-      // Insert or Update active cameras
-      // We need to refresh availableCameras list logic because we might have just created some
-      // But we can just fetch from DB or use the ID.
-      // Actually we need the snapshot.
-      // If we created it, we can fetch it.
-
-      // Re-fetch cameras to get snapshots for new IDs
-      const allDbCameras = await camerasResource.list();
-
-      for (const newId of finalSelectedIds) {
-        const cam = allDbCameras.find((c: Record<string, unknown>) => c.id === newId);
-        if (!cam) continue;
-
-        if (existingCamIds.has(newId)) {
-          await db.update(sceneCamerasTable).set({
-            snapshot: cam
-          }).where(and(
-            eq(sceneCamerasTable.sceneId, sceneId),
-            eq(sceneCamerasTable.cameraId, newId)
-          ));
-        } else {
-          await db.insert(sceneCamerasTable).values({
-            sceneId,
-            cameraId: newId,
-            snapshot: cam
-          });
-        }
-      }
-
-      // 4. Save Teleoperator (Diff & Upsert)
+      // 3. Save Teleoperator (Diff & Upsert)
       const existingTeleops = await db.select().from(sceneTeleoperatorsTable).where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
       const existingTeleop = existingTeleops[0];
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { tableResource } from './tableResource';
-import { camerasTable, teleoperatorModelsTable } from './schema';
+import { robotsTable, teleoperatorModelsTable } from './schema';
 import { migrate } from './migrate';
 import { db } from './db';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -28,7 +28,7 @@ vi.mock('./db', async () => {
 });
 
 describe('tableResource', () => {
-  const resource = tableResource(camerasTable);
+  const resource = tableResource(robotsTable);
 
   beforeAll(async () => {
     // Mock the electronAPI for migrations
@@ -44,7 +44,7 @@ describe('tableResource', () => {
 
   beforeEach(async () => {
     // Clear the table before each test
-    await db.delete(camerasTable);
+    await db.delete(robotsTable);
   });
 
   it('list() should return an empty array initially', async () => {
@@ -53,16 +53,15 @@ describe('tableResource', () => {
   });
 
   it('create() should insert a new item and return it with an id', async () => {
-    const newCamera = {
-      name: 'Test Camera',
-      resolution: '1920x1080',
-      fps: 30,
+    const newRobot = {
+      name: 'Test Robot',
+      serialNumber: 'SER-1',
       data: { location: 'Lab 1' }
     };
 
-    const created = await resource.create(newCamera);
+    const created = await resource.create(newRobot);
 
-    expect(created).toMatchObject(newCamera);
+    expect(created).toMatchObject(newRobot);
     expect(created.id).toBeDefined();
     expect(typeof created.id).toBe('number');
 
@@ -94,15 +93,15 @@ describe('tableResource', () => {
 
   it('update() should modify an existing item', async () => {
     // Create first
-    const newCamera = { name: 'Old Name', resolution: '720p' };
-    const created = await resource.create(newCamera);
+    const newRobot = { name: 'Old Name', serialNumber: 'SER-1' };
+    const created = await resource.create(newRobot);
 
     // Update
     const updateData = { name: 'New Name' };
     const updated = await resource.update(created.id, updateData);
 
     expect(updated.name).toBe('New Name');
-    expect(updated.resolution).toBe('720p'); // Should persist
+    expect(updated.serialNumber).toBe('SER-1'); // Should persist
     expect(updated.id).toBe(created.id);
 
     // Verify in DB
@@ -132,8 +131,8 @@ describe('tableResource', () => {
     // We want to ensure passed-in extra props don't crash the insert or end up in DB (if strict)
     // Drizzle usually ignores extras but tableResource does explicit filtering.
 
-    const cameraWithExtras = {
-      name: 'Extra Field Cam',
+    const robotWithExtras = {
+      name: 'Extra Field Robot',
       extraProperty: 'Should be ignored'
     };
 
@@ -142,7 +141,7 @@ describe('tableResource', () => {
     // It returns { ...item, id }. So checks on the return value will see extraProperty.
     // We should check the DB list result.
 
-    const created = await resource.create(cameraWithExtras);
+    const created = await resource.create(robotWithExtras);
     expect(created.extraProperty).toBeUndefined();
 
     const list = await resource.list();
@@ -150,6 +149,6 @@ describe('tableResource', () => {
 
     // The fetched item should NOT have extraProperty
     expect(fetchedItem).not.toHaveProperty('extraProperty');
-    expect(fetchedItem.name).toBe('Extra Field Cam');
+    expect(fetchedItem.name).toBe('Extra Field Robot');
   });
 });

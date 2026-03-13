@@ -3,13 +3,12 @@ import { db } from './db';
 import {
   scenesTable,
   sceneRobotsTable,
-  sceneCamerasTable,
   sceneTeleoperatorsTable,
   robotsTable,
   robotModelsTable,
-  camerasTable,
   teleoperatorModelsTable
 } from './schema';
+import { normalizeCameraList } from '../types/camera';
 
 export const getSceneSnapshot = async (sceneId: number) => {
   const [config] = await db
@@ -30,15 +29,6 @@ export const getSceneSnapshot = async (sceneId: number) => {
     .leftJoin(robotModelsTable, eq(robotsTable.robotModelId, robotModelsTable.id))
     .where(eq(sceneRobotsTable.sceneId, sceneId));
 
-  const cameras = await db
-    .select({
-      camera: camerasTable,
-      snapshot: sceneCamerasTable.snapshot
-    })
-    .from(sceneCamerasTable)
-    .innerJoin(camerasTable, eq(sceneCamerasTable.cameraId, camerasTable.id))
-    .where(eq(sceneCamerasTable.sceneId, sceneId));
-
   const teleoperators = await db
     .select({
       teleoperator: teleoperatorModelsTable,
@@ -57,10 +47,13 @@ export const getSceneSnapshot = async (sceneId: number) => {
   //    teleoperators: [ { ...teleop, _snapshot: ... } ]
   // }
 
+  const sceneData = (config as Record<string, unknown>).data as Record<string, unknown> | undefined;
+  const cameras = normalizeCameraList(sceneData?.cameras);
+
   return {
     ...config,
     robots: robots.map(r => ({ ...r.robot, model: r.model, _snapshot: r.snapshot })),
-    cameras: cameras.map(c => ({ ...c.camera, _snapshot: c.snapshot })),
+    cameras: cameras.map((camera) => ({ ...camera, _snapshot: camera })),
     teleoperators: teleoperators.map(t => ({ ...t.teleoperator, _snapshot: t.snapshot }))
   };
 };
