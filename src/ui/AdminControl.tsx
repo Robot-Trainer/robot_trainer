@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button, ButtonGroup, MenuItem, ClickAwayListener, Grow, Paper, Popper, MenuList } from '@mui/material';
 import { ArrowDropDown as ArrowDropDownIcon } from '@mui/icons-material';
 import { db } from "../db/db";
@@ -12,7 +12,7 @@ import { seedTeleoperators } from "../db/seed_teleoperators";
 
 export const AdminControl = () => {
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef<HTMLDivElement>(null);
+    const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
     const [isReseeding, setIsReseeding] = useState(false);
   
     const handleToggle = () => {
@@ -20,7 +20,7 @@ export const AdminControl = () => {
     };
   
     const handleClose = (event: Event | React.SyntheticEvent) => {
-      if (anchorRef.current && anchorRef.current.contains(event.target as HTMLElement)) {
+      if (anchorEl && anchorEl.contains(event.target as HTMLElement)) {
         return;
       }
       setOpen(false);
@@ -73,7 +73,7 @@ export const AdminControl = () => {
   
     return (
       <div className="fixed bottom-4 right-4 z-50 rounded-md shadow-lg bg-white">
-         <ButtonGroup variant="contained" ref={anchorRef} aria-label="split button">
+         <ButtonGroup variant="contained" ref={setAnchorEl} aria-label="split button">
           <Button onClick={handleAdminClick} disabled={isReseeding}>
             {isReseeding ? "Reseeding..." : "Admin"}
           </Button>
@@ -94,7 +94,7 @@ export const AdminControl = () => {
             zIndex: 1500
           }}
           open={open}
-          anchorEl={anchorRef.current}
+          anchorEl={anchorEl}
           role={undefined}
           transition
           disablePortal
