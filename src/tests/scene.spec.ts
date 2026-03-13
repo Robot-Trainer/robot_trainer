@@ -4,6 +4,7 @@ import { dismissSetupWizard } from './helpers';
 
 test.describe('Scene Configuration Validation', () => {
   test('should validate scene configuration before saving', async ({ window }) => {
+    
     await dismissSetupWizard(window);
 
     await window.getByRole('button', { name: 'Robots' }).click();
