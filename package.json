@@ -25,6 +25,7 @@
     "name": "Bernie Telles",
     "email": "btelles@gmail.com"
   },
+  "packageManager": "npm@10.9.2",
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.3",
@@ -66,10 +67,11 @@
     "@electric-sql/pglite": "^0.3.14",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@lerobot/web": "^0.5.0",
+    "@robot-trainer/lerobotjs-web": "v0.5.5",
     "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.8",
+    "@mui/system": "^7.3.9",
     "@mui/x-data-grid": "^8.27.1",
     "@mui/x-date-pickers": "^8.27.0",
     "@rjsf/core": "^6.2.5",
