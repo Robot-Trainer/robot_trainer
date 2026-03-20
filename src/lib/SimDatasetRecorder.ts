@@ -6,7 +6,7 @@
  * observation states and Three.js canvas video.
  */
 
-import { LeRobotEpisode } from '@lerobot/web';
+import { LeRobotEpisode } from '@robot-trainer/lerobotjs-web';
 import type { MujocoSimulation, ObservationData, SimulationState } from './MujocoSimulation';
 
 // ---------------------------------------------------------------------------
