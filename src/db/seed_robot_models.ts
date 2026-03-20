@@ -5197,7 +5197,6 @@ export async function seedRobotModels() {
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('robot_models', 'id'), (SELECT MAX(id) FROM robot_models))`);
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('robots', 'id'), (SELECT MAX(id) FROM robots))`);
     await db.execute(sql`SELECT setval(pg_get_serial_sequence('scenes', 'id'), (SELECT MAX(id) FROM scenes))`);
-    await db.execute(sql`SELECT setval(pg_get_serial_sequence('cameras', 'id'), (SELECT MAX(id) FROM cameras))`);
 
     console.log("Seeding complete.");
   } catch (error) {
