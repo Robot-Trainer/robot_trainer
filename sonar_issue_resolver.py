@@ -102,11 +102,11 @@ def run_analysis():
     return wait_for_analysis_completion()
 
 
-def invoke_openclaw(message):
-    """Correctly invokes the OpenClaw main agent with workspace context."""
+def invoke_claude_code(message):
+    """Correctly invokes the Claude code with workspace context."""
     repo_root = os.getcwd()
     # Using --agent main and --workspace to ensure the agent has repository access
-    cmd = f'openclaw agent --agent main --workspace "{repo_root}" --message "{message}"'
+    cmd = f'ollama launch claude --model gpt-oss:20b --yes -- -p "{message}" --add-dir "{repo_root}" --effort max'
     return run_command(cmd)
 
 
@@ -143,19 +143,19 @@ def main():
         print(f"\n--- Attempt {attempt} of 3 ---")
 
         # Step 1: Fix the issue
-        print("Asking OpenClaw to resolve the issue...")
+        print("Asking Claude Code to resolve the issue...")
         fix_msg = f"In the current repository, resolve this SonarQube {severity} issue in '{file_path}': {description}. Use your file tools to modify the code."
-        invoke_openclaw(fix_msg)
+        invoke_claude_code(fix_msg)
 
         # Step 2: Tests and Linters
-        print("Asking OpenClaw to run tests and linters...")
+        print("Asking Claude Code to run tests and linters...")
         test_msg = "Run the project's tests and linters. If they fail, fix the issues until they pass."
-        invoke_openclaw(test_msg)
+        invoke_claude_code(test_msg)
 
         # Step 3: Verify the fix (AI check)
-        print("Asking OpenClaw to verify the fix...")
+        print("Asking Claude Code to verify the fix...")
         verify_msg = f"Verify that the issue '{description}' in '{file_path}' is no longer present. If it still exists, apply a final correction."
-        invoke_openclaw(verify_msg)
+        invoke_claude_code(verify_msg)
 
         # Step 4: Commit/Amend changes
         if attempt == 1:
