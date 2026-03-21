@@ -3,16 +3,6 @@ import { render, fireEvent, waitFor, screen, cleanup } from '@testing-library/re
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CameraConfigurationForm from './CameraConfigurationForm';
 import { ToastProvider } from '../ui/ToastContext';
-import { camerasResource } from '../db/resources';
-
-// Mock the resources
-vi.mock('../db/resources', () => ({
-  camerasResource: {
-    list: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-  },
-}));
 
 describe('CameraConfigurationForm', () => {
   const mockOnSave = vi.fn();
@@ -25,7 +15,6 @@ describe('CameraConfigurationForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (camerasResource.list as any).mockResolvedValue(mockCameras);
   });
 
   afterEach(() => {
@@ -35,14 +24,11 @@ describe('CameraConfigurationForm', () => {
   it('manages camera slots and saves configuration', async () => {
     render(
       <ToastProvider>
-        <CameraConfigurationForm onSave={mockOnSave} onCancel={mockOnCancel} />
+        <CameraConfigurationForm initialCameras={mockCameras} onSave={mockOnSave} onCancel={mockOnCancel} />
       </ToastProvider>
     );
 
-    // Wait for cameras to load
-    await waitFor(() => {
-      expect(camerasResource.list).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(screen.getAllByText('Camera 1').length).toBeGreaterThan(0));
 
     // Should start with one empty slot labeled "Camera 1"
     const labels = screen.getAllByText('Camera 1');
@@ -75,7 +61,7 @@ describe('CameraConfigurationForm', () => {
     fireEvent.click(cam2Option);
 
     // Save
-    const saveBtn = screen.getByText(/Save Configuration/i);
+    const saveBtn = screen.getByText(/Save Scene/i);
     fireEvent.click(saveBtn);
 
     expect(mockOnSave).toHaveBeenCalledWith(expect.arrayContaining([
@@ -88,13 +74,9 @@ describe('CameraConfigurationForm', () => {
   it('removes a slot', async () => {
     render(
       <ToastProvider>
-        <CameraConfigurationForm onSave={mockOnSave} onCancel={mockOnCancel} />
+        <CameraConfigurationForm initialCameras={mockCameras} onSave={mockOnSave} onCancel={mockOnCancel} />
       </ToastProvider>
     );
-
-    await waitFor(() => {
-      expect(camerasResource.list).toHaveBeenCalled();
-    });
 
     // Add a second slot
     const addBtn = screen.getByText(/\+ Add Another Camera/i);

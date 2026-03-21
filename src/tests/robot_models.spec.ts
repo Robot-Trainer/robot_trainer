@@ -4,10 +4,10 @@ import { dismissSetupWizard } from './helpers';
 
 test.describe('Robot Models CRUD', () => {
   test('create, edit, delete robot model', async ({ window, setIpcHandlers }) => {
-    const store: Record<string, any> = {};
+    const store: Record<string, unknown> = {};
     await setIpcHandlers({
       'get-config': async (key: string) => store[key] || [],
-      'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
+      'set-config': async (key: string, value: unknown) => { store[key] = value; return { ok: true }; }
     });
 
     await dismissSetupWizard(window);
@@ -19,9 +19,6 @@ test.describe('Robot Models CRUD', () => {
 
     await window.getByRole('textbox', { name: 'Name *', exact: true }).fill('Model Alpha');
     await window.getByRole('textbox', { name: 'Dir Name *' }).fill('model_alpha');
-    await window.getByRole('textbox', { name: 'Class Name *', exact: true }).fill('ModelAlphaClass');
-    await window.getByRole('textbox', { name: 'Config Class Name *' }).fill('ModelAlphaConfig');
-    await window.getByLabel('Properties').fill('{"family":"alpha"}');
     await window.getByLabel('Model XML').fill('<mujoco model="alpha"/>');
     await window.getByLabel('Model Path').fill('/tmp/model_alpha.xml');
     await window.getByLabel('Model Format').fill('xml');

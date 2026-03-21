@@ -1,9 +1,8 @@
-import { FullConfig } from '@playwright/test';
 import { spawnSync } from 'child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 
-export default async function globalSetup(_config: FullConfig) {
+export default async function globalSetup() {
   console.log('Global Setup: Starting...');
 
   // Fallback to :0 if DISPLAY is not set (e.g. local run without X11 or specific remote usage).
@@ -20,11 +19,10 @@ export default async function globalSetup(_config: FullConfig) {
   const nvmNodeBin = (() => {
     // 1. Try nvm via shell (flaky in non-interactive shells)
     const nvmDirEnv = process.env.NVM_DIR;
-    const homeDir = process.env.HOME || '/home/bernie';
+    const homeDir = process.env.HOME;
     const nvmDirs = [
       nvmDirEnv,
       path.join(homeDir, '.nvm'),
-      '/home/bernie/.nvm'
     ].filter(Boolean) as string[];
 
     // 2. Scan directories for versions

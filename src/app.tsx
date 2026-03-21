@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { SetupWizard } from './views/SetupWizard';
 import SystemSettings from './views/SystemSettings';
 import Datasets from './views/Datasets';
-import Cameras from './views/Cameras';
 import Robots from './views/Robots';
 import RobotModels from './views/RobotModels';
 import Skills from './views/Skills';
@@ -11,10 +10,9 @@ import useUIStore from "./lib/uiStore";
 import type { UIState } from './lib/uiStore';
 import { configResource } from './db/resources';
 import type { JsonObject } from './types/json';
-import type { SystemSettings } from './types/electron';
 
 
-import { Robot, Dataset, RobotConfiguration, Settings, Loader, Camera, Layout } from './icons';
+import { Robot, Dataset, RobotConfiguration, Settings, Loader, Layout } from './icons';
 import { VideoPlayer } from './ui/VideoPlayer';
 import { ToastProvider } from './ui/ToastContext';
 import { AdminControl } from './ui/AdminControl';
@@ -236,8 +234,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
         return <RobotModels />;
       case "skills":
         return <Skills />;
-      case "cameras":
-        return <Cameras />;
       case "setup":
         return <SetupWizard />;
       case "system-settings":
@@ -274,17 +270,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
               id="robots"
               icon={Robot}
               label="Robots"
-              active={activeTab}
-              onClick={(id) => {
-                setActiveTab(id);
-                setCurrentPage(id);
-                setResourceManagerShowForm(false);
-              }}
-            />
-            <NavItem
-              id="cameras"
-              icon={Camera}
-              label="Cameras"
               active={activeTab}
               onClick={(id) => {
                 setActiveTab(id);

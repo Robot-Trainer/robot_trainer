@@ -24,7 +24,7 @@ if (started) {
 
 console.log(`[feature-flags] enable-sim is ${featureFlags.enableSim ? 'enabled' : 'disabled'}`);
 
-let systemSettings: any = {featureFlags};
+let systemSettings: Record<string, unknown> = {featureFlags};
 
 const loadSystemSettings = async () => {
   // Ask the renderer (which owns the drizzle DB) for the settings.
@@ -41,14 +41,14 @@ const loadSystemSettings = async () => {
     mainWindow.webContents.send('request-load-system-settings');
 
     // Wait for renderer reply, with timeout fallback to existing file-based config
-    const data = await new Promise<any>((resolve) => {
+    const data = await new Promise<Record<string, unknown>>((resolve) => {
       ipcMain.once('reply-load-system-settings', (_ev, payload) => {
         resolve(payload || {});
       });
     });
 
     systemSettings = data || {};
-  } catch (e) {
+  } catch {
     throw ("Could not load the system data from the renderer's IndexedDb.")
   }
 };
@@ -60,9 +60,9 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
   if (systemSettings && systemSettings.condaRoot) {
     const candidate = path.join(systemSettings.condaRoot, process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'conda.exe' : 'conda');
     try {
-      const st = await fs.stat(candidate as any);
+      const st = await fs.stat(candidate);
       if (st.isFile()) return candidate;
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -71,9 +71,9 @@ const resolveCondaExecutable = async (): Promise<string | null> => {
   try {
     const userDataPath = app.getPath('userData');
     const candidate = path.join(userDataPath, 'miniconda3', 'bin', 'conda');
-    const st = await fs.stat(candidate as any);
+    const st = await fs.stat(candidate);
     if (st.isFile()) return candidate;
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -170,14 +170,14 @@ const setupIpcHandlers = () => {
     return migrations;
   });
 
-  ipcMain.handle('save-system-settings', async (_event, settings: any) => {
+  ipcMain.handle('save-system-settings', async (_event, settings: Record<string, unknown>) => {
     // Forward save request to renderer so it can persist via Drizzle (users table)
     try {
       if (mainWindow) {
         mainWindow.webContents.send('request-save-system-settings', settings);
 
         // Wait for renderer reply (with timeout fallback to file write)
-        const result = await new Promise<any>((resolve) => {
+        const result = await new Promise<Record<string, unknown>>((resolve) => {
           let done = false;
           const to = setTimeout(async () => {
             if (done) return;
@@ -282,9 +282,9 @@ const setupIpcHandlers = () => {
       mainWindow?.webContents.send('system-settings-changed', systemSettings);
 
       return { success: true, path: installPath };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error installing Miniconda:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
 
@@ -303,8 +303,8 @@ const setupIpcHandlers = () => {
 
           let out = '';
           let err = '';
-          child_pip_install.stdout.on('data', (d: any) => out += d);
-          child_pip_install.stderr.on('data', (d: any) => err += d);
+          child_pip_install.stdout.on('data', (d: Buffer | string) => out += d);
+          child_pip_install.stderr.on('data', (d: Buffer | string) => err += d);
           child_pip_install.on('close', (code) => {
             if (code !== 0) {
               resolve({ success: false, output: out + err });
@@ -314,7 +314,7 @@ const setupIpcHandlers = () => {
             // Resolve python path to safely install lerobot[hilserl] avoiding conda run shell issues
             const child_get_python = spawn(condaExec, ['run', '-n', 'robot_trainer', 'python', '-c', 'import sys; print(sys.executable)'], { stdio: ['ignore', 'pipe', 'pipe'] });
             let pythonExecutable = '';
-            child_get_python.stdout.on('data', (d: any) => pythonExecutable += d.toString());
+            child_get_python.stdout.on('data', (d: Buffer | string) => pythonExecutable += d.toString());
             child_get_python.on('close', (code) => {
               // If we got a python path, use it directly. Otherwise fallback to conda run (which might fail on brackets).
               const targetExec = (code === 0 && pythonExecutable.trim()) ? pythonExecutable.trim() : condaExec;
@@ -323,8 +323,8 @@ const setupIpcHandlers = () => {
                 : ['run', '-n', 'robot_trainer', 'python', '-m', 'pip', 'install', 'lerobot[hilserl]', 'python-socketio', 'aiohttp'];
 
               const child_hil_install = spawn(targetExec, targetArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-              child_hil_install.stdout.on('data', (d: any) => out += d);
-              child_hil_install.stderr.on('data', (d: any) => err += d);
+              child_hil_install.stdout.on('data', (d: Buffer | string) => out += d);
+              child_hil_install.stderr.on('data', (d: Buffer | string) => err += d);
               child_hil_install.on('close', (code) => {
                 resolve({ success: code === 0, output: out + err });
               });
@@ -332,7 +332,7 @@ const setupIpcHandlers = () => {
                 resolve({ success: false, output: String(e) });
               });
             });
-            child_get_python.on('error', (e) => {
+            child_get_python.on('error', () => {
               // If resolving python fails, try continuing with conda run fallback in the next step logic (handled above)
               // or just fail. Here we rely on the close handler logic which defaults to condaExec if pythonExecutable is empty.
             });
@@ -355,8 +355,8 @@ const setupIpcHandlers = () => {
 
         let out = '';
         let err = '';
-        child_hil.stdout.on('data', (d: any) => out += d);
-        child_hil.stderr.on('data', (d: any) => err += d);
+        child_hil.stdout.on('data', (d: Buffer | string) => out += d);
+        child_hil.stderr.on('data', (d: Buffer | string) => err += d);
         child_hil.on('close', (code) => {
           resolve({ success: code === 0, output: out + err });
         });
@@ -364,8 +364,8 @@ const setupIpcHandlers = () => {
           resolve({ success: false, output: String(e) });
         });
       });
-    } catch (e: any) {
-      return { success: false, error: e.message };
+    } catch (e: unknown) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
   });
 
@@ -397,7 +397,7 @@ const setupIpcHandlers = () => {
         child.on('close', (code) => resolve({ installed: code === 0 }));
         child.on('error', () => resolve({ installed: false }));
       });
-    } catch (e) {
+    } catch {
       return { installed: false };
     }
   });
@@ -511,7 +511,7 @@ const setupIpcHandlers = () => {
     } catch { /* ignore */ }
 
     // If we reach here, nothing matched. Close window to avoid showing app index.
-    try { win.close(); } catch (e) { /**/ }
+    try { win.close(); } catch { /**/ }
     return { ok: false, error: 'Could not locate pglite-admin index.html' };
   });
 
@@ -530,14 +530,14 @@ const setupIpcHandlers = () => {
         try {
           const st = await fs.stat(homeCandidate);
           if (st && st.isDirectory()) { condaRoot = homeCandidate; break; }
-        } catch (e) {
+        } catch {
           // ignore
         }
         const userDataCandidate = path.join(userData, candidate);
         try {
           const st2 = await fs.stat(userDataCandidate);
           if (st2 && st2.isDirectory()) { condaRoot = userDataCandidate; break; }
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
@@ -552,7 +552,7 @@ const setupIpcHandlers = () => {
           condaAvailable = true;
           condaVersion = String(result.stdout).trim();
         }
-      } catch (e) {
+      } catch {
         // not available
       }
 
@@ -584,19 +584,19 @@ const setupIpcHandlers = () => {
               try {
                 const st = await fs.stat(c);
                 if (st.isFile()) { foundExec = c; break; }
-              } catch (e) {
+              } catch {
                 // ignore
               }
             }
             envs.push({ name: envName, pythonPath: foundExec });
           }
-        } catch (e) {
+        } catch {
           // no envs dir or unreadable
         }
       }
 
       return { found: true, path: condaRoot, envs, platform: process.platform, condaAvailable, condaVersion };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error checking Anaconda envs:', error);
       return { found: false, path: null, envs: [], platform: process.platform, error: String(error) };
     }
@@ -652,7 +652,7 @@ const setupIpcHandlers = () => {
           try {
             const st = await fs.stat(c);
             if (st && st.isFile()) { chosen = c; break; }
-          } catch (e) {
+          } catch {
             // ignore
           }
         }
@@ -694,7 +694,7 @@ const setupIpcHandlers = () => {
                   try {
                     const st = await fs.stat(envPython);
                     if (!st.isFile()) throw new Error('python not found');
-                  } catch (e) {
+                  } catch {
                     // Try to install python into the env
                     try {
                       await new Promise<void>((res, rej) => {
@@ -702,7 +702,7 @@ const setupIpcHandlers = () => {
                         installer.on('close', (c) => c === 0 ? res() : rej(new Error('failed to install python')));
                         installer.on('error', rej);
                       });
-                    } catch (_e) {
+                    } catch {
                       // ignore; env may still be usable via conda run
                     }
                   }
@@ -716,7 +716,7 @@ const setupIpcHandlers = () => {
                   systemSettings = { ...systemSettings, pythonPath: envPython };
                 }
                 mainWindow?.webContents.send('system-settings-changed', systemSettings);
-              } catch (e) {
+              } catch {
                 // ignore errors here
               }
             }
@@ -727,13 +727,13 @@ const setupIpcHandlers = () => {
           resolve({ success: false, code: -1, output: String(e) });
         });
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating conda env:', error);
       return { success: false, code: -1, output: String(error) };
     }
   });
 
-  ipcMain.handle('save-robot-config', async (_event, config: any) => {
+  ipcMain.handle('save-robot-config', async (_event, config: Record<string, unknown>) => {
     try {
       const home = app.getPath('home');
       const dir = path.join(home, 'robot_trainer');
@@ -832,9 +832,9 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('scan-mujoco-menagerie', async () => {
     const menageriePath = path.join(process.cwd(), 'mujoco_menagerie');
-    const results = {
-      robots: [] as any[],
-      configurations: [] as any[]
+    const results: { robots: Record<string, unknown>[]; configurations: Record<string, unknown>[] } = {
+      robots: [],
+      configurations: []
     };
 
     try {
@@ -935,7 +935,7 @@ const setupIpcHandlers = () => {
       try {
         const data = await fs.readFile(p);
         return data.toString('base64');
-      } catch (_e) {
+      } catch {
         // try next
       }
     }
@@ -988,11 +988,11 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
-};;
+};
 
 const setupAppMenu = () => {
   const isMac = process.platform === 'darwin';
-  const template: any[] = [
+  const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
       submenu: [
@@ -1018,7 +1018,7 @@ const setupAppMenu = () => {
     });
   }
 
-  const menu = Menu.buildFromTemplate(template as any);
+  const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 };
 

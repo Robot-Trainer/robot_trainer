@@ -4,12 +4,6 @@ export async function expectPageScreenshot(window: Page) {
   await expect(window).toHaveScreenshot({
     caret: 'hide',
     maxDiffPixelRatio: 0.02,
-    mask: [
-      // window.getByText(/^Created:/),
-      // window.getByText(/^Updated:/),
-      // window.locator('[role="presentation"]'),
-      // window.locator('[role="alert"]'),
-    ],
   });
 }
 
@@ -17,7 +11,7 @@ export async function dismissSetupWizard(window: Page) {
   if (window.isClosed()) return;
 
   await window
-    .waitForFunction(() => (window as any).__appIdle === true, {}, { timeout: 8000 })
+    .waitForFunction(() => (window as unknown as Record<string, unknown>).__appIdle === true, {}, { timeout: 8000 })
     .catch(() => { /* ignore idle timeout and continue best effort */ });
 
   const wizard = window.getByRole('heading', { name: 'Environment Setup', exact: true });
@@ -46,4 +40,8 @@ export async function dismissSetupWizard(window: Page) {
     await wizard.waitFor({ state: 'hidden', timeout: 1200 }).catch(() => { /* ignore */ });
     await window.waitForTimeout(120).catch(() => { /* ignore */ });
   }
+}
+
+export async function waitForLoadingIndicator(window: Page) {
+    return await window.waitForFunction(() => !document.querySelector('#loading-env'), undefined, { timeout: 60000 });
 }

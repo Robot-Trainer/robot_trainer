@@ -8,8 +8,8 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await dismissSetupWizard(window);
 
     await window.evaluate(() => {
-      const win = window as any;
-      win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+      const win = window as unknown as Record<string, unknown>;
+      win.electronAPI.onRequestSaveSystemSettings((settings: Record<string, unknown>) => {
         // pretend save OK
         win.electronAPI.replySaveSystemSettings({ success: true, settings });
       });
@@ -28,7 +28,7 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
     await window.evaluate(() => {
-      const win = window as any;
+      const win = window as unknown as Record<string, unknown>;
       win.electronAPI.onRequestSaveSystemSettings(() => {
         // simulate failure
         win.electronAPI.replySaveSystemSettings({ success: false, error: 'disk full' });
@@ -58,8 +58,8 @@ test.describe('System Settings integration with ConfigManager IPC', () => {
     await setIpcHandlers({});
     await dismissSetupWizard(window);
     await window.evaluate(() => {
-      const win = window as any;
-      win.electronAPI.onRequestSaveSystemSettings((settings: any) => {
+      const win = window as unknown as Record<string, unknown>;
+      win.electronAPI.onRequestSaveSystemSettings((settings: Record<string, unknown>) => {
         win.electronAPI.replySaveSystemSettings({ success: true, settings });
       });
     });

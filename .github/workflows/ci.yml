@@ -8,23 +8,40 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
     env:
       DATABASE_URL: "postgres://dummy:dummy@localhost:5432/dummy" # Required by drizzle.config.ts
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      # If you wish to fail your job when the Quality Gate is red, uncomment the
+      # following lines. This would typically be used to fail a deployment.
+      # - uses: SonarSource/sonarqube-quality-gate-action@v1
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.16.0'
+          node-version: '24.14.0'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@robot-trainer'
           cache: 'npm'
 
       - name: Pin npm version
-        run: npm install -g npm@11.4.1
+        run: npm install -g npm@10.9.2
 
       - name: Install Node Dependencies
         run: npm ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
@@ -36,9 +53,6 @@ jobs:
         run: npm run test
 
       - name: Build and E2E Tests
-        # env:
-        #  DEBUG: pw:browser*
-        # Force 1 worker for stability and compatibility with limited CI runners
         run: |
           # npm run download-ffmpeg
           npm run db:generate

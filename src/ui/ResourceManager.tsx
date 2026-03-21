@@ -23,21 +23,27 @@ import { Delete } from "@mui/icons-material";
 import { useToast } from "./ToastContext";
 import { Button } from "./Button";
 import useUIStore from "../lib/uiStore";
+import type { UIState } from "../lib/uiStore";
 import { tableResource } from "../db/tableResource";
+import type { GridRenderCellParams } from '@mui/x-data-grid';
 
-type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: any; isJson?: boolean };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DrizzleTable = Record<string, any>;
+type ResourceRecord = Record<string, unknown>;
+
+type Field = { name: string; label: string; type?: "text" | "number" | "select"; required?: boolean; options?: string[]; defaultValue?: unknown; isJson?: boolean };
 
 export type GridCol = {
   field: string;
   headerName: string;
-  render?: (row: any) => React.ReactNode;
+  render?: (row: ResourceRecord) => React.ReactNode;
 };
 
 type ResourceAPI = {
-  list: () => Promise<any[]>;
-  create: (item: any) => Promise<any>;
-  update: (id: string, item: any) => Promise<any>;
-  delete: (id: string) => Promise<any>;
+  list: () => Promise<ResourceRecord[]>;
+  create: (item: ResourceRecord) => Promise<ResourceRecord>;
+  update: (id: string, item: ResourceRecord) => Promise<ResourceRecord>;
+  delete: (id: string) => Promise<unknown>;
 };
 
 type Props = {
@@ -45,20 +51,22 @@ type Props = {
   // either supply a resource API directly
   resource?: ResourceAPI;
   // or supply a drizzle `table` to reflect fields and build a resource
-  table?: any;
+  table?: DrizzleTable;
   fields?: Field[];
   gridCols?: GridCol[];
   renderForm?: (opts: {
     onCancel: () => void;
-    onSaved: (item: any) => void;
-    initialData?: any;
+    onSaved: (item: ResourceRecord) => void;
+    onRefresh?: () => Promise<void>;
+
+    initialData?: ResourceRecord;
   }) => React.ReactNode;
 };
 
 import { Input } from './Input';
 import { Select } from './Select';
 
-const formatFieldValueForForm = (field: Field, value: any) => {
+const formatFieldValueForForm = (field: Field, value: unknown): unknown => {
   if (field.isJson && value !== undefined && value !== null && value !== "") {
     if (typeof value === "string") return value;
     try {
@@ -71,7 +79,7 @@ const formatFieldValueForForm = (field: Field, value: any) => {
 };
 
 const emptyFromFields = (fields?: Field[]) => {
-  const o: any = {};
+  const o: ResourceRecord = {};
   for (const f of (fields || [])) {
     const defaultValue = f.defaultValue !== undefined ? f.defaultValue : "";
     o[f.name] = formatFieldValueForForm(f, defaultValue);
@@ -88,12 +96,12 @@ export const ResourceManager: React.FC<Props> = ({
   renderForm,
 }) => {
   const toast = useToast();
-  const [items, setItems] = useState<any[]>([]);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [items, setItems] = useState<ResourceRecord[]>([]);
+  const [editing, setEditing] = useState<ResourceRecord | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<ResourceRecord | null>(null);
 
   // build a resource from table when provided (memoized)
   const fullTableResource = useMemo(() => {
@@ -102,12 +110,12 @@ export const ResourceManager: React.FC<Props> = ({
       // lazy require to avoid circular deps at module load
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       return tableResource(table);
-    } catch (e) {
+    } catch {
       return null;
     }
   }, [table]);
 
-  const activeResource: ResourceAPI = (resource as any) || (fullTableResource as any);
+  const activeResource: ResourceAPI = (resource || fullTableResource) as ResourceAPI;
 
   // infer fields from table columns if not provided
   const inferredFields = useMemo<Field[]>(() => {
@@ -120,7 +128,7 @@ export const ResourceManager: React.FC<Props> = ({
             const cols = getTableColumns(table);
             return fields.map((f) => {
               const col = cols[f.name];
-              const isEnum = (col as any).enumValues && Array.isArray((col as any).enumValues);
+              const isEnum = !!(col as Record<string, unknown>).enumValues && Array.isArray((col as Record<string, unknown>).enumValues);
               return {
                 ...f,
                 type:
@@ -133,12 +141,12 @@ export const ResourceManager: React.FC<Props> = ({
                   f.required !== undefined
                     ? f.required
                     : col?.notNull && !col?.hasDefault,
-                options: isEnum ? (col as any).enumValues : undefined,
-                defaultValue: (col as any).default,
+                options: isEnum ? (col as Record<string, unknown>).enumValues as string[] : undefined,
+                defaultValue: (col as Record<string, unknown>).default,
                 isJson: col?.dataType === "json",
               };
             });
-          } catch (e) { /* ignore */ }
+          } catch { /* ignore */ }
         }
         return fields;
       }
@@ -156,7 +164,7 @@ export const ResourceManager: React.FC<Props> = ({
             const col = cols[k];
             const isNumber =
               col.dataType === "number" || col.dataType === "integer";
-            const isEnum = (col as any).enumValues && Array.isArray((col as any).enumValues);
+            const isEnum = !!(col as Record<string, unknown>).enumValues && Array.isArray((col as Record<string, unknown>).enumValues);
             return {
               name: k,
               label: k
@@ -164,12 +172,12 @@ export const ResourceManager: React.FC<Props> = ({
                 .replace(/^./, (s) => s.toUpperCase()),
               type: isEnum ? "select" : (isNumber ? "number" : "text"),
               required: col.notNull && !col.hasDefault,
-              options: isEnum ? (col as any).enumValues : undefined,
-              defaultValue: (col as any).default,
+              options: isEnum ? (col as Record<string, unknown>).enumValues as string[] : undefined,
+              defaultValue: (col as Record<string, unknown>).default,
               isJson: col?.dataType === "json",
             };
           });
-      } catch (e) {
+      } catch {
         // Fallback
         return Object.keys(table)
           .filter((k) => k !== "id" && k !== "enableRLS")
@@ -185,9 +193,9 @@ export const ResourceManager: React.FC<Props> = ({
     return computedFields.filter((f) => !["createdAt", "created_at", "updatedAt", "updated_at"].includes(f.name));
   }, [fields, table]);
 
-  const [form, setForm] = useState<any>(emptyFromFields(inferredFields));
-  const showForm = useUIStore((s: any) => s.resourceManagerShowForm);
-  const setShowForm = useUIStore((s: any) => s.setResourceManagerShowForm);
+  const [form, setForm] = useState<ResourceRecord>(emptyFromFields(inferredFields));
+  const showForm = useUIStore((s: UIState) => s.resourceManagerShowForm);
+  const setShowForm = useUIStore((s: UIState) => s.setResourceManagerShowForm);
   const [loading, setLoading] = useState(false);
 
 
@@ -219,8 +227,8 @@ export const ResourceManager: React.FC<Props> = ({
     setShowForm(true);
   };
 
-  const onEdit = (item: any) => {
-    const normalizedForm: any = { ...item };
+  const onEdit = (item: ResourceRecord) => {
+    const normalizedForm: ResourceRecord = { ...item };
     for (const f of inferredFields) {
       normalizedForm[f.name] = formatFieldValueForForm(f, item?.[f.name]);
     }
@@ -231,7 +239,7 @@ export const ResourceManager: React.FC<Props> = ({
     setShowForm(true);
   };
 
-  const validate = (data: any) => {
+  const validate = (data: ResourceRecord) => {
     const newErrors: Record<string, string> = {};
     for (const f of inferredFields) {
       const val = data[f.name];
@@ -256,7 +264,7 @@ export const ResourceManager: React.FC<Props> = ({
     return newErrors;
   };
 
-  const onSave = async (overrideData?: any) => {
+  const onSave = async (overrideData?: ResourceRecord) => {
     setErrors({});
     setSaveError(null);
 
@@ -334,19 +342,19 @@ export const ResourceManager: React.FC<Props> = ({
       await load();
       setDeleteConfirmOpen(false);
       setItemToDelete(null);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       if (toast && toast.error) {
-        toast.error(`Could not delete item: ${e.message}`);
+        toast.error(`Could not delete item: ${e instanceof Error ? e.message : String(e)}`);
       } else {
-        alert(`Could not delete item: ${e.message}`);
+        alert(`Could not delete item: ${e instanceof Error ? e.message : String(e)}`);
       }
       // Reload to ensure consistency
       await load();
     }
   };
 
-  const requestDelete = (item: any) => {
+  const requestDelete = (item: ResourceRecord) => {
     setItemToDelete(item);
     setDeleteConfirmOpen(true);
   };
@@ -357,8 +365,8 @@ export const ResourceManager: React.FC<Props> = ({
       headerName: c.headerName,
       flex: 1,
       minWidth: 150,
-      renderCell: c.render ? (params: any) => c.render!(params.row) : (params: any) => {
-        return params.row[c.field] || (c.field === "name" && "(unnamed)");
+      renderCell: c.render ? (params: GridRenderCellParams) => c.render!(params.row as ResourceRecord) : (params: GridRenderCellParams) => {
+        return (params.row as ResourceRecord)[c.field] || (c.field === "name" && "(unnamed)");
       },
     }));
 
@@ -368,25 +376,26 @@ export const ResourceManager: React.FC<Props> = ({
       width: 60,
       sortable: false,
       filterable: false,
-      renderCell: (params: any) => (
+      renderCell: (params: GridRenderCellParams) => (
           <Tooltip title="Delete">
             <IconButton
               size="small"
               color="error"
               
-              onClick={(e) => { e.stopPropagation(); requestDelete(params.row); }}
+              onClick={(e) => { e.stopPropagation(); requestDelete(params.row as ResourceRecord); }}
             >
               <Delete fontSize="small"/>
             </IconButton>
           </Tooltip>
       ),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     return cols;
   }, [gridCols, onEdit]);
 
-  // Helper to prevent row click when clicking actions
-  const stopProp = (e: any) => e.stopPropagation();
+  // Helper to prevent row click when clicking actions — currently unused
+  // const _stopProp = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
     <Box>
@@ -450,9 +459,10 @@ export const ResourceManager: React.FC<Props> = ({
                   setShowForm(false);
                   setEditing(null);
                 },
-                onSaved: async (item: any) => {
+                onSaved: async (item: ResourceRecord) => {
                   return await onSave(item);
                 },
+                onRefresh: async () => await load(),
                 initialData: editing || undefined,
               })
             ) : (
@@ -507,7 +517,7 @@ export const ResourceManager: React.FC<Props> = ({
                             label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
-                              setForm((prev: any) => ({
+                              setForm((prev: ResourceRecord) => ({
                                 ...prev,
                                 [f.name]: e.target.value,
                               }))
@@ -519,7 +529,7 @@ export const ResourceManager: React.FC<Props> = ({
                             label={`${f.label}${f.required ? " *" : ""}`}
                             value={form[f.name] ?? ""}
                             onChange={(e) =>
-                              setForm((prev: any) => ({
+                              setForm((prev: ResourceRecord) => ({
                                 ...prev,
                                 [f.name]: e.target.value,
                               }))

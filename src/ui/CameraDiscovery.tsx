@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   Box,
   Stack,
@@ -7,30 +7,31 @@ import {
   Paper,
   IconButton,
   CircularProgress,
-} from '@mui/material';
-import VideocamIcon from '@mui/icons-material/Videocam';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import Button from './Button';
-import Input from './Input';
-import Select from './Select';
-import Badge from './Badge';
+} from "@mui/material";
+import {CameraEntry} from "../db/schema";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import UiButton from "./Button";
+import UiInput from "./Input";
+import UiSelect from "./Select";
+import Badge from "./Badge";
 
-export interface CameraEntry {
-  name: string;
-  deviceId: string;
-  deviceLabel: string;
-  stream: MediaStream;
-}
 
 interface CameraDiscoveryProps {
   /** Currently added cameras */
   cameras: CameraEntry[];
   /** Called when a camera is added */
-  onAdd: (camera: CameraEntry) => void;
+  onAdd?: (camera: CameraEntry) => void;
   /** Called when a camera is removed by name */
-  onRemove: (name: string) => void;
+  onRemove?: (name: string) => void;
+
+  /** Single selection mode props */
+  mode?: "list" | "single";
+  initialDeviceId?: string;
+  initialName?: string;
+  onSelectionChange?: (data: { deviceId: string; name: string }) => void;
 }
 
 /**
@@ -45,15 +46,43 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
   cameras,
   onAdd,
   onRemove,
+  mode = "list",
+  initialDeviceId = "",
+  initialName = "",
+  onSelectionChange,
 }) => {
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
+    [],
+  );
+  const [selectedDeviceId, setSelectedDeviceId] =
+    useState<string>(initialDeviceId);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cameraName, setCameraName] = useState('');
-  const [permissionState, setPermissionState] = useState<string>('unknown');
+  const [cameraName, setCameraName] = useState(initialName);
+  const [permissionState, setPermissionState] = useState<string>("unknown");
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Notify parent of changes in single mode
+  useEffect(() => {
+    if (mode === "single" && onSelectionChange) {
+      onSelectionChange({ deviceId: selectedDeviceId, name: cameraName });
+    }
+  }, [selectedDeviceId, cameraName, mode, onSelectionChange]);
+
+  // Initial load if we have an initial device ID
+  useEffect(() => {
+    if (initialDeviceId && availableCameras.length === 0 && !isLoading) {
+      loadCameras().then(() => {
+        // After loading, we might need to ensure the preview is started for the initial device
+        // But loadCameras auto-selects first if no selection.
+        // If we have selectedDeviceId (from initial), we should switch to it.
+        if (initialDeviceId) {
+          switchPreview(initialDeviceId);
+        }
+      });
+    }
+  }, [initialDeviceId]);
 
   // Attach preview stream to video element
   useEffect(() => {
@@ -87,7 +116,7 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
       // Check permission status
       try {
         const perm = await navigator.permissions.query({
-          name: 'camera' as PermissionName,
+          name: "camera" as PermissionName,
         });
         setPermissionState(perm.state);
       } catch {
@@ -96,16 +125,18 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
 
       // Enumerate devices
       let devices = await navigator.mediaDevices.enumerateDevices();
-      let videoDevices = devices.filter((d) => d.kind === 'videoinput');
+      let videoDevices = devices.filter((d) => d.kind === "videoinput");
 
       // If labels are missing, request permission first
       const hasLabels = videoDevices.some((d) => d.label);
       if (!hasLabels && videoDevices.length > 0) {
-        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const tempStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
         devices = await navigator.mediaDevices.enumerateDevices();
-        videoDevices = devices.filter((d) => d.kind === 'videoinput');
+        videoDevices = devices.filter((d) => d.kind === "videoinput");
         tempStream.getTracks().forEach((t) => t.stop());
-        setPermissionState('granted');
+        setPermissionState("granted");
       }
 
       setAvailableCameras(videoDevices);
@@ -114,9 +145,9 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
       if (videoDevices.length > 0 && !selectedDeviceId) {
         await switchPreview(videoDevices[0].deviceId);
       }
-    } catch (e: any) {
-      setPermissionState('denied');
-      setError(e.message || String(e));
+    } catch (e: unknown) {
+      setPermissionState("denied");
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsLoading(false);
     }
@@ -140,16 +171,18 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
 
         setPreviewStream(newStream);
         setSelectedDeviceId(deviceId);
-      } catch (e: any) {
-        setError(`Failed to access camera: ${e.message || String(e)}`);
+      } catch (e: unknown) {
+        setError(
+          `Failed to access camera: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
     },
-    [previewStream]
+    [previewStream],
   );
 
   const handleAdd = useCallback(() => {
     if (!cameraName.trim()) {
-      setError('Please enter a camera name');
+      setError("Please enter a camera name");
       return;
     }
     if (cameras.some((c) => c.name === cameraName.trim())) {
@@ -157,24 +190,36 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
       return;
     }
     if (!previewStream || !selectedDeviceId) {
-      setError('Please select and preview a camera first');
+      setError("Please select and preview a camera first");
       return;
     }
 
     // Clone the stream for recording/storage
     const clonedStream = previewStream.clone();
-    const device = availableCameras.find((c) => c.deviceId === selectedDeviceId);
+    const device = availableCameras.find(
+      (c) => c.deviceId === selectedDeviceId,
+    );
 
-    onAdd({
-      name: cameraName.trim(),
-      deviceId: selectedDeviceId,
-      deviceLabel: device?.label || `Camera ${selectedDeviceId.slice(0, 8)}...`,
-      stream: clonedStream,
-    });
+    if (onAdd) {
+      onAdd({
+        name: cameraName.trim(),
+        deviceId: selectedDeviceId,
+        deviceLabel:
+          device?.label || `Camera ${selectedDeviceId.slice(0, 8)}...`,
+        stream: clonedStream,
+      });
+    }
 
-    setCameraName('');
+    setCameraName("");
     setError(null);
-  }, [cameraName, cameras, previewStream, selectedDeviceId, availableCameras, onAdd]);
+  }, [
+    cameraName,
+    cameras,
+    previewStream,
+    selectedDeviceId,
+    availableCameras,
+    onAdd,
+  ]);
 
   const handleRemove = useCallback(
     (name: string) => {
@@ -182,48 +227,69 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
       if (cam) {
         cam.stream.getTracks().forEach((t) => t.stop());
       }
-      onRemove(name);
+      if (onRemove) onRemove(name);
     },
-    [cameras, onRemove]
+    [cameras, onRemove],
   );
 
   return (
-    <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+    <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
       <Stack spacing={2}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
           <Typography variant="h6" fontSize="1rem">
             Camera Discovery
           </Typography>
-          <Button variant="ghost" onClick={loadCameras} disabled={isLoading}>
+          <UiButton variant="ghost" onClick={loadCameras} disabled={isLoading}>
             <Stack direction="row" spacing={1} alignItems="center">
-              {isLoading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
-              <span>{isLoading ? 'Scanning...' : 'Detect Cameras'}</span>
+              {isLoading ? (
+                <CircularProgress size={16} />
+              ) : (
+                <RefreshIcon fontSize="small" />
+              )}
+              <span>{isLoading ? "Scanning..." : "Detect Cameras"}</span>
             </Stack>
-          </Button>
+          </UiButton>
         </Stack>
 
-        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-        {permissionState === 'denied' && (
+        {permissionState === "denied" && (
           <Alert severity="warning">
-            Camera permission denied. Please allow camera access in your browser settings.
+            Camera permission denied. Please allow camera access in your browser
+            settings.
           </Alert>
         )}
 
         {availableCameras.length === 0 && !isLoading ? (
-          <Typography variant="body2" color="textSecondary" align="center" sx={{ py: 2 }}>
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            align="center"
+            sx={{ py: 2 }}
+          >
             Click &quot;Detect Cameras&quot; to find connected video devices.
           </Typography>
         ) : (
           <>
             {/* Camera selector */}
             {availableCameras.length > 0 && (
-              <Select
+              <UiSelect
                 label="Select Camera Device"
                 value={selectedDeviceId}
-                onChange={(e: any) => switchPreview(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  switchPreview(e.target.value)
+                }
                 options={availableCameras.map((cam) => ({
-                  label: cam.label || `Camera (${cam.deviceId.slice(0, 12)}...)`,
+                  label:
+                    cam.label || `Camera (${cam.deviceId.slice(0, 12)}...)`,
                   value: cam.deviceId,
                 }))}
               />
@@ -234,11 +300,11 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
               <Box
                 sx={{
                   borderRadius: 1,
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'black',
-                  position: 'relative',
+                  overflow: "hidden",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "black",
+                  position: "relative",
                 }}
               >
                 <video
@@ -246,12 +312,12 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
                   autoPlay
                   playsInline
                   muted
-                  style={{ width: '100%', display: 'block', maxHeight: 300 }}
+                  style={{ width: "100%", display: "block", maxHeight: 300 }}
                 />
                 <Badge
                   label="Live Preview"
                   color="green"
-                  sx={{ position: 'absolute', top: 8, right: 8 }}
+                  sx={{ position: "absolute", top: 8, right: 8 }}
                 />
               </Box>
             )}
@@ -260,33 +326,43 @@ export const CameraDiscovery: React.FC<CameraDiscoveryProps> = ({
             {previewStream && (
               <Stack direction="row" spacing={1} alignItems="flex-end">
                 <Box sx={{ flexGrow: 1 }}>
-                  <Input
+                  <UiInput
                     label="Camera Name"
                     value={cameraName}
-                    onChange={(e: any) => setCameraName(e.target.value)}
+                    onChange={(
+                      e: React.ChangeEvent<
+                        HTMLInputElement | HTMLTextAreaElement
+                      >,
+                    ) => setCameraName(e.target.value)}
                     placeholder="e.g. main, wrist, overhead"
                   />
                 </Box>
-                <Button onClick={handleAdd}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <AddIcon fontSize="small" />
-                    <span>Add Camera</span>
-                  </Stack>
-                </Button>
+                {mode === "list" && (
+                  <UiButton onClick={handleAdd}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <AddIcon fontSize="small" />
+                      <span>Add Camera</span>
+                    </Stack>
+                  </UiButton>
+                )}
               </Stack>
             )}
           </>
         )}
 
         {/* Added cameras list */}
-        {cameras.length > 0 && (
+        {mode === "list" && cameras.length > 0 && (
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Added Cameras ({cameras.length})
             </Typography>
             <Stack spacing={1}>
               {cameras.map((cam) => (
-                <CameraCard key={cam.name} camera={cam} onRemove={handleRemove} />
+                <CameraCard
+                  key={cam.name}
+                  camera={cam}
+                  onRemove={handleRemove}
+                />
               ))}
             </Stack>
           </Box>
@@ -322,8 +398,8 @@ const CameraCard: React.FC<{
             width: 120,
             height: 68,
             borderRadius: 0.5,
-            overflow: 'hidden',
-            bgcolor: 'black',
+            overflow: "hidden",
+            bgcolor: "black",
             flexShrink: 0,
           }}
         >
@@ -332,7 +408,7 @@ const CameraCard: React.FC<{
             autoPlay
             playsInline
             muted
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </Box>
         <Box flexGrow={1}>
@@ -344,7 +420,11 @@ const CameraCard: React.FC<{
             {camera.deviceLabel}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={() => onRemove(camera.name)} color="error">
+        <IconButton
+          size="small"
+          onClick={() => onRemove(camera.name)}
+          color="error"
+        >
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Stack>

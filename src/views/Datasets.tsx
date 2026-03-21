@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
-import ResourceManager, { GridCol } from '../ui/ResourceManager';
+import { ResourceManager, GridCol } from '../ui/ResourceManager';
 import { datasetsTable, scenesTable, skillsTable } from '../db/schema';
-import DatasetForm from './DatasetForm';
+import { DatasetForm } from './DatasetForm';
 import { tableResource } from '../db/tableResource';
 import { db } from '../db/db';
 import { eq, getTableColumns } from 'drizzle-orm';

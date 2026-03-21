@@ -1,20 +1,34 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import ResourceManager from '../ui/ResourceManager';
+import { ResourceManager, type GridCol } from '../ui/ResourceManager';
 import { robotsTable } from '../db/schema';
 import RobotForm from './RobotForm';
+import Badge from '../ui/Badge';
+
+const modalityBadgeColor = (modality: string): "green" | "blue" | "gray" => {
+  if (modality === "real") return "green";
+  if (modality === "simulated") return "blue";
+  return "gray";
+};
 
 
 const gridCols: GridCol[] = [
   {
     field: "name",
     headerName: "Name",
-    render: (row: any) => row.name
+    render: (row: Record<string, unknown> & { name?: string, modality?: string }) => row.name
   },
   {
     field: "modality",
     headerName: "Modality",
-    render: (row: any) => row.modality
+    render: (row: Record<string, unknown> & { name?: string, modality?: string }) => (
+                  <Badge
+              key={row.modality}
+              variant="outlined"
+              label={row.modality}
+              color={modalityBadgeColor(row.modality)}
+            />
+    )
   },
 ];
 

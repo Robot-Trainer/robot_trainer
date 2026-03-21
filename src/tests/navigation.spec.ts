@@ -4,10 +4,10 @@ import { dismissSetupWizard, expectPageScreenshot } from './helpers';
 
 test.describe('Navigation resets ResourceManager form', () => {
   test('opening form then navigating away clears showForm state', async ({ window, setIpcHandlers }) => {
-    const store: Record<string, any> = {};
+    const store: Record<string, unknown> = {};
     await setIpcHandlers({
       'get-config': async (key: string) => store[key] || [],
-      'set-config': async (key: string, value: any) => { store[key] = value; return { ok: true }; }
+      'set-config': async (key: string, value: unknown) => { store[key] = value; return { ok: true }; }
     });
 
     await dismissSetupWizard(window);
@@ -17,10 +17,6 @@ test.describe('Navigation resets ResourceManager form', () => {
     await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
     await expect(window.getByRole('button', { name: 'Add Robot' })).toBeVisible();
 
-    await window.getByRole('button', { name: 'Cameras' }).click();
-    await expect(window.getByRole('heading', { name: 'Cameras' })).toBeVisible();
-    await expect(window.getByRole('button', { name: 'Add Camera' })).toBeVisible();
-    await dismissSetupWizard(window);
     await window.getByRole('button', { name: 'Datasets' }).click();
     await expect(window.getByRole('heading', { name: 'Datasets' })).toBeVisible();
     await expect(window.getByRole('button', { name: 'Add Dataset' })).toBeVisible();

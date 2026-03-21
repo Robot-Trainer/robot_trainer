@@ -18,11 +18,11 @@ vi.mock('../db/db', async () => {
 });
 
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
-vi.mock('../lib/uiStore', () => ({ default: (cb: any) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
+vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Record<string, unknown>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
 describe('RobotModelsView', () => {
   beforeAll(async () => {
-    (window as any).electronAPI = {
+    (window as unknown as Record<string, unknown>).electronAPI = {
       getMigrations: async () => readMigrationFiles({ migrationsFolder: path.resolve(__dirname, '../../drizzle') })
     };
     await migrate();
@@ -37,9 +37,8 @@ describe('RobotModelsView', () => {
     expect(robotModelFields.map((f) => f.name)).toEqual([
       'name',
       'dirName',
-      'className',
-      'configClassName',
-      'properties',
+      'simProperties',
+      'realProperties',
       'modelXml',
       'modelPath',
       'modelFormat',
@@ -50,9 +49,7 @@ describe('RobotModelsView', () => {
     const model = await tableResource(robotModelsTable).create({
       name: 'Delete Model',
       dirName: 'delete_model',
-      className: 'DeleteModelClass',
-      configClassName: 'DeleteModelConfig',
-      properties: {},
+      simProperties: {},
     });
 
     const robot = await tableResource(robotsTable).create({
@@ -84,10 +81,8 @@ describe('RobotModelsView', () => {
     await tableResource(robotModelsTable).create({
       name: 'Metadata Model',
       dirName: 'metadata_model',
-      className: 'MetadataClass',
-      configClassName: 'MetadataConfig',
       supportedModalities: ['real', 'simulated'],
-      properties: {
+      simProperties: {
         jointNames: ['j1', 'j2', 'j3'],
         actuatorNames: ['a1', 'a2'],
         hasGripper: true,

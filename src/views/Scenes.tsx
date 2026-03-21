@@ -1,8 +1,8 @@
 import React from "react";
-import ResourceManager, { GridCol } from "../ui/ResourceManager";
+import ResourceManagerView, { GridCol } from "../ui/ResourceManager";
 import { scenesTable } from "../db/schema";
 import { scenesResource } from "../db/resources";
-import SceneForm from "./SceneForm";
+import SceneFormView from "./SceneForm";
 import { Typography } from "@mui/material";
 import Badge from "../ui/Badge";
 
@@ -10,17 +10,17 @@ const gridCols: GridCol[] = [
   {
     field: "name",
     headerName: "Name",
-    render: (row: any) => row.name
+    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.name
   },
   {
     field: "robotName",
     headerName: "Robot",
-    render: (row: any) => row.robotName || "No Robot"
+    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.robotName || "No Robot"
   },
   {
     field: "robotModality",
     headerName: "Modality",
-    render: (row: any) => {
+    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => {
       if (!row.robotModality) return <Typography variant="body2" color="text.disabled">-</Typography>;
       return (
         <Badge
@@ -35,19 +35,19 @@ const gridCols: GridCol[] = [
   {
     field: "cameraCount",
     headerName: "Cameras",
-    render: (row: any) => row.cameraCount || 0
+    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.cameraCount || 0
   },
 ];
 
 const ScenesView: React.FC = () => {
   return (
     <div className="p-6">
-      <ResourceManager
+      <ResourceManagerView
         title="Scenes"
         table={scenesTable}
         resource={scenesResource}
         gridCols={gridCols}
-        renderForm={(props) => <SceneForm {...props} />}
+        renderForm={(props) => <SceneFormView {...props} />}
       />
     </div>
   );

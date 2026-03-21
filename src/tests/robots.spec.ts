@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from './fixtures';
-import { dismissSetupWizard, expectPageScreenshot } from './helpers';
+import { dismissSetupWizard } from './helpers';
 
 test.describe('Robots CRUD', () => {
   test('create, edit, delete robot', async ({ window }) => {
@@ -8,7 +8,7 @@ test.describe('Robots CRUD', () => {
 
     await window.getByRole('button', { name: 'Robots' }).click();
     await expect(window.getByRole('heading', { name: 'Robots' })).toBeVisible();
-    await expectPageScreenshot(window);
+    await expect(window.getByRole('button', { name: /add robot/i })).toBeVisible();
 
     await dismissSetupWizard(window);
     await window.getByRole('button', { name: 'Add Robot' }).click();
@@ -21,7 +21,7 @@ test.describe('Robots CRUD', () => {
 
     await window.getByRole('button', { name: 'Save Robot' }).click();
     await expect(window.getByLabel('Robot Name')).toHaveValue('Test Robot');
-    await expectPageScreenshot(window);
+    await expect(window.getByText('Saved successfully')).toBeVisible();
 
     await window.getByRole('button', { name: 'Cancel' }).click();
     await window.locator('.MuiDataGrid-row', { hasText: 'Test Robot' }).first().click();
@@ -36,7 +36,7 @@ test.describe('Robots CRUD', () => {
 
     const updatedRow = window.locator('.MuiDataGrid-row', { hasText: 'Test Robot v2' }).first();
     await expect(updatedRow).toBeVisible({ timeout: 15000 });
-    await expectPageScreenshot(window);
+    await expect(window.getByText('Saved successfully')).toBeVisible();
 
     await updatedRow.hover();
     await updatedRow.locator('button[aria-label="Delete"]').click();

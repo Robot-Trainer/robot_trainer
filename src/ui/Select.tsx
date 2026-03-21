@@ -1,11 +1,11 @@
 import React from 'react';
 import { TextField, MenuItem } from '@mui/material';
 
-type Option = { label: string; value: any };
+type Option = { label: string; value: string | number };
 type Props = {
   label?: string;
-  value?: any;
-  onChange?: (e: any) => void;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   options?: Option[];
   className?: string;
   /** Custom render function for each option */

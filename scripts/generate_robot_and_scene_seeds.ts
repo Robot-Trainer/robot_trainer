@@ -191,7 +191,12 @@ async function scanMenagerie() {
             dirName: dirent.name,
             modelPath: path.join("mujoco_menagerie", dirent.name, file),
             modelFormat: "mjcf",
-            properties: metadata,
+            simProperties: {
+              xml_string: content,
+              modelPath: path.join("mujoco_menagerie", dirent.name, file),
+              modelFormat: "mjcf",
+              ...metadata,
+            },
             supportedModalities: ["simulated"],
           });
           break; // One robot per folder
@@ -247,47 +252,104 @@ async function main() {
   const data = await scanMenagerie();
 
   console.log(
-    `Found ${data.robots.length} robots and ${data.configurations.length} configurations.`,
+    `Found ${data.robots.length} robots and ${data.configurations.length} configurations.`
   );
 
-  let fileContent = await fs.readFile(TARGET_FILE, "utf-8");
+  const robotModels = data.robots.map((r, index) => ({
+    id: index + 1,
+    ...r
+  }));
 
-  // Replace Robots
-  const robotStartMarker = "/** START GENERATED MUJOCO MENAGERIE RECORDS */";
-  const robotEndMarker = "/** END GENERATED MUJOCO MENAGERIE RECORDS */";
+  const scenes = data.configurations.map((c, index) => ({
+    id: index + 1,
+    name: c.name,
+    sceneXmlPath: c.sceneXmlPath,
+  }));
 
-  const robotJSON = data.robots
-    .map((r, index) => JSON.stringify({ ...r, id: index + 1 }))
-    .join(",\n  ");
+  let robotIdCounter = 1;
+  const robots: Record<string, unknown>[] = [];
+  const sceneRobots: Record<string, unknown>[] = [];
 
-  const robotRegex = new RegExp(
-    `(${escapeRegExp(robotStartMarker)})[\\s\\S]*?(${escapeRegExp(robotEndMarker)})`,
-  );
+  const dirToRobotModelId = new Map(robotModels.map((r) => [r.dirName, r.id]));
+  const robotModelToRobotId = new Map();
 
-  fileContent = fileContent.replace(robotRegex, `$1\n  ${robotJSON}\n  $2`);
+  for (const rm of robotModels) {
+    if (rm.supportedModalities?.includes("simulated")) {
+      robots.push({
+        id: robotIdCounter,
+        name: rm.name,
+        modality: "simulated",
+        robotModelId: rm.id,
+        data: { type: "simulation" },
+        simProperties: {
+          xml_string: rm.simProperties?.xml_string || "",
+          modelPath: rm.simProperties?.modelPath || rm.modelPath || "",
+          modelFormat: rm.simProperties?.modelFormat || rm.modelFormat || "",
+        },
+      });
+      robotModelToRobotId.set(rm.id, robotIdCounter);
+      robotIdCounter++;
+    }
+  }
 
-  // Replace Configurations
-  const configStartMarker =
-    "/** START GENERATED MUJOCO MENAGERIE CONFIGURATIONS */";
-  const configEndMarker =
-    "/** END GENERATED MUJOCO MENAGERIE CONFIGURATIONS */";
+  for (const c of data.configurations) {
+    const sceneId = scenes.find((s) => s.sceneXmlPath === c.sceneXmlPath).id;
 
-  const configJSON = data.configurations
-    .map((c, index) => JSON.stringify({ ...c, id: index + 1 }))
-    .join(",\n  ");
+    for (const robotDirName of c.includedRobots) {
+      const rmId = dirToRobotModelId.get(robotDirName);
+      if (rmId) {
+        const rId = robotModelToRobotId.get(rmId);
+        if (rId) {
+          sceneRobots.push({
+            sceneId: sceneId,
+            robotId: rId,
+            snapshot: robots.find(r => r.id === rId)
+          });
+        }
+      }
+    }
 
-  const configRegex = new RegExp(
-    `(${escapeRegExp(configStartMarker)})[\\s\\S]*?(${escapeRegExp(configEndMarker)})`,
-  );
+  }
 
-  fileContent = fileContent.replace(configRegex, `$1\n  ${configJSON}\n  $2`);
+  const output = `import { db } from "./db";
+import { sql } from "drizzle-orm";
+import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
 
-  await fs.writeFile(TARGET_FILE, fileContent);
-  console.log("Updated seed_robot_models.ts");
+const robotModelsData = ${JSON.stringify(robotModels, null, 2)};
+const robotsData = ${JSON.stringify(robots, null, 2)};
+const scenesData = ${JSON.stringify(scenes, null, 2)};
+const sceneRobotsData = ${JSON.stringify(sceneRobots, null, 2)};
+
+export async function seedRobotModels() {
+  console.log("Seeding robot models...");
+  try {
+    if (robotModelsData.length > 0) {
+      await db.insert(robotModelsTable).values(robotModelsData as (typeof robotModelsTable.$inferInsert)[]).onConflictDoNothing();
+    }
+    if (robotsData.length > 0) {
+      await db.insert(robotsTable).values(robotsData as (typeof robotsTable.$inferInsert)[]).onConflictDoNothing();
+    }
+    if (scenesData.length > 0) {
+      await db.insert(scenesTable).values(scenesData as (typeof scenesTable.$inferInsert)[]).onConflictDoNothing();
+    }
+    if (sceneRobotsData.length > 0) {
+      await db.insert(sceneRobotsTable).values(sceneRobotsData as (typeof sceneRobotsTable.$inferInsert)[]).onConflictDoNothing();
+    }
+
+    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('robot_models', 'id'), (SELECT MAX(id) FROM robot_models))\`);
+    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('robots', 'id'), (SELECT MAX(id) FROM robots))\`);
+    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('scenes', 'id'), (SELECT MAX(id) FROM scenes))\`);
+    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('cameras', 'id'), (SELECT MAX(id) FROM cameras))\`);
+
+    console.log("Seeding complete.");
+  } catch (error) {
+    console.error("Error seeding robot models:", error);
+  }
 }
+`;
 
-function escapeRegExp(string: string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await fs.writeFile(TARGET_FILE, output);
+  console.log("Updated seed_robot_models.ts");
 }
 
 main().catch(console.error);

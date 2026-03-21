@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, MenuItem, Divider, ListSubheader, Box, IconButton } from '@mui/material';
 import { Pencil, Plus } from '../icons';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import Badge from '../ui/Badge';
 import { robotsResource } from '../db/resources';
 
 interface RobotEditorProps {
-  robot: any;
+  robot: Record<string, unknown>;
   availableModels: { label: string, value: string }[];
-  connectedDevices: any[];
+  connectedDevices: Record<string, unknown>[];
   onSave: () => void;
   onCancel: () => void;
 }
@@ -58,14 +58,14 @@ const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, conne
       <Input
         label="Name"
         value={name}
-        onChange={(e: any) => setName(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
         placeholder="e.g. My Primary Arm"
       />
 
       <Select
         label="Model"
         value={model}
-        onChange={(e: any) => setModel(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setModel(e.target.value)}
         options={[{ label: 'Select Model...', value: '' }, ...availableModels]}
       />
 
@@ -73,7 +73,7 @@ const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, conne
         <Select
           label="Connected Device (Serial Number)"
           value={serialNumber}
-          onChange={(e: any) => setSerialNumber(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSerialNumber(e.target.value)}
           options={[
             { label: 'Select Device...', value: '' },
             ...deviceOptions,
@@ -93,8 +93,8 @@ const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, conne
 
 
 interface RobotSelectionDropdownProps {
-  robots: any[];
-  connectedDevices: any[];
+  robots: Record<string, unknown>[];
+  connectedDevices: Record<string, unknown>[];
   availableModels: { label: string, value: string }[];
   selectedRobotId: number | null;
   onSelect: (robotId: number) => void;
@@ -113,7 +113,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
 }) => {
   const [editingRobotId, setEditingRobotId] = useState<number | null>(null);
 
-  const createRobot = async (data: any) => {
+  const createRobot = async (data: Record<string, unknown>) => {
     try {
       const res = await robotsResource.create({
         ...data,

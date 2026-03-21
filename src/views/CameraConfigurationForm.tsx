@@ -1,53 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import Button from '../ui/Button';
+import { Button } from '../ui/Button';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 import { useToast } from '../ui/ToastContext';
-import { camerasResource } from '../db/resources';
+import { normalizeCameraList, type CameraData } from '../types/camera';
 
 interface CameraConfigurationFormProps {
-  initialCameras?: any[];
-  onSave?: (cameras: any[]) => void;
+  initialCameras?: Record<string, unknown>[];
+  onSave?: (cameras: Record<string, unknown>[]) => void;
   onCancel?: () => void;
 }
 
 const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initialCameras = [], onSave, onCancel }) => {
   const toast = useToast();
   const [cameraSlots, setCameraSlots] = useState<{ id: number | null, key: number }[]>([]);
-  const [availableCameras, setAvailableCameras] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refreshCameras = async () => {
-    try {
-      const cams = await camerasResource.list();
-      setAvailableCameras(cams);
-      return cams;
-    } catch (e) {
-      console.error("Failed to load cameras", e);
-      return [];
-    }
-  };
+  const [availableCameras, setAvailableCameras] = useState<CameraData[]>([]);
 
   useEffect(() => {
-    const init = async () => {
-      const cams = await refreshCameras();
-      setLoading(false);
-
-      if (initialCameras && initialCameras.length > 0) {
-        const slots = initialCameras.map((c, i) => {
-          // Check if initial camera exists in DB
-          const exists = c.id && typeof c.id === 'number' && cams.find((dbCam: any) => dbCam.id === c.id);
-          return {
-            id: exists ? c.id : null,
-            key: Date.now() + i
-          };
-        });
-        setCameraSlots(slots);
-      } else {
-        // Start with one empty slot if nothing provided
-        setCameraSlots([{ id: null, key: Date.now() }]);
-      }
-    };
-    init();
+    const cams = normalizeCameraList(initialCameras);
+    setAvailableCameras(cams);
+    setCameraSlots([{ id: null, key: Date.now() }]);
   }, []); // Run once on mount
 
   const addSlot = () => {
@@ -67,9 +38,8 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
   };
 
   const handleSave = () => {
-    // Filter to get full camera objects
     const selectedIds = cameraSlots.map(s => s.id).filter((id): id is number => id !== null);
-    const selectedCameras = selectedIds.map(id => availableCameras.find(c => c.id === id)).filter(Boolean);
+    const selectedCameras = selectedIds.map(id => availableCameras.find(c => c.id === id)).filter(Boolean) as CameraData[];
 
     if (onSave) {
       toast.success('Configuration saved');
@@ -87,16 +57,14 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
       </div>
 
       <div className="space-y-4">
-        {loading && <div className="text-sm text-gray-500">Loading cameras...</div>}
-
-        {!loading && cameraSlots.map((slot, idx) => (
+        {cameraSlots.map((slot, idx) => (
           <CameraSelectionDropdown
             key={slot.key}
             label={`Camera ${idx + 1}`}
             cameras={availableCameras}
             selectedCameraId={slot.id}
             onSelect={(id) => updateSlot(idx, id)}
-            onCamerasChanged={refreshCameras}
+            onCamerasChanged={setAvailableCameras}
             onRemove={() => removeSlot(idx)}
           />
         ))}
@@ -110,7 +78,7 @@ const CameraConfigurationForm: React.FC<CameraConfigurationFormProps> = ({ initi
         {onSave && (
           <div className="mt-8 flex justify-end gap-2 border-t pt-4">
             {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
-            <Button onClick={handleSave}>Save Configuration</Button>
+            <Button onClick={handleSave}>Save Scene</Button>
           </div>
         )}
       </div>
