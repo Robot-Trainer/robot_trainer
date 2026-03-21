@@ -191,7 +191,12 @@ async function scanMenagerie() {
             dirName: dirent.name,
             modelPath: path.join("mujoco_menagerie", dirent.name, file),
             modelFormat: "mjcf",
-            properties: metadata,
+            simProperties: {
+              xml_string: content,
+              modelPath: path.join("mujoco_menagerie", dirent.name, file),
+              modelFormat: "mjcf",
+              ...metadata,
+            },
             supportedModalities: ["simulated"],
           });
           break; // One robot per folder
@@ -275,7 +280,12 @@ async function main() {
         name: rm.name,
         modality: "simulated",
         robotModelId: rm.id,
-        data: { type: "simulation" }
+        data: { type: "simulation" },
+        simProperties: {
+          xml_string: rm.simProperties?.xml_string || "",
+          modelPath: rm.simProperties?.modelPath || rm.modelPath || "",
+          modelFormat: rm.simProperties?.modelFormat || rm.modelFormat || "",
+        },
       });
       robotModelToRobotId.set(rm.id, robotIdCounter);
       robotIdCounter++;

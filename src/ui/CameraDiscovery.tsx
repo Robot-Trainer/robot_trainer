@@ -8,6 +8,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
+import {CameraEntry} from "../db/schema";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -17,12 +18,6 @@ import UiInput from "./Input";
 import UiSelect from "./Select";
 import Badge from "./Badge";
 
-export interface CameraEntry {
-  name: string;
-  deviceId: string;
-  deviceLabel: string;
-  stream: MediaStream;
-}
 
 interface CameraDiscoveryProps {
   /** Currently added cameras */

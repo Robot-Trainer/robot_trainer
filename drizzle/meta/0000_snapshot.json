@@ -1,180 +1,9 @@
 {
-  "id": "bd0b4ab9-8990-4d6e-b030-2a8d4773e38b",
+  "id": "33ad1e23-ae13-4cf7-95ff-d5144c37f1e3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.cameras": {
-      "name": "cameras",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "cameras_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "serial_number": {
-          "name": "serial_number",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "fps": {
-          "name": "fps",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "pos_x": {
-          "name": "pos_x",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "pos_y": {
-          "name": "pos_y",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "pos_z": {
-          "name": "pos_z",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "quat_w": {
-          "name": "quat_w",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 1
-        },
-        "quat_x": {
-          "name": "quat_x",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "quat_y": {
-          "name": "quat_y",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "quat_z": {
-          "name": "quat_z",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "xyaxes_x1": {
-          "name": "xyaxes_x1",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 1
-        },
-        "xyaxes_y1": {
-          "name": "xyaxes_y1",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "xyaxes_z1": {
-          "name": "xyaxes_z1",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "xyaxes_x2": {
-          "name": "xyaxes_x2",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "xyaxes_y2": {
-          "name": "xyaxes_y2",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 1
-        },
-        "xyaxes_z2": {
-          "name": "xyaxes_z2",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "data": {
-          "name": "data",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::json"
-        },
-        "modality": {
-          "name": "modality",
-          "type": "cameraModality",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'real'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.datasets": {
       "name": "datasets",
       "schema": "",
@@ -394,20 +223,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "class_name": {
-          "name": "class_name",
-          "type": "varchar",
+        "sim_properties": {
+          "name": "sim_properties",
+          "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'{}'::json"
         },
-        "config_class_name": {
-          "name": "config_class_name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "properties": {
-          "name": "properties",
+        "real_properties": {
+          "name": "real_properties",
           "type": "json",
           "primaryKey": false,
           "notNull": false,
@@ -490,15 +314,22 @@
           "notNull": false,
           "default": "''"
         },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
         "data": {
           "name": "data",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::json"
+        },
+        "sim_properties": {
+          "name": "sim_properties",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::json"
+        },
+        "real_properties": {
+          "name": "real_properties",
           "type": "json",
           "primaryKey": false,
           "notNull": false,
@@ -543,72 +374,6 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.scene_cameras": {
-      "name": "scene_cameras",
-      "schema": "",
-      "columns": {
-        "scene_id": {
-          "name": "scene_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "camera_id": {
-          "name": "camera_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "scene_cameras_scene_id_scenes_id_fk": {
-          "name": "scene_cameras_scene_id_scenes_id_fk",
-          "tableFrom": "scene_cameras",
-          "tableTo": "scenes",
-          "columnsFrom": [
-            "scene_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "scene_cameras_camera_id_cameras_id_fk": {
-          "name": "scene_cameras_camera_id_cameras_id_fk",
-          "tableFrom": "scene_cameras",
-          "tableTo": "cameras",
-          "columnsFrom": [
-            "camera_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "scene_cameras_scene_id_camera_id_pk": {
-          "name": "scene_cameras_scene_id_camera_id_pk",
-          "columns": [
-            "scene_id",
-            "camera_id"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -784,6 +549,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "data": {
+          "name": "data",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::json"
         },
         "created_at": {
           "name": "created_at",
@@ -1030,14 +802,6 @@
     }
   },
   "enums": {
-    "public.cameraModality": {
-      "name": "cameraModality",
-      "schema": "public",
-      "values": [
-        "real",
-        "simulated"
-      ]
-    },
     "public.robotModality": {
       "name": "robotModality",
       "schema": "public",
