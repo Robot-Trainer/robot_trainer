@@ -34,16 +34,12 @@ export interface SystemSettings {
 }
 
 /** Result row from the joined scenes list query */
-export interface SceneListItem {
-  id: number;
-  name: string;
-  notes: string | null;
-  sceneXmlPath: string | null;
-  createdAt: Date | null;
+/** Extended scene type returned by scenesResource.list() with joined robot data */
+export type SceneListItem = Pick<import('../db/schema').SceneRecord, 'id' | 'name' | 'notes' | 'sceneXmlPath' | 'createdAt'> & {
   robotName: string | null;
   robotModality: string | null;
   cameraCount: number;
-}
+};
 
 /** Result of scanning mujoco_menagerie directory */
 export interface MenagerieScanResult {
