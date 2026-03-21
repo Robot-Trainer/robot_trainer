@@ -1,5 +1,6 @@
 import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum } from "drizzle-orm/pg-core";
-
+import * as v from "valibot";
+import type { InferInput } from "valibot";
 export const robotModalityEnum = pgEnum("robotModality", ["real", "simulated"]);
 
 export const userConfigTable = pgTable("user_config", {
@@ -8,28 +9,100 @@ export const userConfigTable = pgTable("user_config", {
   config: json().default({})
 });
 
+// --- Valibot schemas for sim/real properties ---
+
+export const RobotModelSimPropertiesSchema = v.object({
+  xml_string: v.optional(v.string()),
+  modelPath: v.optional(v.string()),
+  modelFormat: v.optional(v.string()),
+  numJoints: v.optional(v.number()),
+  jointNames: v.optional(v.array(v.string())),
+  actuatorNames: v.optional(v.array(v.string())),
+  siteNames: v.optional(v.array(v.string())),
+  hasGripper: v.optional(v.boolean()),
+});
+export type RobotModelSimProperties = InferInput<typeof RobotModelSimPropertiesSchema>;
+
+export const RobotModelRealPropertiesSchema = v.object({});
+export type RobotModelRealProperties = InferInput<typeof RobotModelRealPropertiesSchema>;
+
+export const RobotSimPropertiesSchema = v.object({
+  xml_string: v.optional(v.string()),
+  modelPath: v.optional(v.string()),
+  modelFormat: v.optional(v.string()),
+  sourceDir: v.optional(v.string()),
+});
+export type RobotSimProperties = InferInput<typeof RobotSimPropertiesSchema>;
+
+export const CameraEntrySchema = v.object({
+  name: v.optional(v.string()),
+  deviceId: v.optional(v.string()),
+  deviceLabel: v.optional(v.string()),
+  stream: v.optional(v.any()),
+  serialNumber: v.optional(v.string()),
+});
+
+export type CameraEntry = InferInput<typeof CameraEntrySchema>;
+
+export const RobotRealPropertiesSchema = v.object({
+  config: v.optional(
+    v.object({
+      id: v.optional(v.string()),
+      calibration_dir: v.optional(v.string()),
+      port: v.optional(v.string()),
+      disable_torque_on_disconnect: v.optional(v.boolean()),
+      use_degrees: v.optional(v.boolean()),
+      max_relative_target: v.optional(v.nullable(v.number())),
+    })
+  ),
+  cameras: v.optional(v.array(CameraEntrySchema)),
+});
+export type RobotRealProperties = InferInput<typeof RobotRealPropertiesSchema>;
+
 export const robotModelsTable = pgTable("robot_models", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  name: varchar('name').notNull(),
-  dirName: varchar('dir_name').notNull(),
-  className: varchar('class_name'),
-  configClassName: varchar('config_class_name'),
-  properties: json('properties').default({}),
-  modelXml: text('model_xml'),
-  modelPath: varchar('model_path'),
-  modelFormat: varchar('model_format'),
-  supportedModalities: robotModalityEnum('supported_modalities').array().default(['simulated']),
+  name: varchar("name").notNull(),
+  dirName: varchar("dir_name").notNull(),
+  simProperties: json("sim_properties").$type<RobotModelSimProperties>().default({}),
+  realProperties: json("real_properties").$type<RobotModelRealProperties>().default({}),
+  modelXml: text("model_xml"),
+  modelPath: varchar("model_path"),
+  modelFormat: varchar("model_format"),
+  supportedModalities: robotModalityEnum("supported_modalities")
+    .array()
+    .default(["simulated"]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const RobotDataColumnSchema = v.object({
+  config: v.optional(
+    v.object({
+      id: v.optional(v.string()),
+      calibration_dir: v.optional(v.string()),
+      port: v.optional(v.string()),
+      disable_torque_on_disconnect: v.optional(v.boolean()),
+      use_degrees: v.optional(v.boolean()),
+      max_relative_target: v.optional(v.number()),
+    })
+  ),
+  modelXml: v.optional(v.string()),
+  cameras: v.optional(v.array(CameraEntrySchema)),
+});
+
+export type RobotDataColumn = InferInput<typeof RobotDataColumnSchema>;
+
 export const robotsTable = pgTable("robots", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  serialNumber: varchar('serial_number').default(''),
-  name: varchar('name').default(''),
-  notes: text('notes').default(''),
-  data: json('data').default({}),
-  robotModelId: integer('robot_model_id').references(() => robotModelsTable.id, { onDelete: 'set null' }),
-  modality: robotModalityEnum('modality').default('real'),
+  serialNumber: varchar("serial_number").default(""),
+  name: varchar("name").default(""),
+  data: json("data").$type<RobotDataColumn>().default({}),
+  simProperties: json("sim_properties").$type<RobotSimProperties>().default({}),
+  realProperties: json("real_properties").$type<RobotRealProperties>().default({}),
+  robotModelId: integer("robot_model_id").references(
+    () => robotModelsTable.id,
+    { onDelete: "set null" },
+  ),
+  modality: robotModalityEnum("modality").default("real"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

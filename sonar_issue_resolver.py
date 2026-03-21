@@ -97,7 +97,7 @@ def run_analysis():
     print("Initiating SonarQube analysis...")
     # Run the scanner
     run_command(
-        f"sonar-scanner -Dsonar.host.url={SONAR_URL} -Dsonar.token={SONAR_TOKEN}"
+        f"npx sonar-scanner -Dsonar.host.url={SONAR_URL} -Dsonar.token={SONAR_TOKEN}"
     )
     return wait_for_analysis_completion()
 
@@ -106,7 +106,7 @@ def invoke_claude_code(message):
     """Correctly invokes the Claude code with workspace context."""
     repo_root = os.getcwd()
     # Using --agent main and --workspace to ensure the agent has repository access
-    cmd = f'ollama launch claude --model gpt-oss:20b --yes -- -p "{message}" --add-dir "{repo_root}" --effort max'
+    cmd = f'ollama launch claude --model gpt-oss:20b -- -p "{message}" --add-dir "{repo_root}" --effort max'
     return run_command(cmd)
 
 
@@ -144,7 +144,7 @@ def main():
 
         # Step 1: Fix the issue
         print("Asking Claude Code to resolve the issue...")
-        fix_msg = f"In the current repository, resolve this SonarQube {severity} issue in '{file_path}': {description}. Use your file tools to modify the code."
+        fix_msg = f"Resolve this SonarQube {severity} issue in '{file_path}': {description}."
         invoke_claude_code(fix_msg)
 
         # Step 2: Tests and Linters

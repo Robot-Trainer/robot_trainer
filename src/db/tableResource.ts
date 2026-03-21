@@ -81,6 +81,8 @@ export function tableResource<TTable extends AnyPgTable>(table: TTable) {
       await db.delete(table).where(eq(idColumn, id));
       return { ok: true };
     },
-    table
+    table,
+    selectRecord: typeof table.$inferSelect,
+    insertRecord: typeof table.$inferInsert,
   };
 }

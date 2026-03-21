@@ -59,13 +59,30 @@ describe('RobotForm', () => {
   const mockOnCancel = vi.fn();
 
   const mockRobotModels = [
-    { id: 1, name: 'Robot Model A', modality: 'real', className: 'SO100Follower' },
-    { id: 2, name: 'Robot Model B', modality: 'simulated', className: 'GenericMujocoEnv' },
+    {
+      id: 1,
+      name: 'Robot Model A',
+      supportedModalities: ['real'],
+      simProperties: {},
+      realProperties: {},
+    },
+    {
+      id: 2,
+      name: 'Robot Model B',
+      supportedModalities: ['simulated'],
+      simProperties: {
+        xml_string: '<mujoco><worldbody><geom type="box" size="0.1"/></worldbody></mujoco>',
+      },
+      realProperties: {},
+    },
     {
       id: 3,
       name: 'Robot Model C',
       supportedModalities: ['real', 'simulated'],
-      className: 'HybridRobotModel'
+      simProperties: {
+        xml_string: '<mujoco><worldbody><geom type="sphere" size="0.2"/></worldbody></mujoco>',
+      },
+      realProperties: {},
     },
   ];
 
@@ -81,6 +98,14 @@ describe('RobotForm', () => {
     // Mock electronAPI
     (global as unknown as Record<string, unknown>).window.electronAPI = {
       scanSerialPorts: vi.fn().mockResolvedValue(mockSerialPorts),
+      selectModelFile: vi.fn().mockResolvedValue(null),
+      selectModelFolder: vi.fn().mockResolvedValue(null),
+      readModelFile: vi.fn().mockResolvedValue({
+        content: '<mujoco/>',
+        format: 'mjcf',
+        baseName: 'custom_model',
+        metadata: { numJoints: 0, jointNames: [], actuatorNames: [], siteNames: [], hasGripper: false },
+      }),
     };
   });
 
@@ -88,46 +113,37 @@ describe('RobotForm', () => {
     cleanup();
   });
 
-  it('loads robot models and handles form interactions', async () => {
+  it('loads robot models and saves real robot with realProperties', async () => {
     render(<RobotForm onSaved={mockOnSaved} onCancel={mockOnCancel} />);
 
-    // Wait for models to load
     await waitFor(() => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Interaction 1: Scan Serial Ports
-    // Use getAllByText in case there are multiple buttons (e.g. desktop/mobile or empty state)
+    // Scan Serial Ports
     const scanBtns = screen.getAllByText(/Scan ports/i);
     fireEvent.click(scanBtns[0]);
 
     await waitFor(() => {
       expect((global as unknown as Record<string, unknown>).window.electronAPI.scanSerialPorts).toHaveBeenCalled();
-      // Check if serial ports are displayed in the list
-      // "Acme" might appear in the card list and potentially in the connected device dropdown
       const acmeElements = screen.getAllByText(/Acme/);
       expect(acmeElements.length).toBeGreaterThan(0);
     });
 
-    // Interaction 2: Fill out form
+    // Fill out form
     const nameInput = screen.getByLabelText(/Robot Name/i);
     fireEvent.change(nameInput, { target: { value: 'My Test Robot' } });
 
-    // Select Robot Model using the combobox/select
-    // 1. Open the dropdown
+    // Select Robot Model A (real)
     const modelSelectTrigger = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelectTrigger);
-
-    // 2. Wait for options to populate and select one (name now includes badge text)
     const modelOption = await screen.findByRole('option', { name: /Robot Model A/i });
     fireEvent.click(modelOption);
 
     // Connect Device
-    // We can select from the scanned list (which we triggered scan for)
-    // or type manually. The scanned list items are clickable.
     const deviceCard = await screen.findByRole('button', { name: /Select device SerialNumber1/i });
     fireEvent.click(deviceCard);
-    
+
     // Save
     const saveBtn = screen.getByText(/Save Robot/i);
     fireEvent.click(saveBtn);
@@ -138,14 +154,14 @@ describe('RobotForm', () => {
         robotModelId: 1,
         modality: 'real',
         serialNumber: 'SerialNumber1',
-        data: expect.objectContaining({
-          type: 'real',
+        realProperties: expect.objectContaining({
           config: expect.objectContaining({
             port: '/dev/ttyUSB0',
             disable_torque_on_disconnect: true,
             use_degrees: false,
-          })
-        })
+          }),
+        }),
+        simProperties: {},
       }));
     });
   });
@@ -157,11 +173,9 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Open the model dropdown
     const modelSelect = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelect);
 
-    // Verify badges appear for model modalities
     const realOption = await screen.findByRole('option', { name: /Robot Model A/i });
     expect(realOption.textContent).toContain('real');
 
@@ -184,19 +198,17 @@ describe('RobotForm', () => {
     expect(multiOption.textContent).toContain('simulated');
   });
 
-  it('handles simulated robot setup', async () => {
+  it('saves simulated robot with simProperties.xml_string', async () => {
     render(<RobotForm onSaved={mockOnSaved} />);
 
     const nameInput = screen.getByLabelText(/Robot Name/i);
     fireEvent.change(nameInput, { target: { value: 'Sim Robot' } });
 
-    // Select Robot Model
     const modelSelect = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelect);
     const modelOption = await screen.findByRole('option', { name: /Robot Model B/i });
     fireEvent.click(modelOption);
 
-    // Real-device section should disappear for simulated model
     expect(screen.queryByText(/Real Robot Configuration/i)).toBeNull();
 
     const saveBtn = screen.getByText(/Save Robot/i);
@@ -206,9 +218,12 @@ describe('RobotForm', () => {
       expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Sim Robot',
         modality: 'simulated',
-        serialNumber: '', // Should be cleared/empty for sim
+        serialNumber: '',
         robotModelId: 2,
-        data: { type: 'simulation' }
+        simProperties: expect.objectContaining({
+          xml_string: mockRobotModels[1].simProperties.xml_string,
+        }),
+        realProperties: {},
       }));
     });
   });
@@ -219,10 +234,11 @@ describe('RobotForm', () => {
       name: 'My Sim Bot',
       modality: 'simulated',
       robotModelId: 2,
-      data: {
-        type: 'simulation',
-        modelXml: '<mujoco><worldbody><geom type="sphere" size="0.1"/></worldbody></mujoco>',
+      data: { type: 'simulation' },
+      simProperties: {
+        xml_string: '<mujoco><worldbody><geom type="sphere" size="0.1"/></worldbody></mujoco>',
       },
+      realProperties: {},
     };
 
     render(<RobotForm onSaved={mockOnSaved} initialData={simRobotData} />);
@@ -231,11 +247,9 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Monaco editor should be rendered (mocked as textarea)
     const editor = screen.getByTestId('monaco-editor');
     expect(editor).toBeTruthy();
 
-    // 3D preview should be rendered (mocked as div)
     const preview = screen.getByTestId('mujoco-preview');
     expect(preview).toBeTruthy();
   });
@@ -247,7 +261,6 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Default modality is "real" — camera discovery should be present
     const cameraDiscovery = screen.getByTestId('camera-discovery');
     expect(cameraDiscovery).toBeTruthy();
   });
@@ -259,13 +272,213 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Select a simulated model
     const modelSelect = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelect);
     const simOption = await screen.findByRole('option', { name: /Robot Model B/i });
     fireEvent.click(simOption);
 
-    // Camera discovery should NOT be present for simulated robots
     expect(screen.queryByTestId('camera-discovery')).toBeNull();
+  });
+
+  it('shows Custom option in model dropdown', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+
+    const customOption = await screen.findByRole('option', { name: /Custom/i });
+    expect(customOption).toBeTruthy();
+  });
+
+  it('shows file upload when Custom is selected', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    const customOption = await screen.findByRole('option', { name: /Custom/i });
+    fireEvent.click(customOption);
+
+    expect(screen.getByText(/Custom Model File/i)).toBeTruthy();
+    expect(screen.getByText(/Upload Model File/i)).toBeTruthy();
+    expect(screen.getByText(/Select Folder/i)).toBeTruthy();
+  });
+
+  it('saves custom simulated robot with robotModelId null', async () => {
+    (global as unknown as Record<string, unknown>).window.electronAPI.selectModelFile =
+      vi.fn().mockResolvedValue('/path/to/model.xml');
+    (global as unknown as Record<string, unknown>).window.electronAPI.readModelFile =
+      vi.fn().mockResolvedValue({
+        content: '<mujoco><worldbody/></mujoco>',
+        format: 'mjcf',
+        baseName: 'custom_bot',
+        metadata: { numJoints: 2, jointNames: ['j1', 'j2'], actuatorNames: ['a1'], siteNames: [], hasGripper: false },
+      });
+
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Select Custom
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    const customOption = await screen.findByRole('option', { name: /Custom/i });
+    fireEvent.click(customOption);
+
+    // Upload file
+    const uploadBtn = screen.getByText(/Upload Model File/i);
+    fireEvent.click(uploadBtn);
+
+    await waitFor(() => {
+      expect((global as unknown as Record<string, unknown>).window.electronAPI.selectModelFile).toHaveBeenCalled();
+    });
+
+    const saveBtn = screen.getByText(/Save Robot/i);
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        robotModelId: null,
+        modality: 'simulated',
+        simProperties: expect.objectContaining({
+          xml_string: '<mujoco><worldbody/></mujoco>',
+          modelFormat: 'mjcf',
+          sourceDir: '/path/to/model.xml',
+        }),
+      }));
+    });
+  });
+
+  it('sets robotModelId to null when editing and switching to Custom', async () => {
+    const existingRobot = {
+      id: 5,
+      name: 'Existing Sim Bot',
+      modality: 'simulated',
+      robotModelId: 2,
+      data: { type: 'simulation' },
+      simProperties: { xml_string: '<mujoco/>' },
+      realProperties: {},
+    };
+
+    render(<RobotForm onSaved={mockOnSaved} initialData={existingRobot} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Switch to Custom
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    const customOption = await screen.findByRole('option', { name: /Custom/i });
+    fireEvent.click(customOption);
+
+    const saveBtn = screen.getByText(/Save Robot/i);
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        robotModelId: null,
+        modality: 'simulated',
+        simProperties: expect.objectContaining({
+          xml_string: '<mujoco/>',
+        }),
+      }));
+    });
+  });
+
+  it('shows customized badge when robot XML differs from model XML', async () => {
+    const customizedXml = '<mujoco><worldbody><geom type="sphere" size="0.5"/></worldbody></mujoco>';
+
+    const existingRobot = {
+      id: 10,
+      name: 'Customized Bot',
+      modality: 'simulated',
+      robotModelId: 2,
+      data: { type: 'simulation' },
+      simProperties: { xml_string: customizedXml },
+      realProperties: {},
+    };
+
+    render(<RobotForm onSaved={mockOnSaved} initialData={existingRobot} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // The robot's XML differs from the model's XML → customized badge
+    await waitFor(() => {
+      expect(screen.getByText('customized')).toBeTruthy();
+    });
+  });
+
+  it('does not show customized badge when robot XML matches model XML', async () => {
+    const sameXml = mockRobotModels[1].simProperties.xml_string;
+
+    const existingRobot = {
+      id: 10,
+      name: 'Matching Bot',
+      modality: 'simulated',
+      robotModelId: 2,
+      data: { type: 'simulation' },
+      simProperties: { xml_string: sameXml },
+      realProperties: {},
+    };
+
+    render(<RobotForm onSaved={mockOnSaved} initialData={existingRobot} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Wait for model selection to resolve, then check no badge
+    await waitFor(() => {
+      expect(screen.queryByText('customized')).toBeNull();
+    });
+  });
+
+  it('loads real robot config from realProperties', async () => {
+    const realRobot = {
+      id: 20,
+      name: 'Real Bot',
+      modality: 'real',
+      robotModelId: 1,
+      data: { type: 'real' },
+      simProperties: {},
+      realProperties: {
+        config: {
+          port: '/dev/ttyACM0',
+          disable_torque_on_disconnect: false,
+          use_degrees: true,
+          max_relative_target: 10,
+          id: 'robot-1',
+          calibration_dir: '/cal/dir',
+        },
+      },
+    };
+
+    render(<RobotForm onSaved={mockOnSaved} initialData={realRobot} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Verify form fields are populated from realProperties
+    const portInput = screen.getByLabelText(/LeRobot Port/i);
+    expect(portInput).toHaveProperty('value', '/dev/ttyACM0');
+
+    const configIdInput = screen.getByLabelText(/LeRobot Robot ID/i);
+    expect(configIdInput).toHaveProperty('value', 'robot-1');
+
+    const calDirInput = screen.getByLabelText(/Calibration Directory/i);
+    expect(calDirInput).toHaveProperty('value', '/cal/dir');
   });
 });
