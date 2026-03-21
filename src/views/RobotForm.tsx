@@ -7,17 +7,23 @@ import {
   Alert,
   Paper,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import UsbIcon from "@mui/icons-material/Usb";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { robotModelsResource } from "../db/resources";
-import { db } from "../db/db";
-import { eq } from "drizzle-orm";
-import { robotModelsTable, scenesTable, sceneRobotsTable } from "../db/schema";
+import {
+  robotModelsTable,
+  robotsTable,
+  type RobotModelSimProperties,
+  type RobotSimProperties,
+  type RobotRealProperties,
+} from "../db/schema";
 import MonacoEditor from "@monaco-editor/react";
 import { MujocoPreview } from "../ui/MujocoPreview";
 import { CameraDiscovery, type CameraEntry } from "../ui/CameraDiscovery";
@@ -34,18 +40,17 @@ interface SerialPort {
 }
 
 interface RobotFormProps {
-  onSaved?: (item: Record<string, unknown>) => Promise<unknown> | void;
+  onSaved?: (item: typeof robotsTable.$inferSelect) => Promise<unknown> | void;
   onCancel?: () => void;
-  initialData?: Record<string, unknown>;
+  initialData?: typeof robotsTable.$inferSelect;
 }
-
 type RobotModality = "real" | "simulated";
 
 const extractCameraSerialNumber = (camera: CameraEntry): string => {
-  const explicitSerial = String((camera as Record<string, unknown>).serialNumber || "").trim();
+  const explicitSerial = String((camera as CameraEntry).serialNumber || "").trim();
   if (explicitSerial) return explicitSerial;
 
-  const label = String((camera as Record<string, unknown>).deviceLabel || "");
+  const label = String((camera as CameraEntry).deviceLabel || "");
   const serialMatch = label.match(/serial[:\s#-]*([a-zA-Z0-9._-]+)/i);
   if (serialMatch?.[1]) return serialMatch[1];
 
@@ -68,7 +73,7 @@ const getCameraResolutionAndFps = (
   };
 };
 
-const getModelModalities = (model: Record<string, unknown>): RobotModality[] => {
+const getModelModalities = (model: typeof robotModelsTable.$inferSelect | undefined): RobotModality[] => {
   if (Array.isArray(model?.supportedModalities)) {
     const normalized = model.supportedModalities.filter(
       (m: unknown): m is RobotModality => m === "real" || m === "simulated",
@@ -78,15 +83,10 @@ const getModelModalities = (model: Record<string, unknown>): RobotModality[] => 
     }
   }
 
-  if (model?.modality === "real" || model?.modality === "simulated") {
-    return [model.modality];
-  }
-
-  const cls = String(model?.className || "").toLowerCase();
-  if (cls.includes("follower")) return ["real"];
-  if (cls.includes("mujoco") || cls.includes("sim")) return ["simulated"];
   return [];
 };
+
+const CUSTOM_MODEL_VALUE = "custom";
 
 const RobotForm: React.FC<RobotFormProps> = ({
   onSaved,
@@ -97,11 +97,10 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [notes, setNotes] = useState("");
   const [modality, setModality] = useState<RobotModality>("real");
   const [robotModelId, setRobotModelId] = useState<string>("");
   const [serialNumber, setSerialNumber] = useState<string>("");
-  const [modelOptions, setModelOptions] = useState<Record<string, unknown>[]>([]);
+  const [modelOptions, setModelOptions] = useState<typeof robotModelsTable.$inferSelect[]>([]);
   const [modelOptionItems, setModelOptionItems] = useState<
     { label: string; value: string }[]
   >([]);
@@ -136,8 +135,19 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const editorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track the model's original XML to detect customization
+  const [modelOriginalXml, setModelOriginalXml] = useState<string>("");
+
   // Camera discovery state for real robots
   const [discoveredCameras, setDiscoveredCameras] = useState<CameraEntry[]>([]);
+
+  const isCustomModel = robotModelId === CUSTOM_MODEL_VALUE;
+  const isXmlCustomized =
+    !!robotModelId &&
+    !isCustomModel &&
+    !!modelOriginalXml &&
+    !!editorXml &&
+    editorXml !== modelOriginalXml;
 
   useEffect(() => {
     const loadModels = async () => {
@@ -145,7 +155,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
         const models = await robotModelsResource.list();
         setModelOptions(models);
         setModelOptionItems(
-          models.map((m: Record<string, unknown>) => ({ label: m.name, value: String(m.id) })),
+          models.map((m: typeof robotModelsTable.$inferSelect) => ({ label: m.name, value: String(m.id) })),
         );
       } catch (_e) {
         setModelOptions([]);
@@ -158,14 +168,21 @@ const RobotForm: React.FC<RobotFormProps> = ({
   useEffect(() => {
     if (!initialData) return;
     setName(initialData.name || "");
-    setNotes(initialData.notes || "");
     setModality((initialData.modality as RobotModality) || "real");
     setSerialNumber(initialData.serialNumber || "");
-    setRobotModelId(
-      initialData.robotModelId ? String(initialData.robotModelId) : "",
-    );
 
-    const cfg = initialData.data?.config || {};
+    if (initialData.robotModelId) {
+      setRobotModelId(String(initialData.robotModelId));
+    } else if (initialData.modality === "simulated") {
+      // Existing simulated robot with no model → treat as custom
+      setRobotModelId(CUSTOM_MODEL_VALUE);
+    } else {
+      setRobotModelId("");
+    }
+
+    // Load real robot config from realProperties
+    const realProps = (initialData.realProperties || {}) as RobotRealProperties;
+    const cfg = realProps.config || {};
     setRealPortPath(cfg.port || "");
     setDisableTorqueOnDisconnect(cfg.disable_torque_on_disconnect ?? true);
     setUseDegrees(cfg.use_degrees ?? false);
@@ -175,25 +192,21 @@ const RobotForm: React.FC<RobotFormProps> = ({
     setRobotConfigId(cfg.id || "");
     setCalibrationDir(cfg.calibration_dir || "");
 
-    // Load modelXml for editing simulated robots
-    const xml = initialData.data?.modelXml || "";
+    // Load XML from simProperties for simulated robots
+    const simProps = (initialData.simProperties || {}) as RobotSimProperties;
+    const xml = simProps.xml_string || "";
     if (xml) {
       setEditorXml(xml);
       setPreviewXml(xml);
     }
-
-    // Load saved cameras for real robots
-    const savedCams = initialData.data?.cameras;
-    if (Array.isArray(savedCams)) {
-      // Cameras are serialized without live streams — we don't restore streams here
-      // The user will re-detect cameras when editing
-    }
   }, [initialData]);
 
   const selectedModel = modelOptions.find(
-    (m: Record<string, unknown>) => String(m.id) === String(robotModelId),
+    (m: typeof robotModelsTable.$inferSelect) => String(m.id) === String(robotModelId),
   );
-  const selectedModelModalities = getModelModalities(selectedModel);
+  const selectedModelModalities = isCustomModel
+    ? (["simulated"] as RobotModality[])
+    : getModelModalities(selectedModel);
   const selectedModelModality =
     selectedModelModalities.length === 1 ? selectedModelModalities[0] : null;
 
@@ -203,12 +216,27 @@ const RobotForm: React.FC<RobotFormProps> = ({
     }
   }, [selectedModelModality]);
 
-  // When editing an existing simulated robot, load modelXml from the linked robot model
+  // When selecting a model, load its XML into editor and track original
   useEffect(() => {
-    if (!initialData || !selectedModel) return;
-    if (selectedModel.modelXml && !editorXml) {
-      setEditorXml(selectedModel.modelXml);
-      setPreviewXml(selectedModel.modelXml);
+    if (!selectedModel) {
+      if (!isCustomModel) {
+        setModelOriginalXml("");
+      }
+      return;
+    }
+    const modelSimProps = (selectedModel.simProperties || {}) as RobotModelSimProperties;
+    const modelXml = modelSimProps.xml_string || selectedModel.modelXml || "";
+    setModelOriginalXml(modelXml);
+
+    // For new robots or when switching models, populate editor with model's XML
+    if (!initialData && modelXml) {
+      setEditorXml(modelXml);
+      setPreviewXml(modelXml);
+    }
+    // For existing robots, only populate if editor is empty
+    if (initialData && !editorXml && modelXml) {
+      setEditorXml(modelXml);
+      setPreviewXml(modelXml);
     }
   }, [selectedModel, initialData]);
 
@@ -245,152 +273,91 @@ const RobotForm: React.FC<RobotFormProps> = ({
     if (!onSaved) return;
     setSubmitting(true);
     try {
-      if (modality === "simulated" && modelFileData && !initialData) {
-        const modelName = name || modelFileData.baseName;
+      const parsedModelId =
+        isCustomModel || !robotModelId ? null : parseInt(robotModelId, 10);
 
-        let pathForDb: string | undefined = undefined;
-        const xmlForDb: string | null = null;
-
-        if (modelFilePath) {
-          if (modelFileData.format === "zip") {
-            const result = await window.electronAPI.saveRobotModelZip(
-              modelFilePath,
-            );
-            pathForDb = result.modelPath;
-          } else {
-            const result = await window.electronAPI.saveRobotModelFile(
-              modelFilePath,
-            );
-            pathForDb = result.modelPath;
-          }
-        }
-
-        const [insertedModel] = await db
-          .insert(robotModelsTable)
-          .values({
-            name: modelName,
-            dirName: "custom",
-            className: "GenericMujocoEnv",
-            configClassName: "CustomMujocoEnvConfig",
-            modelXml: xmlForDb,
-            modelPath: pathForDb,
-            modelFormat: modelFileData.format,
-            properties: modelFileData.metadata,
-          })
-          .returning();
-
-        const payload = {
-          name: modelName,
-          notes,
-          modality: "simulated" as const,
-          serialNumber: "",
-          robotModelId: insertedModel.id,
-          data: { type: "simulation" },
-          _autoCreateConfig: true,
-          _modelMetadata: modelFileData.metadata,
+      if (modality === "simulated") {
+        // Build simProperties
+        const simProps: RobotSimProperties = {
+          ...(initialData?.simProperties as RobotSimProperties || {}),
         };
 
-        const createdRobot = await onSaved(payload);
-
-        if (createdRobot && createdRobot.id) {
-          const [scene] = await db
-            .insert(scenesTable)
-            .values({
-              name: `${modelName} Scene`,
-            })
-            .returning();
-
-          await db.insert(sceneRobotsTable).values({
-            sceneId: scene.id,
-            robotId: createdRobot.id,
-            snapshot: {
-              id: createdRobot.id,
-              name: modelName,
-              modality: "simulated",
-              robotModelId: insertedModel.id,
-              model: {
-                name: modelName,
-                modelFormat: modelFileData.format,
-                ...modelFileData.metadata,
-              },
-            },
-          });
+        if (isCustomModel && modelFileData) {
+          // Custom model from uploaded file
+          simProps.xml_string = modelFileData.content || editorXml;
+          simProps.modelFormat = modelFileData.format;
+          if (modelFilePath) {
+            simProps.sourceDir = modelFilePath;
+          }
+        } else if (editorXml) {
+          // Existing model or edited XML
+          simProps.xml_string = editorXml;
+        } else if (selectedModel) {
+          // New robot with model — copy model's XML
+          const modelSimProps = (selectedModel.simProperties || {}) as RobotModelSimProperties;
+          simProps.xml_string = modelSimProps.xml_string || selectedModel.modelXml || "";
         }
 
+        const payload = {
+          name,
+          modality: "simulated" as const,
+          serialNumber: "",
+          robotModelId: parsedModelId,
+          data: { ...(initialData?.data || {}), type: "simulation" },
+          simProperties: simProps,
+          realProperties: {},
+        };
+        await onSaved(payload as typeof robotsTable.$inferSelect);
         return;
       }
 
-      const parsedModelId = robotModelId ? parseInt(robotModelId, 10) : null;
+      // Real robot save
       const maxRelativeTargetValue =
         maxRelativeTarget.trim() === "" ||
         Number.isNaN(Number(maxRelativeTarget))
           ? null
           : Number(maxRelativeTarget);
 
-      const payloadData = {
-        ...(initialData?.data || {}),
-        type: modality === "real" ? "real" : "simulation",
-      } as Record<string, unknown>;
-
-      if (modality === "real") {
-        payloadData.config = {
-          ...(payloadData.config || {}),
+      const realProps: RobotRealProperties = {
+        config: {
           port: realPortPath,
           disable_torque_on_disconnect: disableTorqueOnDisconnect,
           max_relative_target: maxRelativeTargetValue,
           use_degrees: useDegrees,
-          id: robotConfigId || null,
-          calibration_dir: calibrationDir || null,
-        };
+          id: robotConfigId || undefined,
+          calibration_dir: calibrationDir || undefined,
+        },
+      };
 
-        // Save discovered cameras metadata (without live streams)
-        if (discoveredCameras.length > 0) {
-          payloadData.cameras = normalizeCameraList(
-            discoveredCameras.map((c) => {
-              const { resolution, fps } = getCameraResolutionAndFps(c);
-              return {
-                id: Date.now() + Math.floor(Math.random() * 100000),
-                name: c.name,
-                resolution,
-                fps,
-                serialNumber: extractCameraSerialNumber(c),
-                modality: "real",
-              };
-            }),
-          );
-        } else {
-          payloadData.cameras = [];
-        }
-      } else if (payloadData.config) {
-        delete payloadData.config;
-      }
-
-      // Save edited modelXml for simulated robots
-      if (modality === "simulated" && editorXml && initialData) {
-        payloadData.modelXml = editorXml;
-
-        // Also update the linked robot model's modelXml in the database
-        if (selectedModel?.id) {
-          try {
-            await db
-              .update(robotModelsTable)
-              .set({ modelXml: editorXml })
-              .where(eq(robotModelsTable.id, selectedModel.id));
-          } catch {
-            // non-critical; the data is still saved on the robot
-          }
-        }
+      // Save discovered cameras metadata (without live streams)
+      if (discoveredCameras.length > 0) {
+        realProps.cameras = normalizeCameraList(
+          discoveredCameras.map((c) => {
+            const { resolution, fps } = getCameraResolutionAndFps(c);
+            return {
+              id: Date.now() + Math.floor(Math.random() * 100000),
+              name: c.name,
+              resolution,
+              fps,
+              serialNumber: extractCameraSerialNumber(c),
+              modality: "real",
+            };
+          }),
+        );
+      } else {
+        realProps.cameras = [];
       }
 
       const payload = {
         name,
-        notes,
-        modality,
-        serialNumber: modality === "real" ? serialNumber : "",
+        modality: "real" as const,
+        serialNumber,
         robotModelId: parsedModelId,
-        data: payloadData,
+        data: { ...(initialData?.data || {}), type: "real" },
+        realProperties: realProps,
+        simProperties: {},
       };
-      await onSaved(payload);
+      await onSaved(payload as typeof robotsTable.$inferSelect);
     } finally {
       setSubmitting(false);
     }
@@ -404,9 +371,32 @@ const RobotForm: React.FC<RobotFormProps> = ({
       setModelFilePath(filePath);
       const data = await window.electronAPI.readModelFile(filePath);
       setModelFileData(data);
+      if (data.content) {
+        setEditorXml(data.content);
+        setPreviewXml(data.content);
+      }
       if (!name) setName(data.baseName);
-    } catch (_e) {
-      setModelFileError(e instanceof Error ? e.message : String(e));
+    } catch (err) {
+      setModelFileError(err instanceof Error ? err.message : String(err));
+      setModelFileData(null);
+    }
+  };
+
+  const handleSelectModelFolder = async () => {
+    setModelFileError(null);
+    try {
+      const folderPath = await window.electronAPI.selectModelFolder();
+      if (!folderPath) return;
+      setModelFilePath(folderPath);
+      const data = await window.electronAPI.readModelFile(folderPath);
+      setModelFileData(data);
+      if (data.content) {
+        setEditorXml(data.content);
+        setPreviewXml(data.content);
+      }
+      if (!name) setName(data.baseName);
+    } catch (err) {
+      setModelFileError(err instanceof Error ? err.message : String(err));
       setModelFileData(null);
     }
   };
@@ -435,7 +425,9 @@ const RobotForm: React.FC<RobotFormProps> = ({
     }
   };
 
-  const showExplicitModalitySelector = !selectedModelModality;
+  const showExplicitModalitySelector = !isCustomModel && !selectedModelModality;
+  const showSimulatedEditor = modality === "simulated" && (!!editorXml || !!initialData || (!isCustomModel && !!selectedModel));
+  const showCustomFileUpload = modality === "simulated" && isCustomModel;
 
   return (
     <Stack spacing={3}>
@@ -449,44 +441,61 @@ const RobotForm: React.FC<RobotFormProps> = ({
           />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Select
-            label="Robot Model"
-            value={robotModelId}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotModelId(e.target.value)}
-            options={[
-              { label: "Select Robot Model...", value: "" },
-              ...modelOptionItems,
-            ]}
-            renderOption={(opt) => {
-              if (opt.value === "") return opt.label;
-              const model = modelOptions.find(
-                (m: Record<string, unknown>) => String(m.id) === String(opt.value),
-              );
-              const modalities = getModelModalities(model);
-              return (
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{ width: "100%" }}
-                >
-                  <span>{opt.label}</span>
-                  {modalities.map((modality) => (
-                    <Badge
-                      key={`${opt.value}-${modality}`}
-                      label={modality}
-                      color={modality === "real" ? "green" : "blue"}
-                      variant="outlined"
-                      sx={{
-                        height: 20,
-                        "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
-                      }}
-                    />
-                  ))}
-                </Stack>
-              );
-            }}
-          />
+          <Stack direction="row" alignItems="flex-end" spacing={1}>
+            <Box sx={{ flex: 1 }}>
+              <Select
+                label="Robot Model"
+                value={robotModelId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotModelId(e.target.value)}
+                options={[
+                  { label: "Select Robot Model...", value: "" },
+                  { label: "Custom", value: CUSTOM_MODEL_VALUE },
+                  ...modelOptionItems,
+                ]}
+                renderOption={(opt) => {
+                  if (opt.value === "" || opt.value === CUSTOM_MODEL_VALUE) return opt.label;
+                  const model = modelOptions.find(
+                    (m: typeof robotModelsTable.$inferSelect) => String(m.id) === String(opt.value),
+                  );
+                  const modalities = getModelModalities(model);
+                  return (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{ width: "100%" }}
+                    >
+                      <span>{opt.label}</span>
+                      {modalities.map((mod) => (
+                        <Badge
+                          key={`${opt.value}-${mod}`}
+                          label={mod}
+                          color={mod === "real" ? "green" : "blue"}
+                          variant="outlined"
+                          sx={{
+                            height: 20,
+                            "& .MuiChip-label": { px: 0.5, fontSize: "0.7rem" },
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  );
+                }}
+              />
+            </Box>
+            {isXmlCustomized && (
+              <Tooltip title="The current robot is a customized version of this robot model.">
+                <span>
+                  <Badge
+                    label="customized"
+                    color="purple"
+                    variant="outlined"
+                    sx={{ mb: 1 }}
+                  />
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
         </Grid>
         {showExplicitModalitySelector ? (
           <Grid size={{ xs: 12, md: 6 }}>
@@ -509,14 +518,6 @@ const RobotForm: React.FC<RobotFormProps> = ({
             </Typography>
           </Grid>
         )}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Input
-            label="Notes"
-            value={notes}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
-            placeholder="Optional notes"
-          />
-        </Grid>
       </Grid>
 
       {modality === "real" && (
@@ -689,11 +690,11 @@ const RobotForm: React.FC<RobotFormProps> = ({
         />
       )}
 
-      {modality === "simulated" && !initialData && (
+      {showCustomFileUpload && (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
           <Stack spacing={2}>
             <Typography variant="h6" fontSize="1rem">
-              Model File (MJCF)
+              Custom Model File (MJCF)
             </Typography>
 
             <Stack direction="row" spacing={2}>
@@ -703,6 +704,12 @@ const RobotForm: React.FC<RobotFormProps> = ({
                   <span>
                     {modelFilePath ? "Change File..." : "Upload Model File..."}
                   </span>
+                </Stack>
+              </Button>
+              <Button variant="ghost" onClick={handleSelectModelFolder}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FolderOpenIcon fontSize="small" />
+                  <span>Select Folder...</span>
                 </Stack>
               </Button>
             </Stack>
@@ -762,7 +769,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
         </Box>
       )}
 
-      {modality === "simulated" && initialData && (
+      {showSimulatedEditor && (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
           <Typography variant="h6" fontSize="1rem" sx={{ mb: 2 }}>
             Model XML Editor

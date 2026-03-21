@@ -53,10 +53,10 @@ describe('tableResource', () => {
   });
 
   it('create() should insert a new item and return it with an id', async () => {
-    const newRobot = {
+    const newRobot: typeof robotsTable.$inferInsert = {
       name: 'Test Robot',
       serialNumber: 'SER-1',
-      data: { location: 'Lab 1' }
+      data: {}
     };
 
     const created = await resource.create(newRobot);

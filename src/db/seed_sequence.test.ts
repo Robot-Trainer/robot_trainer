@@ -45,8 +45,6 @@ describe('Seeding and Sequence Check', () => {
     const newModel = {
       name: "Test Custom Model",
       dirName: "custom",
-      className: "TestClass",
-      configClassName: "TestConfig",
     };
 
     // This is expected to fail if sequence is not updated

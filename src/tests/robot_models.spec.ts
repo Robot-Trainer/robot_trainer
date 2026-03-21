@@ -19,9 +19,6 @@ test.describe('Robot Models CRUD', () => {
 
     await window.getByRole('textbox', { name: 'Name *', exact: true }).fill('Model Alpha');
     await window.getByRole('textbox', { name: 'Dir Name *' }).fill('model_alpha');
-    await window.getByRole('textbox', { name: 'Class Name *', exact: true }).fill('ModelAlphaClass');
-    await window.getByRole('textbox', { name: 'Config Class Name *' }).fill('ModelAlphaConfig');
-    await window.getByLabel('Properties').fill('{"family":"alpha"}');
     await window.getByLabel('Model XML').fill('<mujoco model="alpha"/>');
     await window.getByLabel('Model Path').fill('/tmp/model_alpha.xml');
     await window.getByLabel('Model Format').fill('xml');
