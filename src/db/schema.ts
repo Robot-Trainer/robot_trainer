@@ -1,4 +1,5 @@
 import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import type { InferSelectModel } from "drizzle-orm";
 import * as v from "valibot";
 import type { InferInput } from "valibot";
 export const robotModalityEnum = pgEnum("robotModality", ["real", "simulated"]);
@@ -179,3 +180,16 @@ export const episodesTable = pgTable("episodes", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+// Inferred record types for each table
+export type UserConfigRecord = InferSelectModel<typeof userConfigTable>;
+export type RobotModelRecord = InferSelectModel<typeof robotModelsTable>;
+export type RobotRecord = InferSelectModel<typeof robotsTable>;
+export type TeleoperatorRecord = InferSelectModel<typeof teleoperatorsTable>;
+export type SceneRecord = InferSelectModel<typeof scenesTable>;
+export type TeleoperatorModelRecord = InferSelectModel<typeof teleoperatorModelsTable>;
+export type SceneRobotRecord = InferSelectModel<typeof sceneRobotsTable>;
+export type SceneTeleoperatorRecord = InferSelectModel<typeof sceneTeleoperatorsTable>;
+export type SkillRecord = InferSelectModel<typeof skillsTable>;
+export type DatasetRecord = InferSelectModel<typeof datasetsTable>;
+export type EpisodeRecord = InferSelectModel<typeof episodesTable>;

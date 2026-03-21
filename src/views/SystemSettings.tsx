@@ -38,8 +38,8 @@ const SystemSettings: React.FC = () => {
     load();
     // subscribe to external changes
     const unsub = window.electronAPI?.onSystemSettingsChanged
-      ? window.electronAPI.onSystemSettingsChanged((data: Record<string, unknown>) => {
-        if (data && typeof data === 'object') setSettings(data as SystemSettingsShape);
+      ? window.electronAPI.onSystemSettingsChanged((data: SystemSettingsShape) => {
+        if (data && typeof data === 'object') setSettings(data);
       })
       : null;
     return () => { if (unsub) unsub(); };

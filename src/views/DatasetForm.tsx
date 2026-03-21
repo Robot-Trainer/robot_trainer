@@ -9,7 +9,12 @@ import {
   sceneRobotsTable,
   sceneTeleoperatorsTable,
   robotsTable,
-  episodesTable
+  episodesTable,
+  type SceneRecord,
+  type SkillRecord,
+  type EpisodeRecord,
+  type DatasetRecord,
+  type SceneTeleoperatorRecord,
 } from '../db/schema';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -22,7 +27,8 @@ import type { MuJoCoSimViewHandle } from '../ui/MuJoCoSimView';
 import { MujocoSimulation } from '../lib/MujocoSimulation';
 import type { CameraSpec, ObservationData, SimulationState } from '../lib/MujocoSimulation';
 import { SimDatasetRecorder } from '../lib/SimDatasetRecorder';
-import { normalizeCameraList } from '../types/camera';
+import { normalizeCameraList, type CameraData } from '../types/camera';
+import type { SerialPortInfo } from '../types/shared';
 
 type SceneStatus = {
   ready: boolean;
@@ -38,7 +44,7 @@ const TAB_SETTINGS = 1;
 const TAB_EPISODES = 2;
 
 interface SceneDropdownProps {
-  scenes: Record<string, unknown>[];
+  scenes: SceneRecord[];
   selectedSceneId: number | null;
   statusMap: Record<number, SceneStatus>;
   onSelect: (id: number) => void;
@@ -124,22 +130,22 @@ const SceneDropdown: React.FC<SceneDropdownProps> = ({ scenes, selectedSceneId, 
 
 interface Props {
   _onCancel?: () => void;
-  onSaved: (item: Record<string, unknown>) => void;
-  initialData?: Record<string, unknown>;
+  onSaved: (item: DatasetRecord) => void;
+  initialData?: Partial<DatasetRecord>;
 }
 
 export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }) => {
   const toast = useToast();
   // State
   const [datasetName, setDatasetName] = useState('');
-  const [scenes, setScenes] = useState<Record<string, unknown>[]>([]);
+  const [scenes, setScenes] = useState<SceneRecord[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
   const [sceneStatusMap, setSceneStatusMap] = useState<Record<number, SceneStatus>>({});
-  const [, setSerialPorts] = useState<Record<string, unknown>[]>([]);
-  const [skills, setSkills] = useState<Record<string, unknown>[]>([]);
+  const [, setSerialPorts] = useState<SerialPortInfo[]>([]);
+  const [skills, setSkills] = useState<SkillRecord[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
 
-  const [cameras, setCameras] = useState<Record<string, unknown>[]>([]);
+  const [cameras, setCameras] = useState<CameraData[]>([]);
   const [simRunning, setSimRunning] = useState(false);
   const [recording, setRecording] = useState(false);
 
@@ -150,7 +156,7 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
   const [simInitialising, setSimInitialising] = useState(false);
 
 
-  const [episodes, setEpisodes] = useState<Record<string, unknown>[]>([]);
+  const [episodes, setEpisodes] = useState<EpisodeRecord[]>([]);
   const [_loadingInitial, setLoadingInitial] = useState(true);
   const [tabValue, setTabValue] = useState(TAB_RECORD);
   const [datasetRobotModality, setDatasetRobotModality] = useState<'real' | 'simulated'>('simulated');
@@ -237,14 +243,14 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     }
   };
 
-  const isCameraConnected = (cam: Record<string, unknown>) => {
+  const isCameraConnected = (cam: CameraData) => {
     const data = cam?.data || {};
     return Boolean(data.path || data.devicePath || data.rtspUrl || data.url);
   };
 
   const computeSceneStatus = async (
     sceneId: number,
-    getPorts: () => Promise<Record<string, unknown>[]>
+    getPorts: () => Promise<SerialPortInfo[]>
   ): Promise<SceneStatus> => {
     const [robotRows, sceneRows, teleopRows] = await Promise.all([
       db.select({ robot: robotsTable })
@@ -257,7 +263,7 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     ]);
 
     const robots = robotRows.map(r => r.robot);
-    const cameras = normalizeCameraList(sceneRows[0]?.data && (sceneRows[0].data as Record<string, unknown>).cameras);
+    const cameras = normalizeCameraList(sceneRows[0]?.data && (sceneRows[0].data as { cameras?: unknown })?.cameras);
     const teleops = teleopRows;
 
     const hasRobot = robots.length > 0;
@@ -292,12 +298,12 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     // Only scan serial ports when we actually need to validate real hardware connectivity.
     const needsPortCheck =
       robots.some(r => r.modality === 'real') ||
-      teleops.some((t: Record<string, unknown>) => (t.snapshot || {}).type === 'real');
+      teleops.some((t: SceneTeleoperatorRecord) => ((t.snapshot as Record<string, unknown>) || {}).type === 'real');
     const ports = needsPortCheck ? await getPorts() : [];
 
     const realRobotDisconnected = robots
       .filter(r => r.modality === 'real')
-      .some(r => !r.serialNumber || !ports.some((p: Record<string, unknown>) => p.serialNumber && r.serialNumber === p.serialNumber));
+      .some(r => !r.serialNumber || !ports.some((p: SerialPortInfo) => p.serialNumber && r.serialNumber === p.serialNumber));
     if (realRobotDisconnected) issues.push('real robot not connected');
 
     const realCameraDisconnected = cameras
@@ -305,15 +311,15 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
       .some(c => !isCameraConnected(c));
     if (realCameraDisconnected) issues.push('real camera not connected');
 
-    const teleopDisconnected = teleops.some((t: Record<string, unknown>) => {
-      const snap = t.snapshot || {};
+    const teleopDisconnected = teleops.some((t: SceneTeleoperatorRecord) => {
+      const snap = (t.snapshot as Record<string, unknown>) || {};
       if (snap.type !== 'real') return false;
-      const cfg = snap.config || {};
-      const serial = cfg.serialNumber;
-      const path = cfg.path;
-      if (!serial && !path) return true;
-      if (serial && ports.some((p: Record<string, unknown>) => p.serialNumber === serial)) return false;
-      if (path && ports.some((p: Record<string, unknown>) => p.path === path)) return false;
+      const cfg = (snap.config as Record<string, unknown>) || {};
+      const serial = cfg.serialNumber as string | undefined;
+      const portPath = cfg.path as string | undefined;
+      if (!serial && !portPath) return true;
+      if (serial && ports.some((p: SerialPortInfo) => p.serialNumber === serial)) return false;
+      if (portPath && ports.some((p: SerialPortInfo) => p.path === portPath)) return false;
       return true;
     });
     if (teleopDisconnected) issues.push('teleoperator not connected');
@@ -330,14 +336,14 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     };
   };
 
-  const refreshSceneStatuses = async (sceneList: Record<string, unknown>[]) => {
+  const refreshSceneStatuses = async (sceneList: SceneRecord[]) => {
     if (!sceneList || sceneList.length === 0) {
       setSceneStatusMap({});
       return {};
     }
     const nextMap: Record<number, SceneStatus> = {};
 
-    let portsPromise: Promise<Record<string, unknown>[]> | null = null;
+    let portsPromise: Promise<SerialPortInfo[]> | null = null;
     const getPorts = () => {
       if (!portsPromise) portsPromise = scanSerialPorts();
       return portsPromise;
@@ -440,7 +446,7 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
     const fetchCameras = async () => {
       try {
         const [scene] = await db.select().from(scenesTable).where(eq(scenesTable.id, selectedSceneId)).limit(1);
-        setCameras(normalizeCameraList(scene?.data && (scene.data as Record<string, unknown>).cameras));
+        setCameras(normalizeCameraList(scene?.data && (scene.data as { cameras?: unknown })?.cameras));
       } catch (e) {
         console.error("Failed to fetch cameras", e);
       }
@@ -555,27 +561,27 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
       }
 
       // Build camera specs from snapshot
-      const cameraSpecs: CameraSpec[] = snapshot.cameras.map((c: Record<string, unknown>) => {
-        const rawData = c.data?.mujoco || c.data || {};
+      const cameraSpecs: CameraSpec[] = snapshot.cameras.map((c) => {
+        const rawData = (c.data as Record<string, unknown>)?.mujoco as Record<string, unknown> || c.data || {};
         const pose = c.pose || {};
-        const pos = pose.pos || rawData.pos || [0, 0, 0];
-        const quat = pose.quat || rawData.quat;
-        const xyaxes = pose.xyaxes || rawData.xyaxes;
+        const pos = pose.pos || (rawData as Record<string, unknown>).pos || [0, 0, 0];
+        const quat = pose.quat || (rawData as Record<string, unknown>).quat;
+        const xyaxes = pose.xyaxes || (rawData as Record<string, unknown>).xyaxes;
 
         return {
           name: c.name || `camera_${c.id}`,
           pos,
           quat,
           xyaxes,
-          euler: rawData.euler,
-          target: rawData.target,
-          fovy: rawData.fovy,
+          euler: (rawData as Record<string, unknown>).euler,
+          target: (rawData as Record<string, unknown>).target,
+          fovy: (rawData as Record<string, unknown>).fovy,
           width: parseInt(c.resolution?.split('x')[0]) || 128,
           height: parseInt(c.resolution?.split('x')[1]) || 128,
         };
       });
 
-      const modelProps: Record<string, unknown> = follower.model.properties || {};
+      const modelProps = (follower.model?.simProperties || {}) as Record<string, unknown>;
 
       // Create and initialise the WASM simulation
       const sim = new MujocoSimulation();
@@ -961,14 +967,15 @@ export const DatasetForm: React.FC<Props> = ({ _onCancel, onSaved, initialData }
                 {cameras.map(cam => {
                   const isSim = cam.modality === 'simulated';
                   const camLabel = cam.name || `Camera ${cam.id}`;
-                  const camPath = (cam.data as Record<string, unknown>)?.path || (cam.data as Record<string, unknown>)?.devicePath || (cam.data as Record<string, unknown>)?.rtspUrl || (cam.data as Record<string, unknown>)?.url;
+                  const camData = cam.data as Record<string, unknown>;
+                  const camPath = camData?.path || camData?.devicePath || camData?.rtspUrl || camData?.url;
 
                   if (isSim) {
                     return (
                       <div key={cam.id} className="bg-black relative rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 shadow-sm">
                         <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded z-10 flex items-center gap-1">
                           {camLabel}
-                          {(cam.data as Record<string, unknown>)?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
+                          {camData?.source === 'xml' && <span className="bg-purple-600 px-1 rounded text-[10px] uppercase font-bold">XML</span>}
                         </div>
 
                         {simRunning && simRef.current ? (

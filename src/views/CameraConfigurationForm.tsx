@@ -5,8 +5,8 @@ import { useToast } from '../ui/ToastContext';
 import { normalizeCameraList, type CameraData } from '../types/camera';
 
 interface CameraConfigurationFormProps {
-  initialCameras?: Record<string, unknown>[];
-  onSave?: (cameras: Record<string, unknown>[]) => void;
+  initialCameras?: CameraData[];
+  onSave?: (cameras: CameraData[]) => void;
   onCancel?: () => void;
 }
 

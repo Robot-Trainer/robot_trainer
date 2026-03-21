@@ -9,6 +9,7 @@ import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { JSDOM } from 'jsdom';
 import AdmZip from 'adm-zip';
 import { featureFlags } from './lib/feature_flags';
+import type { SystemSettings, MenagerieScanResult } from './types/shared';
 
 import { setupStartupProfiling, stopStartupProfiling, STARTUP_TRACE_STOP_DELAY_MS } from './lib/profiling';
 
@@ -24,7 +25,7 @@ if (started) {
 
 console.log(`[feature-flags] enable-sim is ${featureFlags.enableSim ? 'enabled' : 'disabled'}`);
 
-let systemSettings: Record<string, unknown> = {featureFlags};
+let systemSettings: SystemSettings = {featureFlags};
 
 const loadSystemSettings = async () => {
   // Ask the renderer (which owns the drizzle DB) for the settings.
@@ -41,7 +42,7 @@ const loadSystemSettings = async () => {
     mainWindow.webContents.send('request-load-system-settings');
 
     // Wait for renderer reply, with timeout fallback to existing file-based config
-    const data = await new Promise<Record<string, unknown>>((resolve) => {
+    const data = await new Promise<SystemSettings>((resolve) => {
       ipcMain.once('reply-load-system-settings', (_ev, payload) => {
         resolve(payload || {});
       });
@@ -170,14 +171,14 @@ const setupIpcHandlers = () => {
     return migrations;
   });
 
-  ipcMain.handle('save-system-settings', async (_event, settings: Record<string, unknown>) => {
+  ipcMain.handle('save-system-settings', async (_event, settings: SystemSettings) => {
     // Forward save request to renderer so it can persist via Drizzle (users table)
     try {
       if (mainWindow) {
         mainWindow.webContents.send('request-save-system-settings', settings);
 
         // Wait for renderer reply (with timeout fallback to file write)
-        const result = await new Promise<Record<string, unknown>>((resolve) => {
+        const result = await new Promise<{ success: boolean; error?: string }>((resolve) => {
           let done = false;
           const to = setTimeout(async () => {
             if (done) return;
@@ -733,7 +734,7 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('save-robot-config', async (_event, config: Record<string, unknown>) => {
+  ipcMain.handle('save-robot-config', async (_event, config: SystemSettings) => {
     try {
       const home = app.getPath('home');
       const dir = path.join(home, 'robot_trainer');
@@ -832,7 +833,7 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('scan-mujoco-menagerie', async () => {
     const menageriePath = path.join(process.cwd(), 'mujoco_menagerie');
-    const results: { robots: Record<string, unknown>[]; configurations: Record<string, unknown>[] } = {
+    const results: MenagerieScanResult = {
       robots: [],
       configurations: []
     };

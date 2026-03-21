@@ -5,13 +5,14 @@ import UiSelect from '../ui/Select';
 import UiInput from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { sceneRobotsTable, sceneTeleoperatorsTable, datasetsTable } from '../db/schema';
+import { sceneRobotsTable, sceneTeleoperatorsTable, datasetsTable, type RobotModelRecord, type RobotRecord, type SceneRecord, type TeleoperatorModelRecord } from '../db/schema';
 import { robotModelsResource, teleoperatorModelsResource, robotsResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
 import { parseMujocoCameras } from '../lib/mujoco_parser';
 import DatasetFormView from './DatasetForm';
 import { Dialog, DialogContent } from '@mui/material';
 import { normalizeCamera, normalizeCameraList, type CameraData } from '../types/camera';
+import type { SerialPortInfo } from '../types/shared';
 
 import { RobotSelectionDropdown } from './RobotSelectionDropdown';
 import { CameraSelectionDropdown } from './CameraSelectionDropdown';
@@ -19,7 +20,7 @@ import { CameraSelectionDropdown } from './CameraSelectionDropdown';
 interface SceneFormProps {
   onCancel?: () => void;
   onSaved?: (config: Record<string, unknown>) => Promise<unknown> | void;
-  onRefresh?: () => Promise<void>; // Add this line
+  onRefresh?: () => Promise<void>;
   initialData?: Record<string, unknown>;
 }
 
@@ -45,15 +46,15 @@ export const SceneForm: React.FC<SceneFormProps> = ({
   const [availableRobots, setAvailableRobots] = useState<
     { label: string; value: string }[]
   >([]);
-  const [robotModels, setRobotModels] = useState<Record<string, unknown>[]>([]);
+  const [robotModels, setRobotModels] = useState<RobotModelRecord[]>([]);
   const [xmlCameras, setXmlCameras] = useState<CameraData[]>([]);
 
   const [availableTeleoperators, setAvailableTeleoperators] = useState<
     { label: string; value: string }[]
   >([]);
 
-  const [knownRobots, setKnownRobots] = useState<Record<string, unknown>[]>([]);
-  const [serialPorts, setSerialPorts] = useState<Record<string, unknown>[]>([]);
+  const [knownRobots, setKnownRobots] = useState<RobotRecord[]>([]);
+  const [serialPorts, setSerialPorts] = useState<SerialPortInfo[]>([]);
   const [scanning, setScanning] = useState(false);
 
   const [availableCameras, setAvailableCameras] = useState<CameraData[]>([]);
@@ -72,7 +73,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
     try {
       const robots = await robotModelsResource.list();
       setRobotModels(robots);
-      const rOpts = robots.map((r: Record<string, unknown>) => ({
+      const rOpts = robots.map((r: RobotModelRecord) => ({
         label: r.name,
         value: String(r.id),
       }));
@@ -80,8 +81,8 @@ export const SceneForm: React.FC<SceneFormProps> = ({
 
       const teleops = await teleoperatorModelsResource.list();
       const tOpts = teleops.map(
-        (t: Record<string, unknown> & { data?: Record<string, unknown> }) => ({
-          label: t.data?.name || t.id,
+        (t: TeleoperatorModelRecord) => ({
+          label: (t.data as Record<string, unknown>)?.name || t.id,
           value: t.id,
         }),
       );
@@ -300,7 +301,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
     setCameraSlots(newSlots);
   };
 
-  const getDeviceLabel = (port: Record<string, unknown>) => {
+  const getDeviceLabel = (port: SerialPortInfo) => {
     const known = knownRobots.find((r) => r.serialNumber === port.serialNumber);
     if (known) {
       return `${known.name} - (SN: ${port.serialNumber})`;
@@ -377,14 +378,14 @@ export const SceneForm: React.FC<SceneFormProps> = ({
     }
 
     try {
-      const parentResult: Record<string, unknown> = await onSaved({
+      const parentResult = await onSaved({
         name: sceneName,
         sceneXmlPath,
         data: {
           ...(initialData?.data || {}),
           cameras: selectedCameras,
         },
-      });
+      }) as SceneRecord | undefined;
 
       if (!parentResult || !parentResult.id) {
         console.error("No ID returned from save");
@@ -544,7 +545,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
   };
 
   const handleDatasetSavedFromDialog = async (
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown> & { name?: string; sceneId: number; skillId?: number | null },
   ) => {
     try {
       const [saved] = await db

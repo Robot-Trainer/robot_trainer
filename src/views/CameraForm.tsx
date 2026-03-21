@@ -16,7 +16,7 @@ import UiButton from "../ui/Button";
 
 type CameraModality = "real" | "simulated";
 
-type CameraFormData = Record<string, unknown> & {
+type CameraFormData = {
   name: string;
   modality: CameraModality;
   serialNumber: string;

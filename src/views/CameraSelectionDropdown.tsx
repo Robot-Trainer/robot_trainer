@@ -166,7 +166,7 @@ export const CameraSelectionDropdown: React.FC<CameraSelectionDropdownProps> = (
   const [editingId, setEditingId] = useState<number | null>(null);
   const normalized = useMemo(() => cameras.map((c) => normalizeCamera(c)), [cameras]);
 
-  const createCamera = (data: Record<string, unknown>) => {
+  const createCamera = (data: Partial<CameraData> & Record<string, unknown>) => {
     const created = normalizeCamera(data);
     const next = [...normalized, created];
     onCamerasChanged(next);

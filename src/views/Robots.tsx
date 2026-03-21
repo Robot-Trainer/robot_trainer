@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { ResourceManager, type GridCol } from '../ui/ResourceManager';
-import { robotsTable } from '../db/schema';
+import { robotsTable, type RobotRecord } from '../db/schema';
 import RobotForm from './RobotForm';
 import Badge from '../ui/Badge';
 
@@ -16,19 +16,22 @@ const gridCols: GridCol[] = [
   {
     field: "name",
     headerName: "Name",
-    render: (row: Record<string, unknown> & { name?: string, modality?: string }) => row.name
+    render: (row) => (row as RobotRecord).name
   },
   {
     field: "modality",
     headerName: "Modality",
-    render: (row: Record<string, unknown> & { name?: string, modality?: string }) => (
-                  <Badge
-              key={row.modality}
-              variant="outlined"
-              label={row.modality}
-              color={modalityBadgeColor(row.modality)}
-            />
-    )
+    render: (row) => {
+      const robot = row as RobotRecord;
+      return (
+        <Badge
+          key={robot.modality}
+          variant="outlined"
+          label={robot.modality}
+          color={modalityBadgeColor(robot.modality)}
+        />
+      );
+    }
   },
 ];
 

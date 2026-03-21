@@ -5,28 +5,30 @@ import { scenesResource } from "../db/resources";
 import SceneFormView from "./SceneForm";
 import { Typography } from "@mui/material";
 import Badge from "../ui/Badge";
+import type { SceneListItem } from "../types/shared";
 
 const gridCols: GridCol[] = [
   {
     field: "name",
     headerName: "Name",
-    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.name
+    render: (row) => (row as SceneListItem).name
   },
   {
     field: "robotName",
     headerName: "Robot",
-    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.robotName || "No Robot"
+    render: (row) => (row as SceneListItem).robotName || "No Robot"
   },
   {
     field: "robotModality",
     headerName: "Modality",
-    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => {
-      if (!row.robotModality) return <Typography variant="body2" color="text.disabled">-</Typography>;
+    render: (row) => {
+      const scene = row as SceneListItem;
+      if (!scene.robotModality) return <Typography variant="body2" color="text.disabled">-</Typography>;
       return (
         <Badge
-          label={row.robotModality}
+          label={scene.robotModality}
           variant="outlined"
-          color={row.robotModality === 'simulated' ? 'blue' : 'green'}
+          color={scene.robotModality === 'simulated' ? 'blue' : 'green'}
           sx={{ height: 24 }}
         />
       );
@@ -35,7 +37,7 @@ const gridCols: GridCol[] = [
   {
     field: "cameraCount",
     headerName: "Cameras",
-    render: (row: Record<string, unknown> & { name?: string, robotName?: string, sceneType?: string, cameraCount?: number }) => row.cameraCount || 0
+    render: (row) => (row as SceneListItem).cameraCount || 0
   },
 ];
 

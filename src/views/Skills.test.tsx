@@ -18,7 +18,7 @@ vi.mock('../db/db', async () => {
 });
 
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
-vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Record<string, unknown>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
+vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Partial<import('../lib/uiStore').UIState>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
 
 describe('SkillsView Deletion', () => {
   beforeAll(async () => {

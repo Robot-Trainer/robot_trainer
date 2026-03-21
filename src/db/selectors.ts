@@ -38,16 +38,7 @@ export const getSceneSnapshot = async (sceneId: number) => {
     .innerJoin(teleoperatorModelsTable, eq(sceneTeleoperatorsTable.teleoperatorId, teleoperatorModelsTable.id))
     .where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
 
-  // The snapshot structure:
-  // Internal Format:
-  // {
-  //    ...config,
-  //    robots: [ { ...robot, _snapshot: ... } ],
-  //    cameras: [ { ...camera, _snapshot: ... } ],
-  //    teleoperators: [ { ...teleop, _snapshot: ... } ]
-  // }
-
-  const sceneData = (config as Record<string, unknown>).data as Record<string, unknown> | undefined;
+  const sceneData = config.data as Record<string, unknown> | undefined;
   const cameras = normalizeCameraList(sceneData?.cameras);
 
   return {

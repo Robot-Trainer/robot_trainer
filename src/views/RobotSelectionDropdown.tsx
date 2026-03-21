@@ -6,11 +6,13 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import Badge from '../ui/Badge';
 import { robotsResource } from '../db/resources';
+import type { RobotRecord } from '../db/schema';
+import type { SerialPortInfo } from '../types/shared';
 
 interface RobotEditorProps {
-  robot: Record<string, unknown>;
+  robot: RobotRecord;
   availableModels: { label: string, value: string }[];
-  connectedDevices: Record<string, unknown>[];
+  connectedDevices: SerialPortInfo[];
   onSave: () => void;
   onCancel: () => void;
 }
@@ -93,8 +95,8 @@ const RobotEditor: React.FC<RobotEditorProps> = ({ robot, availableModels, conne
 
 
 interface RobotSelectionDropdownProps {
-  robots: Record<string, unknown>[];
-  connectedDevices: Record<string, unknown>[];
+  robots: RobotRecord[];
+  connectedDevices: SerialPortInfo[];
   availableModels: { label: string, value: string }[];
   selectedRobotId: number | null;
   onSelect: (robotId: number) => void;
@@ -113,7 +115,7 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
 }) => {
   const [editingRobotId, setEditingRobotId] = useState<number | null>(null);
 
-  const createRobot = async (data: Record<string, unknown>) => {
+  const createRobot = async (data: Partial<RobotRecord> & Record<string, unknown>) => {
     try {
       const res = await robotsResource.create({
         ...data,

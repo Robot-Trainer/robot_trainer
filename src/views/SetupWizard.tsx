@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { ChevronRight, CheckCircle, Loader } from '../icons';
 import useUIStore from '../lib/uiStore';
+import type { UIState } from '../lib/uiStore';
 import { Accordion, AccordionSummary, AccordionDetails, Typography, Box } from '@mui/material';
+import type { CondaCheckResult, CondaEnv } from '../types/shared';
 
 // Local icon components
-const XCircle = (props: Record<string, unknown>) => (
+const XCircle = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 20 20" fill="currentColor" {...props}>
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
   </svg>
@@ -34,7 +36,16 @@ const OutputLog = ({ output, status }: { output: string | null, status: string }
   );
 };
 
-const SetupAccordionItem = ({ title, expanded, onChange, status, children, output }: Record<string, unknown>) => {
+interface SetupAccordionItemProps {
+  title: string;
+  expanded: boolean;
+  onChange: (event: React.SyntheticEvent, isExpanded: boolean) => void;
+  status: string;
+  children: React.ReactNode;
+  output: string | null;
+}
+
+const SetupAccordionItem = ({ title, expanded, onChange, status, children, output }: SetupAccordionItemProps) => {
   return (
     <Accordion expanded={expanded} onChange={onChange} disableGutters elevation={0} sx={{ border: '1px solid #e5e7eb', mb: 1, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
       <AccordionSummary
@@ -82,7 +93,7 @@ export const SetupWizard: React.FC = () => {
 
   // Step 1: Miniconda
   const [condaStatus, setCondaStatus] = useState<'pending' | 'loading' | 'complete' | 'error'>('pending');
-  const [condaResult, setCondaResult] = useState<Record<string, unknown> | null>(null);
+  const [condaResult, setCondaResult] = useState<CondaCheckResult | null>(null);
   const [condaError, setCondaError] = useState<string | null>(null);
   const [condaOutput, setCondaOutput] = useState<string | null>(null);
 
@@ -97,11 +108,11 @@ export const SetupWizard: React.FC = () => {
   const [lerobotOutput, setLerobotOutput] = useState<string | null>(null);
 
   // Store actions
-  const setCurrentPage = useUIStore((s: Record<string, unknown> & { setCurrentPage: unknown, setResourceManagerShowForm: unknown, setShowSetupWizard: unknown, showSetupWizardForced: unknown, setShowSetupWizardForced: unknown }) => s.setCurrentPage);
-  const setResourceManagerShowForm = useUIStore((s: Record<string, unknown> & { setCurrentPage: unknown, setResourceManagerShowForm: unknown, setShowSetupWizard: unknown, showSetupWizardForced: unknown, setShowSetupWizardForced: unknown }) => s.setResourceManagerShowForm);
-  const setShowSetupWizard = useUIStore((s: Record<string, unknown> & { setCurrentPage: unknown, setResourceManagerShowForm: unknown, setShowSetupWizard: unknown, showSetupWizardForced: unknown, setShowSetupWizardForced: unknown }) => s.setShowSetupWizard);
-  const showSetupWizardForced = useUIStore((s: Record<string, unknown> & { setCurrentPage: unknown, setResourceManagerShowForm: unknown, setShowSetupWizard: unknown, showSetupWizardForced: unknown, setShowSetupWizardForced: unknown }) => s.showSetupWizardForced);
-  const setShowSetupWizardForced = useUIStore((s: Record<string, unknown> & { setCurrentPage: unknown, setResourceManagerShowForm: unknown, setShowSetupWizard: unknown, showSetupWizardForced: unknown, setShowSetupWizardForced: unknown }) => s.setShowSetupWizardForced);
+  const setCurrentPage = useUIStore((s: UIState) => s.setCurrentPage);
+  const setResourceManagerShowForm = useUIStore((s: UIState) => s.setResourceManagerShowForm);
+  const setShowSetupWizard = useUIStore((s: UIState) => s.setShowSetupWizard);
+  const showSetupWizardForced = useUIStore((s: UIState) => s.showSetupWizardForced);
+  const setShowSetupWizardForced = useUIStore((s: UIState) => s.setShowSetupWizardForced);
 
   // Initial check on mount
   useEffect(() => {
@@ -134,11 +145,11 @@ export const SetupWizard: React.FC = () => {
       if (res.found) {
         setCondaStatus('complete');
         // Check env
-        const hasEnv = res.envs.some((e: Record<string, unknown> & { name: string, pythonPath: string }) => e.name === 'robot_trainer');
+        const hasEnv = res.envs.some((e: CondaEnv) => e.name === 'robot_trainer');
         if (hasEnv) {
           setEnvStatus('complete');
           // Save valid config
-          const env = res.envs.find((e: Record<string, unknown> & { name: string, pythonPath: string }) => e.name === 'robot_trainer');
+          const env = res.envs.find((e: CondaEnv) => e.name === 'robot_trainer');
           if (env && env.pythonPath) {
             await window.electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: res.path });
           }
@@ -196,7 +207,7 @@ export const SetupWizard: React.FC = () => {
         // Refresh conda info
         const condaRes = await window.electronAPI.checkAnaconda();
         setCondaResult(condaRes);
-        const env = condaRes.envs.find((e: Record<string, unknown> & { name: string, pythonPath: string }) => e.name === 'robot_trainer');
+        const env = condaRes.envs.find((e: CondaEnv) => e.name === 'robot_trainer');
         if (env && env.pythonPath) {
           await window.electronAPI.saveSystemSettings({ pythonPath: env.pythonPath, condaRoot: condaRes.path });
         }
@@ -244,7 +255,7 @@ export const SetupWizard: React.FC = () => {
 
     // 2. Env
     const condaRes = await window.electronAPI.checkAnaconda();
-    const hasEnv = condaRes.envs.some((e: Record<string, unknown> & { name: string, pythonPath: string }) => e.name === 'robot_trainer');
+    const hasEnv = condaRes.envs.some((e: CondaEnv) => e.name === 'robot_trainer');
 
     if (!hasEnv) {
       setExpandedItem(2);
