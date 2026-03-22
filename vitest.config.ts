@@ -3,16 +3,14 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     exclude: [
       "**/src/python/**",
+      "**/.worktrees/**",
       "**/src/tests/**",
       "**/node_modules/**",
-      "**/src/lib/config_manager.test.ts"
+      "**/src/lib/config_manager.test.ts",
     ],
-    include: [
-      "**/src/**/*.test.ts",
-      "**/src/**/*.test.tsx"
-    ]
+    include: ["**/src/**/*.test.ts", "**/src/**/*.test.tsx"],
   },
 });
