@@ -74,6 +74,8 @@ export interface ElectronAPI {
   getUsername: () => Promise<string>;
   getDefaultDatasetDir: (repoId: string) => Promise<string>;
   selectDatasetDirectory: () => Promise<string | null>;
+  selectDirectory: () => Promise<string | null>;
+  writeJsonFile: (filePath: string, data: unknown) => Promise<boolean>;
   scanSerialPorts: () => Promise<SerialPortInfo[]>;
   getMigrations: () => Promise<MigrationFile[]>;
   saveSystemSettings: (settings: SystemSettings) => Promise<void>;

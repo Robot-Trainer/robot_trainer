@@ -13,6 +13,16 @@ describe('getFeatureFlags', () => {
     expect(flags.enableSim).toBe(true);
   });
 
+  it('enables simulation flag via CLI switch with = sign', () => {
+    const flags = getFeatureFlags(['node', 'electron', '--enable-sim=true'], {});
+    expect(flags.enableSim).toBe(true);
+  });
+
+  it('enables simulation flag via legacy single-dash switch with = sign', () => {
+    const flags = getFeatureFlags(['node', 'electron', '-enable-sim=1'], {});
+    expect(flags.enableSim).toBe(true);
+  });
+
   it('enables simulation flag via npm_config_enable_sim', () => {
     const flags = getFeatureFlags(['node', 'electron'], { npm_config_enable_sim: 'true' });
     expect(flags.enableSim).toBe(true);

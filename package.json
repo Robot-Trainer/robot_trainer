@@ -10,7 +10,7 @@
     "start:profile": "npm run db:generate && electron-forge start -- -enable-logging --logging-level=0 --profile-startup",
     "package": "electron-forge package",
     "download-ffmpeg": "node scripts/download_ffmpeg.js",
-    "test": "vitest",
+    "test": "vitest run --coverage",
     "test:playwright": "npx playwright test",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -40,7 +40,7 @@
     "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.57.0",
     "@sonar/scan": "^4.3.5",
-    "@testing-library/react": "^16.3.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/express": "^5.0.6",
@@ -53,6 +53,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.1.0",
     "electron": "39.2.7",
     "electron-react-devtools": "^0.5.3",
     "electron-rebuild": "^3.2.9",
@@ -64,7 +65,7 @@
     "typescript": "~5.9.3",
     "vite": "^8.0.1",
     "vite-plugin-static-copy": "^3.2.0",
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.14",

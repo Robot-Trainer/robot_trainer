@@ -1,0 +1,10 @@
+--- src/views/RobotSelectionDropdown.tsx
++++ src/views/RobotSelectionDropdown.tsx
+@@ -193,6 +193,7 @@
+           size="small"
+           InputLabelProps={{ shrink: true }}
+           SelectProps={{
++            displayEmpty: true,
+             renderValue: (selected) => {
+               const r = robots.find(r => r.id === selected);
+               if (!r) {

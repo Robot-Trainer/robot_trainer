@@ -14,7 +14,7 @@ export const robotModelFields = [
   { name: 'modelFormat', label: 'Model Format' },
 ];
 
-function parseSimProperties(simProperties: unknown): RobotModelSimProperties {
+export function parseSimProperties(simProperties: unknown): RobotModelSimProperties {
   if (!simProperties) return {};
 
   if (typeof simProperties === 'string') {
@@ -32,18 +32,18 @@ function parseSimProperties(simProperties: unknown): RobotModelSimProperties {
   return {};
 }
 
-function getJointCount(props: RobotModelSimProperties): number {
+export function getJointCount(props: RobotModelSimProperties): number {
   if (Array.isArray(props.jointNames)) {
     return props.jointNames.length;
   }
   return typeof props.numJoints === 'number' ? props.numJoints : 0;
 }
 
-function getActuatorCount(props: RobotModelSimProperties): number {
+export function getActuatorCount(props: RobotModelSimProperties): number {
   return Array.isArray(props.actuatorNames) ? props.actuatorNames.length : 0;
 }
 
-const modalityBadgeColor = (modality: string): 'green' | 'blue' | 'gray' => {
+export const modalityBadgeColor = (modality: string): 'green' | 'blue' | 'gray' => {
   if (modality === 'real') return 'green';
   if (modality === 'simulated') return 'blue';
   return 'gray';

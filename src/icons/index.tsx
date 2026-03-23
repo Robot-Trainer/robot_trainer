@@ -189,5 +189,6 @@ export default {
   RefreshCw,
   XCircle,
   Circle,
-  ExternalLink
+  ExternalLink,
+  RobotConfiguration
 };

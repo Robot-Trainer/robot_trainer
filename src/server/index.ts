@@ -14,12 +14,12 @@
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, static as serveStatic, json } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import createRateLimit from 'express-rate-limit';
 
 const app = express();
-app.use(express.json());
+app.use(json());
 
 // ---------------------------------------------------------------------------
 // Rate limiting — apply globally to all routes to prevent abuse and satisfy
@@ -43,7 +43,7 @@ app.use(limiter);
 // Resolve relative to the current working directory so this works whether the
 // file is executed via `tsx src/server/index.ts` or from a compiled bundle.
 const staticDir = path.resolve(process.cwd(), 'dist/web');
-app.use(express.static(staticDir));
+app.use(serveStatic(staticDir));
 
 // ---------------------------------------------------------------------------
 // Stubbed IPC channel handlers

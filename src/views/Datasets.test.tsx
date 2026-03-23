@@ -18,7 +18,16 @@ vi.mock('../db/db', async () => {
 });
 
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
-vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Partial<import('../lib/uiStore').UIState>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
+const mockUiStore = {
+  resourceManagerShowForm: false,
+  setResourceManagerShowForm: vi.fn(),
+};
+
+vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Partial<import('../lib/uiStore').UIState>) => unknown) => cb(mockUiStore) }));
+
+vi.mock('./DatasetForm', () => ({
+  DatasetForm: () => <div data-testid="dataset-form-mock" />
+}));
 
 describe('DatasetsView Deletion', () => {
   beforeAll(async () => {
@@ -63,4 +72,12 @@ describe('DatasetsView Deletion', () => {
     const eps = await tableResource(episodesTable).list();
     expect(eps).toHaveLength(0);
   });
+
+  it('should render form when create is active', async () => {
+    mockUiStore.resourceManagerShowForm = true;
+    render(<DatasetsView />);
+    expect(await screen.findByTestId('dataset-form-mock')).toBeTruthy();
+    mockUiStore.resourceManagerShowForm = false;
+  });
 });
+

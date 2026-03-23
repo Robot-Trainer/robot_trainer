@@ -150,6 +150,28 @@ const setupIpcHandlers = () => {
     return path.join(app.getPath('userData'), 'datasets', datasetName);
   });
 
+  ipcMain.handle('select-directory', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Directory',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('write-json-file', async (_event, filePath: string, data: unknown) => {
+    try {
+      const dir = path.dirname(filePath);
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+      return true;
+    } catch (e) {
+      console.error('Failed to write JSON', e);
+      return false;
+    }
+  });
+
   ipcMain.handle('select-dataset-directory', async () => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {

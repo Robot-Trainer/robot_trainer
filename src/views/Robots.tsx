@@ -5,7 +5,7 @@ import { robotsTable, type RobotRecord } from '../db/schema';
 import RobotForm from './RobotForm';
 import Badge from '../ui/Badge';
 
-const modalityBadgeColor = (modality: string): "green" | "blue" | "gray" => {
+export const modalityBadgeColor = (modality: string): "green" | "blue" | "gray" => {
   if (modality === "real") return "green";
   if (modality === "simulated") return "blue";
   return "gray";

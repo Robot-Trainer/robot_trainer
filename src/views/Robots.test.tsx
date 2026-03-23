@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import RobotsView from './Robots';
+import RobotsView, { modalityBadgeColor } from './Robots';
 import { robotsTable, sceneRobotsTable, scenesTable } from '../db/schema';
 import { tableResource } from '../db/tableResource';
 import { migrate } from '../db/migrate';
@@ -18,7 +18,16 @@ vi.mock('../db/db', async () => {
 });
 
 vi.mock('../ui/ToastContext', () => ({ useToast: () => ({ error: vi.fn(), success: vi.fn() }) }));
-vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Partial<import('../lib/uiStore').UIState>) => unknown) => cb({ resourceManagerShowForm: false, setResourceManagerShowForm: vi.fn() }) }));
+const mockUiStore = {
+  resourceManagerShowForm: false,
+  setResourceManagerShowForm: vi.fn(),
+};
+
+vi.mock('../lib/uiStore', () => ({ default: (cb: (state: Partial<import('../lib/uiStore').UIState>) => unknown) => cb(mockUiStore) }));
+
+vi.mock('./RobotForm', () => ({
+  default: () => <div data-testid="robot-form-mock" />
+}));
 
 describe('RobotsView Deletion', () => {
   beforeAll(async () => {
@@ -56,5 +65,25 @@ describe('RobotsView Deletion', () => {
     });
     const links = await tableResource(sceneRobotsTable).list();
     expect(links).toHaveLength(0);
+  });
+
+  it('renders badges for different modalities', async () => {
+    // create real, simulated, and unknown
+    await tableResource(robotsTable).create({ name: 'SimBot', modality: 'simulated' });
+
+    render(<RobotsView />);
+    expect(await screen.findByText('SimBot')).toBeTruthy();
+    expect(screen.getByText('simulated')).toBeTruthy();
+  });
+
+  it('modalityBadgeColor fallback', () => {
+    expect(modalityBadgeColor('unknown_mod')).toBe('gray');
+  });
+
+  it('renders form when showForm is true', async () => {
+    mockUiStore.resourceManagerShowForm = true;
+    render(<RobotsView />);
+    expect(await screen.findByTestId('robot-form-mock')).toBeTruthy();
+    mockUiStore.resourceManagerShowForm = false;
   });
 });

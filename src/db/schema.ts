@@ -35,6 +35,14 @@ export const RobotSimPropertiesSchema = v.object({
 });
 export type RobotSimProperties = InferInput<typeof RobotSimPropertiesSchema>;
 
+export const CalibrationResultsSchema = v.record(v.string(), v.object({
+  id: v.number(),
+  drive_mode: v.optional(v.number()),
+  homing_offset: v.number(),
+  range_min: v.number(),
+  range_max: v.number(),
+}));
+
 export const CameraEntrySchema = v.object({
   name: v.optional(v.string()),
   deviceId: v.optional(v.string()),
@@ -57,6 +65,7 @@ export const RobotRealPropertiesSchema = v.object({
     })
   ),
   cameras: v.optional(v.array(CameraEntrySchema)),
+  calibration: v.optional(CalibrationResultsSchema),
 });
 export type RobotRealProperties = InferInput<typeof RobotRealPropertiesSchema>;
 
@@ -88,6 +97,7 @@ export const RobotDataColumnSchema = v.object({
   ),
   modelXml: v.optional(v.string()),
   cameras: v.optional(v.array(CameraEntrySchema)),
+  calibration: v.optional(CalibrationResultsSchema),
 });
 
 export type RobotDataColumn = InferInput<typeof RobotDataColumnSchema>;

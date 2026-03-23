@@ -1,0 +1,22 @@
+--- src/views/RobotSelectionDropdown.test.tsx
++++ src/views/RobotSelectionDropdown.test.tsx
+@@ -244,11 +244,11 @@
+     
+     // It should have 'Currently Disconnected (SN999)' option
+     // In our mocked Select UI it might just be text or a value, let's just make sure it's tested.
+-    // Changing serial number to a connected device:
+-    const selects = screen.getAllByRole('combobox');
+-
+-    // Saving it without changes should preserve 'SN999'.
+-
+-    if (selects.length > 1) {
+-      fireEvent.change(selects[1], { target: { value: 'SN456' } });
+-    }
++    
++    // Find the device select (usually the second combobox in edit form)
++    // The first is Model, second is Device
++    const modelSelects = await screen.findAllByRole('combobox');
++    if (modelSelects.length > 1) {
++      fireEvent.mouseDown(modelSelects[1]);
++      // Wait for options
++      const option = await screen.findByText(/Device Make 2/);

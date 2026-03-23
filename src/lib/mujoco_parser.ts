@@ -18,7 +18,7 @@ export interface MjcfCamera {
   // Optical properties
   fovy?: number;
   ipd?: number;
-  
+
   // Resolution/Mode usually not in XML body-camera but in visual/global or managed by renderer
   // We can carry them if we find custom attributes or just defaults
 }
@@ -31,7 +31,7 @@ function parseFloats(str: string | null): number[] | undefined {
   // Handle multiple spaces, tabs, newlines
   const parts = str.trim().split(/\s+/);
   const nums = parts.map(p => parseFloat(p));
-  if (nums.some(isNaN)) return undefined; 
+  if (nums.some(isNaN)) return undefined;
   return nums;
 }
 
@@ -51,9 +51,9 @@ export function parseMujocoCameras(xmlContent: string): MjcfCamera[] {
   }
 
   const cameras: MjcfCamera[] = [];
-  
-  // Queries all <camera> tags. 
-  // Note: MJCF structure usually nests cameras in <worldbody> or other bodies. 
+
+  // Queries all <camera> tags.
+  // Note: MJCF structure usually nests cameras in <worldbody> or other bodies.
   // getElementsByTagName returns all descendants which is what we want.
   const camNodes = doc.getElementsByTagName('camera');
 
@@ -81,7 +81,7 @@ export function parseMujocoCameras(xmlContent: string): MjcfCamera[] {
       const vals = parseFloats(axisStr);
       if (vals && vals.length === 3) cam.axis = vals as [number, number, number];
     }
-    
+
     // 'target' attribute in MJCF camera usually refers to a target body name to look at
     const targetStr = node.getAttribute('target');
     if (targetStr) {
@@ -105,7 +105,7 @@ export function parseMujocoCameras(xmlContent: string): MjcfCamera[] {
         const vals = parseFloats(eulerStr);
         if (vals && vals.length === 3) cam.euler = vals as [number, number, number];
     }
-    
+
     const fovyStr = node.getAttribute('fovy');
     if(fovyStr) {
         const val = parseFloat(fovyStr);

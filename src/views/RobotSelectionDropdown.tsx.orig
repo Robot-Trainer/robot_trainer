@@ -216,7 +216,6 @@ export const RobotSelectionDropdown: React.FC<RobotSelectionDropdownProps> = ({
           size="small"
           InputLabelProps={{ shrink: true }}
           SelectProps={{
-            displayEmpty: true,
             renderValue: (selected) => {
               const r = robots.find(r => r.id === selected);
               if (!r) {

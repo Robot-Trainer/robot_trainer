@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import RobotModelsView, { robotModelFields } from './RobotModels';
+import RobotModelsView, { robotModelFields, modalityBadgeColor, parseSimProperties, getJointCount, getActuatorCount } from './RobotModels';
 import { robotModelsTable, robotsTable } from '../db/schema';
 import { tableResource } from '../db/tableResource';
 import { migrate } from '../db/migrate';
@@ -79,6 +79,12 @@ describe('RobotModelsView', () => {
 
   it('renders modality badges and robot metadata columns', async () => {
     await tableResource(robotModelsTable).create({
+      name: 'Null Modality',
+      dirName: 'null_modality',
+      supportedModalities: null,
+      simProperties: {},
+    });
+    await tableResource(robotModelsTable).create({
       name: 'Metadata Model',
       dirName: 'metadata_model',
       supportedModalities: ['real', 'simulated'],
@@ -103,4 +109,37 @@ describe('RobotModelsView', () => {
       expect(screen.getByText('2')).toBeTruthy();
     });
   });
+
+  it('handles edge cases in parseSimProperties', () => {
+        expect(parseSimProperties(null)).toEqual({});
+    expect(parseSimProperties('{"numJoints": 4}')).toEqual({ numJoints: 4 });
+    expect(parseSimProperties('invalid json')).toEqual({});
+    expect(parseSimProperties(123)).toEqual({});
+  });
+
+  it('handles edge cases in getJointCount and getActuatorCount', () => {
+        expect(getJointCount({ numJoints: 5 })).toBe(5);
+    expect(getJointCount({})).toBe(0);
+    expect(getActuatorCount({})).toBe(0);
+  });
+
+  it('handles edge cases in modalityBadgeColor', () => {
+        expect(modalityBadgeColor('unknown_mod')).toBe('gray');
+  });
+
+  it('renders correctly with empty modalities', async () => {
+    await tableResource(robotModelsTable).create({
+      name: 'Empty Modality',
+      dirName: 'empty_modality',
+      supportedModalities: [],
+      simProperties: {},
+    });
+    render(<RobotModelsView />);
+    await waitFor(() => {
+      expect(screen.getByText('Empty Modality')).toBeTruthy();
+      expect(screen.getAllByText('-')).toBeTruthy();
+    });
+  });
+
 });
+

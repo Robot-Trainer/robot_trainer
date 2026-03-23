@@ -11,6 +11,8 @@ const electronAPI: ElectronAPI = {
   getDefaultDatasetDir: (repoId: string) =>
     ipcRenderer.invoke("get-default-dataset-dir", repoId),
   selectDatasetDirectory: () => ipcRenderer.invoke("select-dataset-directory"),
+  selectDirectory: () => ipcRenderer.invoke("select-directory"),
+  writeJsonFile: (filePath: string, data: string) => ipcRenderer.invoke("write-json-file", filePath, data),
   scanSerialPorts: () => ipcRenderer.invoke("scan-serial-ports"),
   saveSystemSettings: (settings: SystemSettings) =>
     ipcRenderer.invoke("save-system-settings", settings),

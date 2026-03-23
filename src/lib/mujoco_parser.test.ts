@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parseMujocoCameras } from './mujoco_parser';
 
 const sampleSceneXml = `
@@ -80,6 +80,23 @@ describe('parseMujocoCameras', () => {
     const robotCam = cameras.find(c => c.name === 'robot_cam');
     expect(robotCam?.pos).toBeUndefined();
     expect(robotCam?.euler).toBeUndefined();
+  });
+
+  it('should fallback to xmldom if window is not available', () => {
+    const originalDOMParser = global.window ? global.window.DOMParser : undefined;
+    try {
+      if (global.window) {
+        vi.stubGlobal('DOMParser', undefined);
+        Object.defineProperty(global.window, 'DOMParser', { value: undefined, configurable: true });
+      }
+      const cameras = parseMujocoCameras(sampleSceneXml);
+      expect(cameras.length).toBeGreaterThan(0);
+    } finally {
+      if (global.window && originalDOMParser !== undefined) {
+        Object.defineProperty(global.window, 'DOMParser', { value: originalDOMParser, configurable: true });
+      }
+      vi.unstubAllGlobals();
+    }
   });
 
   it('should handle invalid input gracefully', () => {

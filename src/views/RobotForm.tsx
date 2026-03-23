@@ -26,6 +26,7 @@ import {
 } from "../db/schema";
 import MonacoEditor from "@monaco-editor/react";
 import { MujocoPreview } from "../ui/MujocoPreview";
+import { CalibrationDialog } from "../ui/CalibrationDialog";
 import { CameraDiscovery, type CameraEntry } from "../ui/CameraDiscovery";
 import Badge from "../ui/Badge";
 import { normalizeCameraList } from "../types/camera";
@@ -113,6 +114,8 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const [maxRelativeTarget, setMaxRelativeTarget] = useState<string>("");
   const [robotConfigId, setRobotConfigId] = useState<string>("");
   const [calibrationDir, setCalibrationDir] = useState<string>("");
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationData, setCalibrationData] = useState<Record<string, unknown> | null>(null);
 
   const [modelFilePath, setModelFilePath] = useState<string | null>(null);
   const [modelFileData, setModelFileData] = useState<{
@@ -191,6 +194,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
     );
     setRobotConfigId(cfg.id || "");
     setCalibrationDir(cfg.calibration_dir || "");
+    setCalibrationData(realProps.calibration || null);
 
     // Load XML from simProperties for simulated robots
     const simProps = (initialData.simProperties || {}) as RobotSimProperties;
@@ -269,6 +273,30 @@ const RobotForm: React.FC<RobotFormProps> = ({
     setDiscoveredCameras((prev) => prev.filter((c) => c.name !== cameraName));
   }, []);
 
+
+  const handleSelectCalibrationDir = async () => {
+    try {
+      const dir = await window.electronAPI.selectDirectory();
+      if (dir) setCalibrationDir(dir);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCalibrationSave = async (results: Record<string, unknown>) => {
+    setCalibrationData(results);
+    if (calibrationDir) {
+      try {
+        const fullPath = calibrationDir + "/calibration.json";
+        await window.electronAPI.writeJsonFile(fullPath, results);
+        console.log("Saved calibration back to ", fullPath);
+      } catch (e) {
+        console.error("Failed to save to dir", e);
+      }
+    }
+    setIsCalibrating(false);
+  };
+
   const handleSave = async () => {
     if (!onSaved) return;
     setSubmitting(true);
@@ -327,6 +355,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           id: robotConfigId || undefined,
           calibration_dir: calibrationDir || undefined,
         },
+        calibration: calibrationData || undefined,
       };
 
       // Save discovered cameras metadata (without live streams)
@@ -671,12 +700,24 @@ const RobotForm: React.FC<RobotFormProps> = ({
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Input
-                label="Calibration Directory"
-                value={calibrationDir}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCalibrationDir(e.target.value)}
-                placeholder="optional path"
-              />
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} alignItems="flex-end">
+                  <Box sx={{ flex: 1 }}>
+                    <Input
+                      label="Calibration Directory"
+                      value={calibrationDir}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCalibrationDir(e.target.value)}
+                      placeholder="optional path"
+                    />
+                  </Box>
+                  <Button variant="ghost" onClick={handleSelectCalibrationDir} sx={{ mb: 1 }}>
+                    <FolderOpenIcon />
+                  </Button>
+                </Stack>
+                <Button variant="contained" color="secondary" onClick={() => setIsCalibrating(true)}>
+                  Calibrate Robot
+                </Button>
+              </Stack>
             </Grid>
           </Grid>
         </Box>
@@ -844,6 +885,14 @@ const RobotForm: React.FC<RobotFormProps> = ({
           {submitting ? "Saving..." : "Save Robot"}
         </Button>
       </Stack>
+{isCalibrating && (
+        <CalibrationDialog
+          open={isCalibrating}
+          onClose={() => setIsCalibrating(false)}
+          onSave={handleCalibrationSave}
+          robotType={selectedModel?.dirName || "so100_follower"}
+        />
+      )}
     </Stack>
   );
 };

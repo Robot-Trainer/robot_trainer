@@ -80,7 +80,7 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
   };
 
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (ev: Event) => {
       try {
         const detail = (ev as CustomEvent).detail;
