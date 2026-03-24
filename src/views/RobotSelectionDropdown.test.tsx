@@ -115,14 +115,14 @@ describe('RobotSelectionDropdown', () => {
 
   it('opens dropdown and shows correct sections', async () => {
     renderDropdown({ selectedRobotId: null });
-    
+
     // Open dropdown
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
     // Wait for dropdown list
     const listbox = await screen.findByRole('listbox');
-    
+
     expect(within(listbox).getByText('Real & Connected')).toBeTruthy();
     expect(within(listbox).getByText('Real Robby')).toBeTruthy();
 
@@ -141,9 +141,9 @@ describe('RobotSelectionDropdown', () => {
 
   it('creates new real robot when selected', async () => {
     vi.mocked(robotsResource.create).mockResolvedValueOnce({ id: 4 } as unknown as RobotRecord);
-    
+
     renderDropdown({ selectedRobotId: null });
-    
+
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
@@ -164,9 +164,9 @@ describe('RobotSelectionDropdown', () => {
 
   it('creates new simulated robot when selected', async () => {
     vi.mocked(robotsResource.create).mockResolvedValueOnce({ id: 5 } as RobotRecord);
-    
+
     renderDropdown({ selectedRobotId: null });
-    
+
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
@@ -187,9 +187,9 @@ describe('RobotSelectionDropdown', () => {
 
   it('creates new real robot from detected device', async () => {
     vi.mocked(robotsResource.create).mockResolvedValueOnce({ id: 6 } as RobotRecord);
-    
+
     renderDropdown({ selectedRobotId: null });
-    
+
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
@@ -211,7 +211,7 @@ describe('RobotSelectionDropdown', () => {
 
   it('selects existing robot', async () => {
     renderDropdown({ selectedRobotId: null });
-    
+
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
@@ -236,7 +236,7 @@ describe('RobotSelectionDropdown', () => {
 
     const nameInput = screen.getByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Updated Robby' } });
-    
+
     const saveBtn = screen.getByText('Save Changes');
     fireEvent.click(saveBtn);
 
@@ -257,7 +257,7 @@ describe('RobotSelectionDropdown', () => {
     // Reopen editor to test cancel
     fireEvent.click(screen.getByTitle('Edit Robot Properties'));
     expect(screen.getByText('Edit Real Robot')).toBeTruthy();
-    
+
     const cancelBtn = screen.getByText('Cancel');
     fireEvent.click(cancelBtn);
 
@@ -268,9 +268,9 @@ describe('RobotSelectionDropdown', () => {
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.mocked(robotsResource.create).mockRejectedValueOnce(new Error('Network error'));
-    
+
     renderDropdown({ selectedRobotId: null });
-    
+
     const select = screen.getByRole('combobox');
     fireEvent.mouseDown(select);
 
@@ -289,8 +289,8 @@ describe('RobotSelectionDropdown', () => {
     vi.mocked(robotsResource.update).mockResolvedValueOnce(undefined);
 
     // Use dummy with no model
-    renderDropdown({ 
-      selectedRobotId: 2, 
+    renderDropdown({
+      selectedRobotId: 2,
       robots: [{
         id: 2,
         name: 'Simmy',
@@ -308,9 +308,9 @@ describe('RobotSelectionDropdown', () => {
     expect(screen.getByText('Edit Simulated Robot')).toBeTruthy();
 
     // just an example, maybe better by label
-    // Wait, the components Select.tsx might use standard select or custom. 
+    // Wait, the components Select.tsx might use standard select or custom.
     // We can query by role or just test saving without changing more to test coverage.
-    
+
     const saveBtn = screen.getByText('Save Changes');
     fireEvent.click(saveBtn);
 
@@ -318,7 +318,7 @@ describe('RobotSelectionDropdown', () => {
       // Due to useEffect, it should have picked availableModels[0].value
       expect(robotsResource.update).toHaveBeenCalledWith(2, expect.objectContaining({
         modality: 'simulated',
-        robotModelId: 1, 
+        robotModelId: 1,
       }));
     });
   });
@@ -344,10 +344,10 @@ describe('RobotSelectionDropdown', () => {
     vi.mocked(robotsResource.update).mockResolvedValueOnce(undefined);
     // Robot 3 is a disconnected real robot (SN999, not in connected devices)
     renderDropdown({ selectedRobotId: 3 });
-    
+
     fireEvent.click(screen.getByTitle('Edit Robot Properties'));
     expect(screen.getByText('Edit Real Robot')).toBeTruthy();
-    
+
     // It should have 'Currently Disconnected (SN999)' option
     // In our mocked Select UI it might just be text or a value, let's just make sure it's tested.
     // Changing serial number to a connected device:
@@ -357,7 +357,7 @@ describe('RobotSelectionDropdown', () => {
       const option = await screen.findByText(/SN456/);
       fireEvent.click(option);
     }
-    
+
     const saveBtn = screen.getByText('Save Changes');
     fireEvent.click(saveBtn);
     await waitFor(() => {
