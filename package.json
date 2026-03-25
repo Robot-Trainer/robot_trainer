@@ -57,7 +57,7 @@
     "electron": "39.2.7",
     "electron-react-devtools": "^0.5.3",
     "electron-rebuild": "^3.2.9",
-    "eslint": "^8.57.1",
+    "eslint": "^10.1.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "ffbinaries": "^1.1.6",
