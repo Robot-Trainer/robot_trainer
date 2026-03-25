@@ -31,30 +31,32 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '24.14.0'
-          registry-url: 'https://npm.pkg.github.com'
           scope: '@robot-trainer'
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: Pin npm version
-        run: npm install -g npm@10.9.2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install Node Dependencies
-        run: npm ci
+        run: pnpm -r install --frozen-lockfile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: cd ./packages/robot_trainer && npx playwright install --with-deps
 
       - name: Run Lint
-        run: npm run lint
+        run: pnpm -r run lint
 
       - name: Run Unit Tests
-        run: npm run test
+        run: pnpm -r run test
 
       - name: Build and E2E Tests
         run: |
-          # npm run download-ffmpeg
-          npm run db:generate
-          npm run package
+          cd ./packages/robot_trainer
+          # pnpm run download-ffmpeg
+          pnpm run db:generate
+          pnpm run package
           xvfb-run --auto-servernum -- npx playwright test --workers=1
