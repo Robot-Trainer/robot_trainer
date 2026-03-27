@@ -5,14 +5,12 @@ import { WebTeleoperator } from "../src/teleoperators/base-teleoperator";
 // Mock the WebTeleoperator class
 vi.mock("../src/teleoperators/base-teleoperator", () => {
   return {
-    WebTeleoperator: vi.fn().mockImplementation(() => {
-      return {
-        startRecording: vi.fn(),
-        stopRecording: vi.fn().mockResolvedValue([]),
-        clearRecording: vi.fn(),
-        addOnStateUpdateCallback: vi.fn()
-      };
-    })
+    WebTeleoperator: class {
+      startRecording = vi.fn();
+      stopRecording = vi.fn().mockResolvedValue([]);
+      clearRecording = vi.fn();
+      addOnStateUpdateCallback = vi.fn();
+    }
   };
 });
 

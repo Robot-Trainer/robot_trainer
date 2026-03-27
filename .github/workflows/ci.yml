@@ -47,6 +47,9 @@ jobs:
       - name: Install Playwright Browsers
         run: cd ./packages/robot_trainer && npx playwright install --with-deps
 
+      - name: Build lerobot package
+        run: pnpm --filter @robot-trainer/lerobot build
+
       - name: Run Lint
         run: pnpm -r run lint
 

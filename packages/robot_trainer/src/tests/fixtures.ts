@@ -1,5 +1,4 @@
-import { _electron as electron, ElectronApplication, Page } from "playwright";
-import base from "@playwright/test";
+import { test as base, _electron as electron, ElectronApplication, Page } from "@playwright/test";
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
