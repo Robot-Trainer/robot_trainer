@@ -3,7 +3,7 @@
  * Centralized support checking to avoid duplication across modules
  */
 
-import type { Serial, USB } from "../types/port-discovery.js";
+import type { USB } from "../types/port-discovery.js";
 
 declare global {
   interface Navigator {
