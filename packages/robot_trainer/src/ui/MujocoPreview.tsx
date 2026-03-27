@@ -47,7 +47,10 @@ export const MujocoPreview: React.FC<MujocoPreviewProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    let renderer;
+try {
+renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+} catch(e) { if (onError) onError(e.message); return; }
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;

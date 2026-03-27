@@ -3,6 +3,22 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ToastProvider, useToast } from './ToastContext';
 import React from 'react';
 
+vi.mock('@mui/material', async () => {
+  const actual = await vi.importActual<typeof import('@mui/material')>('@mui/material');
+  return {
+    ...actual,
+    Snackbar: ({ open, children }: { open: boolean; children: React.ReactNode }) => (
+      <div data-testid="snackbar">{open ? children : null}</div>
+    ),
+    Alert: ({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) => (
+      <div>
+        <button aria-label="close" onClick={onClose}>Close</button>
+        {children}
+      </div>
+    ),
+  };
+});
+
 const TestComponent = () => {
   const toast = useToast();
   return (

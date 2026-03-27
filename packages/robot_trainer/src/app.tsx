@@ -142,24 +142,6 @@ const InnerApp: React.FC<{ externalLoading?: boolean }> = ({ externalLoading = f
                 const systemCfg = cfg as SystemSettings;
                 window.electronAPI.replyLoadSystemSettings(systemCfg);
                 setConfigLocal(cfg);
-                // Check env while showing "Loading env..." in nav
-                setIsCheckingEnv(true);
-                let condaOk = false;
-                try {
-                  condaOk = await checkConda();
-                } catch (error) {
-                  console.error(error);
-                }
-
-                const condaRoot = typeof cfg.condaRoot === 'string' ? cfg.condaRoot : '';
-                const pythonPath = typeof cfg.pythonPath === 'string' ? cfg.pythonPath : '';
-
-                // If config missing python/conductor settings, show the setup wizard
-                if (!condaRoot || !pythonPath || !condaOk) {
-                  setShowSetupWizard(true);
-                }
-
-                setIsCheckingEnv(false);
               } catch {
                 window.electronAPI.replyLoadSystemSettings({} as SystemSettings);
               }

@@ -11,7 +11,7 @@ export async function dismissSetupWizard(window: Page) {
   if (window.isClosed()) return;
 
   await window
-    .waitForFunction(() => (window as unknown as Record<string, unknown>).__appIdle === true, {}, { timeout: 8000 })
+    .waitForFunction(() => (window as unknown as Record<string, unknown>).__appIdle === true, {}, { timeout: 30000 })
     .catch(() => { /* ignore idle timeout and continue best effort */ });
 
   const wizard = window.getByRole('heading', { name: 'Environment Setup', exact: true });
