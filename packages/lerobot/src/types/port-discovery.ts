@@ -6,7 +6,6 @@
 import type {
   RobotConnection,
   RobotConfig,
-  SerialPort,
 } from "./robot-connection.js";
 
 /**
@@ -85,4 +84,4 @@ export interface FindPortProcess {
 }
 
 // Re-export commonly used types for convenience
-export type { RobotConnection, RobotConfig, SerialPort };
+export type { RobotConnection, RobotConfig };

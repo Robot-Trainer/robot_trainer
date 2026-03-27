@@ -6,27 +6,9 @@
 import type { RobotHardwareConfig } from "./robot-config.js";
 
 /**
- * Type definitions for WebSerial API (not yet in all TypeScript libs)
+ * Type definitions for WebSerial API are provided by @types/w3c-web-serial
  */
-export interface SerialPort {
-  readonly readable: ReadableStream;
-  readonly writable: WritableStream;
-  getInfo(): SerialPortInfo;
-  open(options: SerialOptions): Promise<void>;
-  close(): Promise<void>;
-}
 
-export interface SerialPortInfo {
-  usbVendorId?: number;
-  usbProductId?: number;
-}
-
-export interface SerialOptions {
-  baudRate: number;
-  dataBits?: number;
-  stopBits?: number;
-  parity?: "none" | "even" | "odd";
-}
 
 /**
  * Unified robot connection interface used across all functions

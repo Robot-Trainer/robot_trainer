@@ -29,6 +29,7 @@ dist/*/*/*/*.js
 dist/*/*/*/*.js.map
 dist/web/*
 src/bin/*/*
+packages/*/dist
 
 test-results/*
 */test-results/*
@@ -116,6 +117,9 @@ dist/web/
 src/python/build
 
 */*/*.pyc
-
+__pycache__/
+.venv/
+.scannerwork
+.pytest_cache
 devtools_traces
 scratch

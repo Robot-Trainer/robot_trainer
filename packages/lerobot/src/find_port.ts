@@ -38,7 +38,6 @@ import {
 import type {
   RobotConnection,
   RobotConfig,
-  SerialPort,
 } from "./types/robot-connection.js";
 import type {
   FindPortConfig,

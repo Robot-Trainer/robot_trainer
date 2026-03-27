@@ -21,9 +21,6 @@ export {
 export type {
   RobotConnection,
   RobotConfig,
-  SerialPort,
-  SerialPortInfo,
-  SerialOptions,
 } from "./types/robot-connection.js";
 
 export type {

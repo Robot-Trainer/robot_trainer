@@ -7,7 +7,6 @@ import type { Serial, USB } from "../types/port-discovery.js";
 
 declare global {
   interface Navigator {
-    serial: Serial;
     usb: USB;
   }
 }
