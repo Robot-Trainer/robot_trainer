@@ -32,12 +32,12 @@ jobs:
         with:
           node-version: '24.14.0'
           scope: '@robot-trainer'
-          cache: 'pnpm'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10
+          cache: true
 
       - name: Install Node Dependencies
         run: pnpm -r install --frozen-lockfile
