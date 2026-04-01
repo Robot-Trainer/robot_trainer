@@ -73,7 +73,7 @@
     "@mui/x-date-pickers": "^8.27.2",
     "@rjsf/core": "^6.4.1",
     "@rjsf/utils": "^6.4.1",
-    "@rjsf/validator-ajv8": "^6.4.1",
+    "@rjsf/validator-ajv8": "^6.4.2",
     "@robot-trainer/lerobot": "workspace:*",
     "@serialport/bindings-cpp": "^13.0.1",
     "@tailwindcss/vite": "^4.2.2",
