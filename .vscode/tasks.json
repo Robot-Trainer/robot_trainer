@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "pnpm: start (packages/robot_trainer)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "start"],
+      "options": {
+        "env": {
+          "DISPLAY": ":0"
+        },
+        "cwd": "${workspaceFolder}/packages/robot_trainer"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+    ,
+    {
+      "label": "Run Git pre-commit hook",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "if [ -x .git/hooks/pre-commit ]; then .git/hooks/pre-commit; else pre-commit run --all-files; fi"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

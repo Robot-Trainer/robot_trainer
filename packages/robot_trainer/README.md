@@ -34,6 +34,7 @@ Robot Trainer is an application (currently desktop, but aspiring to be fully-web
 | 🟨 | Create basic robot with MJCF and mesh files |
 | 🟨 | Create basic robot by writing XML file in editor |
 | ⬜ | Calibrate robots |
+| ⬜ |  * use navigator.serial.addEventListener('connect', (...` to auto-detect new serial connections.
 | ⬜ | Remember robot when unplugged and plugged into different port |
 | ⬜ | Remove unnecessary robot DB attributes (class name fields, etc) |
 | **Scenes** |

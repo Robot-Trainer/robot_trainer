@@ -17,6 +17,7 @@ const compat = new FlatCompat({
 
 export default defineConfig([
     globalIgnores([
+        "**/.venv/**",
         "**/.vite/**",
         "**/dist/",
         "**/build/",

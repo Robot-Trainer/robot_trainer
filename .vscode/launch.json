@@ -13,10 +13,10 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
       },
-      "args" : ["."],
+      "args": ["."],
       "outputCapture": "std"
     },
-     {
+    {
       "name": "Debug Main Process - browser",
       "type": "node",
       "request": "launch",
@@ -28,9 +28,30 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
       },
-      "args" : [".", "--remote-debugging-port=9222", "--enable-logging", "--headless"],
+      "args": [
+        ".",
+        "--remote-debugging-port=9222",
+        "--enable-logging",
+        "--headless"
+      ],
       "outputCapture": "std"
     },
-    
+    {
+      "name": "Debug usb_vendors_and_products/index.ts",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/usb_vendors_and_products/src/index.ts",
+      "cwd": "${workspaceFolder}/packages/usb_vendors_and_products",
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/packages/usb_vendors_and_products/tsconfig.json"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/packages/usb_vendors_and_products/dist/**/*.js"
+      ],
+      "console": "integratedTerminal"
+    }
   ]
 }

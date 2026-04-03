@@ -58,7 +58,7 @@ export type {
 } from "./types/recording.js";
 
 // Utilities (advanced users)
-export { WebSerialPortWrapper } from "./utils/serial-port-wrapper.js";
+export { WebSerialPortWrapper } from "@robot-trainer/serial";
 export {
   readAllMotorPositions,
   readMotorPosition,

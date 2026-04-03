@@ -50,15 +50,45 @@ export class RobotDetectorManager {
   }
 
   /**
-   * Tries all registered detectors in sequence until one is successful.
+   * Tries all registered detectors, grouped by baud rate so the connection
+   * is opened once per rate instead of per-detector.  This prevents the
+   * rapid close→reopen cycle that the Web Serial API cannot handle.
    */
   async detect(connection: Connection): Promise<string | null> {
-    for (const detector of this.detectors) {
-      const match = await detector.detect(connection);
-      if (match) {
-        return match;
+    const baudGroups = new Map<number, RobotDetector[]>();
+    const noBaudDetectors: RobotDetector[] = [];
+
+    for (const d of this.detectors) {
+      if (d.baudRate != null) {
+        let group = baudGroups.get(d.baudRate);
+        if (!group) { group = []; baudGroups.set(d.baudRate, group); }
+        group.push(d);
+      } else {
+        noBaudDetectors.push(d);
       }
     }
+
+    // Try each baud-rate group: open once, run all matching detectors, close once
+    for (const [baudRate, detectors] of baudGroups) {
+      const opened = await connection.open(baudRate);
+      if (!opened) continue;
+
+      try {
+        for (const detector of detectors) {
+          const match = await detector.detect(connection);
+          if (match) return match;
+        }
+      } finally {
+        await connection.close();
+      }
+    }
+
+    // Detectors without a baud rate (e.g. placeholder UnknownDetector)
+    for (const detector of noBaudDetectors) {
+      const match = await detector.detect(connection);
+      if (match) return match;
+    }
+
     return null;
   }
 }

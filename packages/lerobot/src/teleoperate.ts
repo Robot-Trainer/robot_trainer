@@ -4,7 +4,7 @@
 
 import { createSO100Config } from "./robots/so100_config.js";
 import type { RobotHardwareConfig } from "./types/robot-config.js";
-import { WebSerialPortWrapper } from "./utils/serial-port-wrapper.js";
+import { WebSerialPortWrapper } from "@robot-trainer/serial";
 import {
   type MotorCommunicationPort,
 } from "./utils/motor-communication.js";

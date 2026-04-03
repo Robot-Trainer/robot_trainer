@@ -1,0 +1,45 @@
+{
+  "name": "@robot-trainer/serial",
+  "version": "0.0.1",
+  "description": "Web Serial API utilities for robot communication — port scanning, coordinated connections, and simple wrappers",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "keywords": [
+    "serial",
+    "webserial",
+    "robotics",
+    "hardware",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "vite build && tsc --project tsconfig.build.json --emitDeclarationOnly",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/w3c-web-serial": "^1.0.8",
+    "@vitest/coverage-v8": "^4.1.2",
+    "eslint": "^10.1.0",
+    "jsdom": "^29.0.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Bernie Telles",
+    "email": "btelles@gmail.com"
+  }
+}

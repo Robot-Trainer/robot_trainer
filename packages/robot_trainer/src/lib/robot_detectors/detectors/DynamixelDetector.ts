@@ -11,21 +11,16 @@ export abstract class DynamixelDetector implements RobotDetector {
   protected readonly targetId: number = 1;
 
   async detect(connection: Connection): Promise<string | null> {
-    if (await connection.open(this.baudRate)) {
-      try {
-        const packetHandler = new PacketHandler(this.protocolVersion);
-        const [modelNum] = await packetHandler.read2ByteTxRx(connection, this.targetId, ADDR_MODEL_NUMBER);
+    try {
+      const packetHandler = new PacketHandler(this.protocolVersion);
+      const [modelNum] = await packetHandler.read2ByteTxRx(connection, this.targetId, ADDR_MODEL_NUMBER);
 
-        if (this.expectedModelNumbers.includes(modelNum)) {
-          return this.name;
-        }
-        return null;
-      } catch (_error) {
-        return null;
-      } finally {
-        await connection.close();
+      if (this.expectedModelNumbers.includes(modelNum)) {
+        return this.name;
       }
+      return null;
+    } catch (_error) {
+      return null;
     }
-    return null;
   }
 }

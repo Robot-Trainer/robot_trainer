@@ -3,8 +3,6 @@ import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
 import started from 'electron-squirrel-startup';
-import { SerialPort } from 'serialport';
-import { filterInterestingPorts } from './lib/serial_devices';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { JSDOM } from 'jsdom';
 import AdmZip from 'adm-zip';
@@ -25,7 +23,7 @@ if (started) {
 
 console.log(`[feature-flags] enable-sim is ${featureFlags.enableSim ? 'enabled' : 'disabled'}`);
 
-let systemSettings: SystemSettings = {featureFlags};
+let systemSettings: SystemSettings = { featureFlags };
 
 const loadSystemSettings = async () => {
   // Ask the renderer (which owns the drizzle DB) for the settings.
@@ -992,6 +990,13 @@ const createWindow = () => {
         "Cross-Origin-Embedder-Policy": "require-corp",
       },
     });
+  });
+  const ENABLED_PERMISSIONS = ['camera', 'microphone', 'serial'];
+  session.defaultSession.setDevicePermissionHandler((details) => {
+    if (ENABLED_PERMISSIONS.includes(details.deviceType)) {
+      return true;
+    }
+    return false;
   });
 
   // and load the index.html of the app.

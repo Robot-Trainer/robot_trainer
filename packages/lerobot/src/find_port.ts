@@ -29,7 +29,7 @@
  * await calibrate(storedRobots[0], options);
  */
 
-import { WebSerialPortWrapper } from "./utils/serial-port-wrapper.js";
+import { WebSerialPortWrapper } from "@robot-trainer/serial";
 import { readMotorPosition } from "./utils/motor-communication.js";
 import {
   isWebSerialSupported,

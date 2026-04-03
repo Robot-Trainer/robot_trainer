@@ -5,7 +5,7 @@
  * Handles robot configuration and port management internally
  */
 
-import { WebSerialPortWrapper } from "./utils/serial-port-wrapper.js";
+import { WebSerialPortWrapper } from "@robot-trainer/serial";
 import { createSO100Config } from "./robots/so100_config.js";
 import { releaseMotors as releaseMotorsLowLevel } from "./utils/motor-communication.js";
 import type { RobotConnection } from "./types/robot-connection.js";

@@ -34,8 +34,9 @@ describe('Koch Detectors', () => {
 
     const result = await detector.detect(conn);
     expect(result).toBe('koch_follower');
-    expect(conn.open).toHaveBeenCalledWith(1000000);
-    expect(conn.close).toHaveBeenCalled();
+    // Detectors no longer manage open/close — the manager handles that
+    expect(conn.open).not.toHaveBeenCalled();
+    expect(conn.close).not.toHaveBeenCalled();
   });
 
   it('KochFollowerDetector detects follower robots properly (1200)', async () => {
@@ -58,8 +59,10 @@ describe('Koch Detectors', () => {
     expect(result).toBeNull();
   });
 
-  it('KochFollowerDetector returns null on open failure', async () => {
-    const conn = createMockConnection(false);
+  it('KochFollowerDetector returns null on protocol error', async () => {
+    mockRead2ByteTxRx.mockRejectedValue(new Error('read error'));
+
+    const conn = createMockConnection();
     const detector = new KochFollowerDetector();
 
     const result = await detector.detect(conn);

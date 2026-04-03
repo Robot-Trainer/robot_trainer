@@ -8,36 +8,46 @@ import {
   Paper,
   CircularProgress,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import UsbIcon from "@mui/icons-material/Usb";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import CableIcon from "@mui/icons-material/Cable";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { robotModelsResource } from "../db/resources";
+import { db } from "../db/db";
 import {
   robotModelsTable,
   robotsTable,
+  usbVendorsTable,
   type RobotModelSimProperties,
   type RobotSimProperties,
   type RobotRealProperties,
 } from "../db/schema";
+import { eq } from "drizzle-orm";
 import MonacoEditor from "@monaco-editor/react";
 import { MujocoPreview } from "../ui/MujocoPreview";
 import { CalibrationDialog } from "../ui/CalibrationDialog";
-import { CameraDiscovery, type CameraEntry } from "../ui/CameraDiscovery";
+import { CameraDiscovery } from "../ui/CameraDiscovery";
+import { CameraEntry } from "../db/schema";
 import Badge from "../ui/Badge";
 import { normalizeCameraList } from "../types/camera";
+import { RobotDetectorManager } from "../lib/robot_detectors";
+import {
+  getManagedWebSerialPorts,
+  type ManagedWebSerialPort,
+} from "../../../serial";
 
-interface SerialPort {
-  path: string;
-  manufacturer: string;
-  serialNumber: string;
-  productId?: string;
-  vendorId?: string;
-  pnpId?: string;
+interface DiscoveredPort {
+  port: ManagedWebSerialPort["port"];
+  vendorId: string;
+  vendorLabel: string;
+  productId: string;
+  detectedModel: string | null;
 }
 
 interface RobotFormProps {
@@ -87,6 +97,16 @@ const getModelModalities = (model: typeof robotModelsTable.$inferSelect | undefi
   return [];
 };
 
+const getDetectedModelDisplayName = (
+  detectedModel: string | null,
+  modelOptions: typeof robotModelsTable.$inferSelect[],
+): string => {
+  if (!detectedModel) return "";
+
+  const matchedModel = modelOptions.find((m) => m.dirName === detectedModel);
+  return matchedModel?.name || detectedModel;
+};
+
 const CUSTOM_MODEL_VALUE = "custom";
 
 const RobotForm: React.FC<RobotFormProps> = ({
@@ -94,9 +114,14 @@ const RobotForm: React.FC<RobotFormProps> = ({
   onCancel,
   initialData,
 }) => {
-  const [serialPorts, setSerialPorts] = useState<SerialPort[]>([]);
+  const isEditing = !!initialData;
+  const [discoveredPorts, setDiscoveredPorts] = useState<DiscoveredPort[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [selectedPortIndex, setSelectedPortIndex] = useState<number | null>(null);
+  const [devicePanelCollapsed, setDevicePanelCollapsed] = useState(false);
+  const nameInputRef = useRef<HTMLDivElement>(null);
+  const scanInProgress = useRef(false);
   const [name, setName] = useState("");
   const [modality, setModality] = useState<RobotModality>("real");
   const [robotModelId, setRobotModelId] = useState<string>("");
@@ -431,27 +456,85 @@ const RobotForm: React.FC<RobotFormProps> = ({
   };
 
   const scanPorts = async () => {
+    if (scanInProgress.current) return;
+    scanInProgress.current = true;
     setScanning(true);
     setScanError(null);
     try {
-      const ports = await window.electronAPI.scanSerialPorts();
-      setSerialPorts(ports || []);
+      const ports = await getManagedWebSerialPorts({ requestIfEmpty: true });
+
+      const detectorManager = new RobotDetectorManager();
+      const results: DiscoveredPort[] = [];
+
+      for (const { port, info, connection } of ports) {
+        const vendorId = info.vendorId && info.vendorId !== "N/A" ? info.vendorId : "";
+        const productId = info.productId && info.productId !== "N/A" ? info.productId : "";
+        let vendorLabel = vendorId;
+
+        const usbVendorId = port.getInfo().usbVendorId;
+
+        if (usbVendorId != null) {
+          const matchedVendor = await db
+            .select({ company: usbVendorsTable.company })
+            .from(usbVendorsTable)
+            .where(eq(usbVendorsTable.vendorId, usbVendorId))
+            .limit(1);
+
+          vendorLabel = matchedVendor[0]?.company || vendorId;
+        }
+
+        let detectedModel: string | null = null;
+        try {
+          detectedModel = await detectorManager.detect(connection);
+        } catch {
+          // Detection failed — leave as null
+        }
+
+        results.push({ port, vendorId, vendorLabel, productId, detectedModel });
+      }
+
+      setDiscoveredPorts(results);
+
+      if (results.length === 0) {
+        setScanError("No serial devices found. Connect a device and click refresh.");
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (msg.match(/permission|access/i)) {
-        setScanError(
-          "Permission denied when accessing serial ports. Try running with appropriate permissions.",
-        );
-      } else if (msg.match(/no ports|no devices|Could not find any/i)) {
-        setScanError(
-          "No serial devices found. Ensure devices are connected and try again.",
-        );
-      } else {
-        setScanError(`Failed to scan USB ports: ${msg}`);
-      }
+      setScanError(`Failed to scan USB ports: ${msg}`);
     } finally {
+      scanInProgress.current = false;
       setScanning(false);
     }
+  };
+
+  // Auto-scan serial ports when adding a new robot
+  useEffect(() => { if (!isEditing) { scanPorts(); } }, []);
+
+  const handleDeviceSelect = (dp: DiscoveredPort, index: number) => {
+    setSelectedPortIndex(index);
+    setSerialNumber(dp.vendorId && dp.productId ? `${dp.vendorId}:${dp.productId}` : "");
+    setDevicePanelCollapsed(true);
+
+    // Auto-populate robotModel if a model was detected and exists in loaded options
+    if (dp.detectedModel) {
+      const matchingModel = modelOptions.find(
+        (m) => m.dirName === dp.detectedModel,
+      );
+      if (matchingModel) {
+        setRobotModelId(String(matchingModel.id));
+      }
+    }
+
+    // Focus name input after the collapse animation
+    setTimeout(() => {
+      nameInputRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    }, 350);
+  };
+
+  const handleConnectionIconClick = async () => {
+    setDevicePanelCollapsed(false);
+    setSelectedPortIndex(null);
+    await scanPorts();
   };
 
   const showExplicitModalitySelector = !isCustomModel && !selectedModelModality;
@@ -459,32 +542,440 @@ const RobotForm: React.FC<RobotFormProps> = ({
   const showCustomFileUpload = modality === "simulated" && isCustomModel;
 
   return (
-    <Stack spacing={3}>
+    <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+      {/* Left panel – device discovery (new robots only) */}
+      {!isEditing && (
+        <Box
+          data-testid="device-panel"
+          sx={{
+            width: devicePanelCollapsed ? 0 : 350,
+            minWidth: devicePanelCollapsed ? 0 : 350,
+            overflow: "hidden",
+            transition:
+              "width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease",
+            opacity: devicePanelCollapsed ? 0 : 1,
+          }}
+        >
+          <Paper variant="outlined" sx={{ p: 2, minWidth: 330 }}>
+            <Stack spacing={1.5}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Typography variant="h6" fontSize="1rem">
+                  Detected Devices
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={scanPorts}
+                  disabled={scanning}
+                  aria-label="Rescan ports"
+                >
+                  {scanning ? (
+                    <CircularProgress size={18} />
+                  ) : (
+                    <RefreshIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Stack>
+
+              {scanError && (
+                <Alert severity="error" sx={{ fontSize: "0.8rem" }}>
+                  {scanError}
+                </Alert>
+              )}
+
+              {scanning && discoveredPorts.length === 0 && (
+                <Box sx={{ textAlign: "center", py: 3 }}>
+                  <CircularProgress size={24} />
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mt: 1 }}
+                  >
+                    Scanning for devices…
+                  </Typography>
+                </Box>
+              )}
+
+              {!scanning && discoveredPorts.length === 0 && (
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  align="center"
+                  sx={{ py: 2 }}
+                >
+                  No serial devices found. Connect a device and click refresh.
+                </Typography>
+              )}
+
+              {discoveredPorts.map((dp, i) => {
+                const isSelected = selectedPortIndex === i;
+                const detectedModelDisplayName = getDetectedModelDisplayName(
+                  dp.detectedModel,
+                  modelOptions,
+                );
+                const label = detectedModelDisplayName
+                  ? `${detectedModelDisplayName}`
+                  : `Device ${i + 1}`;
+                return (
+                  <Paper
+                    key={i}
+                    variant="outlined"
+                    onClick={() => handleDeviceSelect(dp, i)}
+                    sx={{
+                      p: 1.5,
+                      cursor: "pointer",
+                      borderColor: isSelected ? "primary.main" : "divider",
+                      bgcolor: isSelected
+                        ? "rgba(25, 118, 210, 0.08)"
+                        : "background.default",
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        bgcolor: "action.hover",
+                      },
+                    }}
+                    role="button"
+                    aria-label={`Select device ${i + 1}`}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <UsbIcon
+                        color={isSelected ? "primary" : "action"}
+                        fontSize="small"
+                      />
+                      <Box flexGrow={1} sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" noWrap>
+                          {label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="textSecondary"
+                          noWrap
+                        >
+                          {[
+                            dp.vendorLabel,
+                            detectedModelDisplayName || dp.productId,
+                          ]
+                            .filter(Boolean)
+                            .join(" : ") || "Unknown"}
+                        </Typography>
+                        {dp.detectedModel && (
+                          <Typography
+                            variant="caption"
+                            color="primary"
+                            display="block"
+                          >
+                            ({dp.detectedModel})
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          </Paper>
+        </Box>
+      )}
+
+      {/* Right panel – form */}
+      <Stack
+        spacing={3}
+        sx={{ flex: 1, minWidth: 0, transition: "all 0.3s ease" }}
+      >
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box ref={nameInputRef}>
+              <Input
+                label="Robot Name"
+                value={name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
+                placeholder="e.g. My Primary Arm"
+              />
+            </Box>
+          </Grid>
+          {modality === "real" && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Input
+                label="Serial Number"
+                value={serialNumber}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSerialNumber(e.target.value)
+                }
+                placeholder="Auto-populated from device selection"
+              />
+            </Grid>
+          )}
+        </Grid>
+
+        {modality === "real" && (
+          <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
+            <Stack justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" fontSize="1rem">
+                Real Robot Configuration (LeRobot)
+              </Typography>
+              {isEditing && (
+                <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {scanning ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <RefreshIcon fontSize="small" />
+                    )}
+                    <span>{scanning ? "Scanning..." : "Scan Ports"}</span>
+                  </Stack>
+                </Button>
+              )}
+            </Stack>
+
+            {isEditing && (
+              <>
+                {scanError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {scanError}
+                  </Alert>
+                )}
+
+                {discoveredPorts.length === 0 && !scanning ? (
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    align="center"
+                    sx={{ py: 2 }}
+                  >
+                    No serial devices found. Connect a device and click Scan.
+                  </Typography>
+                ) : (
+                  <Stack spacing={1}>
+                    {discoveredPorts.map((dp, i) => {
+                      const isSelected = selectedPortIndex === i;
+                      const detectedModelDisplayName = getDetectedModelDisplayName(
+                        dp.detectedModel,
+                        modelOptions,
+                      );
+                      const label = detectedModelDisplayName
+                        ? `Device ${i + 1} (${detectedModelDisplayName})`
+                        : `Device ${i + 1}`;
+                      return (
+                        <Paper
+                          key={i}
+                          variant="outlined"
+                          onClick={() => {
+                            setSelectedPortIndex(i);
+                            setSerialNumber(dp.vendorId && dp.productId ? `${dp.vendorId}:${dp.productId}` : "");
+                            if (dp.detectedModel) {
+                              const matchingModel = modelOptions.find(
+                                (m) => m.dirName === dp.detectedModel,
+                              );
+                              if (matchingModel) {
+                                setRobotModelId(String(matchingModel.id));
+                              }
+                            }
+                          }}
+                          sx={{
+                            p: 1.5,
+                            cursor: "pointer",
+                            borderColor: isSelected
+                              ? "primary.main"
+                              : "divider",
+                            bgcolor: isSelected
+                              ? "rgba(25, 118, 210, 0.08)"
+                              : "background.default",
+                            transition: "all 0.2s",
+                            "&:hover": { borderColor: "primary.main" },
+                          }}
+                          role="button"
+                          aria-label={`Select device ${i + 1}`}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={2}
+                          >
+                            <UsbIcon
+                              color={isSelected ? "primary" : "action"}
+                            />
+                            <Box flexGrow={1}>
+                              <Typography variant="subtitle2">
+                                {label}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="textSecondary"
+                              >
+                                {[
+                                  dp.vendorLabel,
+                                  detectedModelDisplayName || dp.productId,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" : ") || "Unknown"}
+                              </Typography>
+                              {dp.detectedModel && (
+                                <Typography
+                                  variant="caption"
+                                  color="primary"
+                                  display="block"
+                                >
+                                  ({dp.detectedModel})
+                                </Typography>
+                              )}
+                            </Box>
+                            {isSelected && (
+                              <Typography
+                                variant="caption"
+                                color="primary"
+                                fontWeight="bold"
+                              >
+                                SELECTED
+                              </Typography>
+                            )}
+                          </Stack>
+                        </Paper>
+                      );
+                    })}
+                  </Stack>
+                )}
+
+                <Box mt={2}>
+                  <Input
+                    label="Serial Number"
+                    value={serialNumber}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSerialNumber(e.target.value)
+                    }
+                    placeholder="Auto-populated from device or enter manually"
+                  />
+                </Box>
+              </>
+            )}
+
+            <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Input
+                label="LeRobot Port"
+                value={realPortPath}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setRealPortPath(e.target.value)
+                }
+                placeholder="/dev/ttyUSB0"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Select
+                label="Disable Torque on Disconnect"
+                value={disableTorqueOnDisconnect ? "true" : "false"}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setDisableTorqueOnDisconnect(e.target.value === "true")
+                }
+                options={[
+                  { label: "True", value: "true" },
+                  { label: "False", value: "false" },
+                ]}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Select
+                label="Use Degrees"
+                value={useDegrees ? "true" : "false"}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setUseDegrees(e.target.value === "true")
+                }
+                options={[
+                  { label: "False", value: "false" },
+                  { label: "True", value: "true" },
+                ]}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Input
+                label="Max Relative Target"
+                value={maxRelativeTarget}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setMaxRelativeTarget(e.target.value)
+                }
+                placeholder="e.g. 5"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Input
+                label="LeRobot Robot ID"
+                value={robotConfigId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setRobotConfigId(e.target.value)
+                }
+                placeholder="optional"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} alignItems="flex-end">
+                  <Box sx={{ flex: 1 }}>
+                    <Input
+                      label="Calibration Directory"
+                      value={calibrationDir}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setCalibrationDir(e.target.value)
+                      }
+                      placeholder="optional path"
+                    />
+                  </Box>
+                  <Button
+                    variant="ghost"
+                    onClick={handleSelectCalibrationDir}
+                    sx={{ mb: 1 }}
+                  >
+                    <FolderOpenIcon />
+                  </Button>
+                </Stack>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => setIsCalibrating(true)}
+                >
+                  Calibrate Robot
+                </Button>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Input
-            label="Robot Name"
-            value={name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-            placeholder="e.g. My Primary Arm"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
           <Stack direction="row" alignItems="flex-end" spacing={1}>
+            {!isEditing && devicePanelCollapsed && (
+              <Tooltip title="Change connected device">
+                <IconButton
+                  onClick={handleConnectionIconClick}
+                  color="primary"
+                  aria-label="Change connected device"
+                  sx={{ mb: 1 }}
+                >
+                  <CableIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <Box sx={{ flex: 1 }}>
               <Select
                 label="Robot Model"
                 value={robotModelId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotModelId(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setRobotModelId(e.target.value)
+                }
                 options={[
                   { label: "Select Robot Model...", value: "" },
                   { label: "Custom", value: CUSTOM_MODEL_VALUE },
                   ...modelOptionItems,
                 ]}
                 renderOption={(opt) => {
-                  if (opt.value === "" || opt.value === CUSTOM_MODEL_VALUE) return opt.label;
+                  if (opt.value === "" || opt.value === CUSTOM_MODEL_VALUE)
+                    return opt.label;
                   const model = modelOptions.find(
-                    (m: typeof robotModelsTable.$inferSelect) => String(m.id) === String(opt.value),
+                    (m: typeof robotModelsTable.$inferSelect) =>
+                      String(m.id) === String(opt.value),
                   );
                   const modalities = getModelModalities(model);
                   return (
@@ -543,186 +1034,12 @@ const RobotForm: React.FC<RobotFormProps> = ({
         ) : (
           <Grid size={{ xs: 12, md: 6 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-              This model is configured as <strong>{selectedModelModalities.join(' / ')}</strong>.
+              This model is configured as{" "}
+              <strong>{selectedModelModalities.join(" / ")}</strong>.
             </Typography>
           </Grid>
         )}
       </Grid>
-
-      {modality === "real" && (
-        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            <Typography variant="h6" fontSize="1rem">
-              Real Robot Configuration (LeRobot)
-            </Typography>
-            <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                {scanning ? (
-                  <CircularProgress size={16} />
-                ) : (
-                  <RefreshIcon fontSize="small" />
-                )}
-                <span>{scanning ? "Scanning..." : "Scan Ports"}</span>
-              </Stack>
-            </Button>
-          </Stack>
-
-          {scanError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {scanError}
-            </Alert>
-          )}
-
-          {serialPorts.length === 0 && !scanning ? (
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              align="center"
-              sx={{ py: 2 }}
-            >
-              No serial devices found. Connect a device and click Scan.
-            </Typography>
-          ) : (
-            <Stack spacing={1}>
-              {serialPorts.map((p, i) => {
-                const isSelected = serialNumber === p.serialNumber;
-                return (
-                  <Paper
-                    key={i}
-                    variant="outlined"
-                    onClick={() => {
-                      setSerialNumber(p.serialNumber || "");
-                      setRealPortPath(p.path || "");
-                    }}
-                    sx={{
-                      p: 1.5,
-                      cursor: "pointer",
-                      borderColor: isSelected ? "primary.main" : "divider",
-                      bgcolor: isSelected
-                        ? "primary.soft"
-                        : "background.default",
-                      backgroundColor: isSelected
-                        ? "rgba(25, 118, 210, 0.08)"
-                        : undefined,
-                      transition: "all 0.2s",
-                      "&:hover": { borderColor: "primary.main" },
-                    }}
-                    role="button"
-                    aria-label={`Select device ${p.serialNumber}`}
-                  >
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                      <UsbIcon color={isSelected ? "primary" : "action"} />
-                      <Box flexGrow={1}>
-                        <Typography variant="subtitle2">
-                          {p.manufacturer || "Unknown Device"}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          Port: {p.path} • Serial: {p.serialNumber || "N/A"}
-                        </Typography>
-                      </Box>
-                      {isSelected && (
-                        <Typography
-                          variant="caption"
-                          color="primary"
-                          fontWeight="bold"
-                        >
-                          SELECTED
-                        </Typography>
-                      )}
-                    </Stack>
-                  </Paper>
-                );
-              })}
-            </Stack>
-          )}
-
-          <Box mt={2}>
-            <Input
-              label="Connected Device Serial (Manual)"
-              value={serialNumber}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSerialNumber(e.target.value)}
-              placeholder="Select from list above or enter manually"
-            />
-          </Box>
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Input
-                label="LeRobot Port"
-                value={realPortPath}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRealPortPath(e.target.value)}
-                placeholder="/dev/ttyUSB0"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Select
-                label="Disable Torque on Disconnect"
-                value={disableTorqueOnDisconnect ? "true" : "false"}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setDisableTorqueOnDisconnect(e.target.value === "true")
-                }
-                options={[
-                  { label: "True", value: "true" },
-                  { label: "False", value: "false" },
-                ]}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Select
-                label="Use Degrees"
-                value={useDegrees ? "true" : "false"}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUseDegrees(e.target.value === "true")}
-                options={[
-                  { label: "False", value: "false" },
-                  { label: "True", value: "true" },
-                ]}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Input
-                label="Max Relative Target"
-                value={maxRelativeTarget}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxRelativeTarget(e.target.value)}
-                placeholder="e.g. 5"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Input
-                label="LeRobot Robot ID"
-                value={robotConfigId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRobotConfigId(e.target.value)}
-                placeholder="optional"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="flex-end">
-                  <Box sx={{ flex: 1 }}>
-                    <Input
-                      label="Calibration Directory"
-                      value={calibrationDir}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCalibrationDir(e.target.value)}
-                      placeholder="optional path"
-                    />
-                  </Box>
-                  <Button variant="ghost" onClick={handleSelectCalibrationDir} sx={{ mb: 1 }}>
-                    <FolderOpenIcon />
-                  </Button>
-                </Stack>
-                <Button variant="contained" color="secondary" onClick={() => setIsCalibrating(true)}>
-                  Calibrate Robot
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
-        </Box>
-      )}
-
       {modality === "real" && (
         <CameraDiscovery
           cameras={discoveredCameras}
@@ -885,7 +1202,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           {submitting ? "Saving..." : "Save Robot"}
         </Button>
       </Stack>
-{isCalibrating && (
+      {isCalibrating && (
         <CalibrationDialog
           open={isCalibrating}
           onClose={() => setIsCalibrating(false)}
@@ -894,6 +1211,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
         />
       )}
     </Stack>
+    </Box>
   );
 };
 

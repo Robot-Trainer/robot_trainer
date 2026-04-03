@@ -1,4 +1,4 @@
-import { WebSerialPortWrapper } from "./utils/serial-port-wrapper.js";
+import { WebSerialPortWrapper } from "@robot-trainer/serial";
 import {
   readAllMotorPositions,
   type MotorCommunicationPort,

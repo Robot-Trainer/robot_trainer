@@ -84,6 +84,13 @@ export const robotModelsTable = pgTable("robot_models", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const usbVendorsTable = pgTable("usb_vendors", {
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  company: varchar("company").notNull(),
+  vendorId: integer("vendor_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export const RobotDataColumnSchema = v.object({
   config: v.optional(
     v.object({
@@ -192,14 +199,15 @@ export const episodesTable = pgTable("episodes", {
 });
 
 // Inferred record types for each table
-export type UserConfigRecord = InferSelectModel<typeof userConfigTable>;
+export type DatasetRecord = InferSelectModel<typeof datasetsTable>;
+export type EpisodeRecord = InferSelectModel<typeof episodesTable>;
 export type RobotModelRecord = InferSelectModel<typeof robotModelsTable>;
 export type RobotRecord = InferSelectModel<typeof robotsTable>;
-export type TeleoperatorRecord = InferSelectModel<typeof teleoperatorsTable>;
 export type SceneRecord = InferSelectModel<typeof scenesTable>;
-export type TeleoperatorModelRecord = InferSelectModel<typeof teleoperatorModelsTable>;
 export type SceneRobotRecord = InferSelectModel<typeof sceneRobotsTable>;
 export type SceneTeleoperatorRecord = InferSelectModel<typeof sceneTeleoperatorsTable>;
 export type SkillRecord = InferSelectModel<typeof skillsTable>;
-export type DatasetRecord = InferSelectModel<typeof datasetsTable>;
-export type EpisodeRecord = InferSelectModel<typeof episodesTable>;
+export type TeleoperatorModelRecord = InferSelectModel<typeof teleoperatorModelsTable>;
+export type TeleoperatorRecord = InferSelectModel<typeof teleoperatorsTable>;
+export type UsbVendorRecord = InferSelectModel<typeof usbVendorsTable>;
+export type UserConfigRecord = InferSelectModel<typeof userConfigTable>;

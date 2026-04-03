@@ -35,10 +35,11 @@
     "typescript"
   ],
   "scripts": {
+    "prebuild": "pnpm --filter @robot-trainer/serial build",
     "build": "vite build && tsc --project tsconfig.build.json --emitDeclarationOnly",
     "watch": "tsc --project tsconfig.build.json --watch",
     "lint": "eslint .",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "lint:fix": "eslint src .ts,.tsx --fix",
     "prepublishOnly": "npm run build",
     "dev": "vitest --watch",
     "test": "vitest run",
@@ -69,6 +70,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
+    "@robot-trainer/serial": "workspace:*",
     "apache-arrow": "^21.1.0",
     "jszip": "^3.10.1",
     "parquet-wasm": "^0.7.1"

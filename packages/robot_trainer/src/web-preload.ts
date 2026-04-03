@@ -15,6 +15,7 @@
 import { io, Socket } from 'socket.io-client';
 import type { ElectronAPI, SystemSettings } from './types/electron';
 import type { JsonObject } from './types/json';
+import { scanSerialPorts } from '@robot-trainer/serial';
 
 // ---------------------------------------------------------------------------
 // Shared Socket.IO connection (lazy – created on first use)
@@ -68,7 +69,7 @@ const electronAPI: ElectronAPI = {
   getDefaultDatasetDir: (repoId: string) =>
     invokeApi("get-default-dataset-dir", repoId),
   selectDatasetDirectory: () => invokeApi("select-dataset-directory"),
-  scanSerialPorts: () => invokeApi("scan-serial-ports"),
+  scanSerialPorts: () => scanSerialPorts({ requestIfEmpty: false }),
   saveSystemSettings: (settings: SystemSettings) =>
     invokeApi("save-system-settings", settings),
   loadSystemSettings: () => invokeApi("load-system-settings"),
