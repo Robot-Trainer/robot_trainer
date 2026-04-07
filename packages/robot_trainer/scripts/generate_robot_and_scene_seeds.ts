@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { JSDOM } from "jsdom";
 import { parseMujocoCameras } from "../src/lib/mujoco_parser";
@@ -9,11 +10,15 @@ const MENAGERIE_PATH = path.join(process.cwd(), "mujoco_menagerie");
 const TARGET_FILE = path.join(process.cwd(), "src/db/seed_robot_models.ts");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
+const VENV_LIB = path.join(PROJECT_ROOT, ".venv/lib");
+const pythonDir = fsSync.readdirSync(VENV_LIB).find((d) => d.startsWith("python"));
 const PYTHON_ENV_PATH = path.join(
-  PROJECT_ROOT,
-  ".venv/lib/python3.12/site-packages/lerobot",
+  VENV_LIB,
+  pythonDir ?? "python3",
+  "site-packages/lerobot",
 );
 const ROBOTS_PATH = path.join(PYTHON_ENV_PATH, "robots");
+const TELEOPERATORS_PATH = path.join(PYTHON_ENV_PATH, "teleoperators");
 const SIMILARITY_THRESHOLD = 0.82;
 
 type RobotModelRecord = Partial<InferSelectModel<typeof robotModelsTable>>;
@@ -73,6 +78,13 @@ async function getDirectoryNames(source: string): Promise<string[]> {
       .filter((dirent) => dirent.isDirectory() && dirent.name !== "__pycache__")
       .map((dirent) => dirent.name);
   });
+}
+
+function formatDirName(dirName: string): string {
+  return dirName
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function normalizeRobotName(name: string) {
@@ -154,7 +166,7 @@ function mergeRealRobotModalities(
     }
 
     menagerieRobots.push({
-      name: realDirName,
+      name: formatDirName(realDirName),
       dirName: realDirName,
       supportedModalities: ["real"],
     });
@@ -164,8 +176,9 @@ function mergeRealRobotModalities(
 
 async function scanMenagerie() {
   const results = {
-    robots: [] as RobotModelRecord[],
+    robotModels: [] as RobotModelRecord[],
     configurations: [] as MenagerieConfiguration[],
+    teleoperators: [] as RobotModelRecord[],
   };
 
   try {
@@ -186,8 +199,8 @@ async function scanMenagerie() {
         if (content.includes("<actuator>")) {
           const metadata = parseRobotXmlMetadata(content);
 
-          results.robots.push({
-            name: dirent.name, // Robot name is directory name
+          results.robotModels.push({
+            name: formatDirName(dirent.name), // Robot name is directory name
             dirName: dirent.name,
             modelPath: path.join("mujoco_menagerie", dirent.name, file),
             modelFormat: "mjcf",
@@ -240,7 +253,18 @@ async function scanMenagerie() {
     }
 
     const realRobotDirNames = await getDirectoryNames(ROBOTS_PATH);
-    mergeRealRobotModalities(results.robots, realRobotDirNames);
+    mergeRealRobotModalities(results.robotModels, realRobotDirNames);
+
+    // Stage 3: Teleoperator Detection
+    const teleoperatorDirNames = await getDirectoryNames(TELEOPERATORS_PATH);
+    for (const dirName of teleoperatorDirNames) {
+      results.teleoperators.push({
+        name: formatDirName(dirName),
+        dirName,
+        teleoperator: true,
+        supportedModalities: ["real"],
+      });
+    }
   } catch (error) {
     console.error("Error scanning menagerie:", error);
   }
@@ -252,73 +276,30 @@ async function main() {
   const data = await scanMenagerie();
 
   console.log(
-    `Found ${data.robots.length} robots and ${data.configurations.length} configurations.`
+    `Found ${data.robotModels.length} robots, ${data.teleoperators.length} teleoperators, and ${data.configurations.length} configurations.`
   );
 
-  const robotModels = data.robots.map((r, index) => ({
+  const robotModels = data.robotModels.map((r, index) => ({
     id: index + 1,
     ...r
   }));
 
-  const scenes = data.configurations.map((c, index) => ({
-    id: index + 1,
-    name: c.name,
-    sceneXmlPath: c.sceneXmlPath,
+  const teleoperatorModels = data.teleoperators.map((t, index) => ({
+    id: robotModels.length + index + 1,
+    ...t
   }));
 
-  let robotIdCounter = 1;
-  const robots: Record<string, unknown>[] = [];
-  const sceneRobots: Record<string, unknown>[] = [];
+  const allRobotModels = [...robotModels, ...teleoperatorModels];
 
-  const dirToRobotModelId = new Map(robotModels.map((r) => [r.dirName, r.id]));
-  const robotModelToRobotId = new Map();
 
-  for (const rm of robotModels) {
-    if (rm.supportedModalities?.includes("simulated")) {
-      robots.push({
-        id: robotIdCounter,
-        name: rm.name,
-        modality: "simulated",
-        robotModelId: rm.id,
-        data: { type: "simulation" },
-        simProperties: {
-          xml_string: rm.simProperties?.xml_string || "",
-          modelPath: rm.simProperties?.modelPath || rm.modelPath || "",
-          modelFormat: rm.simProperties?.modelFormat || rm.modelFormat || "",
-        },
-      });
-      robotModelToRobotId.set(rm.id, robotIdCounter);
-      robotIdCounter++;
-    }
-  }
 
-  for (const c of data.configurations) {
-    const sceneId = scenes.find((s) => s.sceneXmlPath === c.sceneXmlPath).id;
 
-    for (const robotDirName of c.includedRobots) {
-      const rmId = dirToRobotModelId.get(robotDirName);
-      if (rmId) {
-        const rId = robotModelToRobotId.get(rmId);
-        if (rId) {
-          sceneRobots.push({
-            sceneId: sceneId,
-            robotId: rId,
-            snapshot: robots.find(r => r.id === rId)
-          });
-        }
-      }
-    }
-
-  }
 
   const output = `import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from "./schema";
 
-const robotModelsData = ${JSON.stringify(robotModels, null, 2)};
-const robotsData = ${JSON.stringify(robots, null, 2)};
-const scenesData = ${JSON.stringify(scenes, null, 2)};
-const sceneRobotsData = ${JSON.stringify(sceneRobots, null, 2)};
+const robotModelsData = ${JSON.stringify(allRobotModels, null, 2)};
 
 export async function seedRobotModels() {
   console.log("Seeding robot models...");
@@ -326,20 +307,8 @@ export async function seedRobotModels() {
     if (robotModelsData.length > 0) {
       await db.insert(robotModelsTable).values(robotModelsData as (typeof robotModelsTable.$inferInsert)[]).onConflictDoNothing();
     }
-    if (robotsData.length > 0) {
-      await db.insert(robotsTable).values(robotsData as (typeof robotsTable.$inferInsert)[]).onConflictDoNothing();
-    }
-    if (scenesData.length > 0) {
-      await db.insert(scenesTable).values(scenesData as (typeof scenesTable.$inferInsert)[]).onConflictDoNothing();
-    }
-    if (sceneRobotsData.length > 0) {
-      await db.insert(sceneRobotsTable).values(sceneRobotsData as (typeof sceneRobotsTable.$inferInsert)[]).onConflictDoNothing();
-    }
 
     await db.execute(sql\`SELECT setval(pg_get_serial_sequence('robot_models', 'id'), (SELECT MAX(id) FROM robot_models))\`);
-    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('robots', 'id'), (SELECT MAX(id) FROM robots))\`);
-    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('scenes', 'id'), (SELECT MAX(id) FROM scenes))\`);
-    await db.execute(sql\`SELECT setval(pg_get_serial_sequence('cameras', 'id'), (SELECT MAX(id) FROM cameras))\`);
 
     console.log("Seeding complete.");
   } catch (error) {

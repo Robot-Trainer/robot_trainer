@@ -78,6 +78,7 @@ export interface ElectronAPI {
   writeJsonFile: (filePath: string, data: unknown) => Promise<boolean>;
   scanSerialPorts: () => Promise<SerialPortInfo[]>;
   getMigrations: () => Promise<MigrationFile[]>;
+  getDefaultCalibrationRoot: () => Promise<string>;
   saveSystemSettings: (settings: SystemSettings) => Promise<void>;
   loadSystemSettings: () => Promise<SystemSettings>;
   checkAnaconda: () => Promise<AnacondaCheckResult>;

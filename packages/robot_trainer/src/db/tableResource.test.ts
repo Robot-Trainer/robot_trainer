@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { tableResource } from './tableResource';
-import { robotsTable, teleoperatorModelsTable } from './schema';
+import { robotsTable, robotModelsTable } from './schema';
 import { migrate } from './migrate';
 import { db } from './db';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -71,23 +71,22 @@ describe('tableResource', () => {
     expect(list[0]).toMatchObject(created);
   });
 
-  it('create() should handle provided id (using teleoperatorModelsTable)', async () => {
-    // teleoperatorModelsTable uses integer identity
-    const resourceT = tableResource(teleoperatorModelsTable);
-    await db.delete(teleoperatorModelsTable);
+  it('create() should handle provided id (using robotModelsTable)', async () => {
+    // robotModelsTable uses integer identity
+    const resourceM = tableResource(robotModelsTable);
+    await db.delete(robotModelsTable);
 
     const id = 999;
-    // configClassName is required
     const newItem = {
       id,
-      className: 'Fixed ID Teleop',
-      configClassName: 'FixedConfig'
+      name: 'Fixed ID Model',
+      dirName: 'fixed_model'
     };
 
-    const created = await resourceT.create(newItem);
+    const created = await resourceM.create(newItem);
     expect(created.id).toBe(id);
 
-    const list = await resourceT.list();
+    const list = await resourceM.list();
     expect(list[0].id).toBe(id);
   });
 
@@ -136,7 +135,7 @@ describe('tableResource', () => {
       extraProperty: 'Should be ignored'
     };
 
-    // The create method returns {...item, id}, so it might return the extra property back in the object 
+    // The create method returns {...item, id}, so it might return the extra property back in the object
     // even if it wasn't inserted. Let's check the implementation of tableResource create return.
     // It returns { ...item, id }. So checks on the return value will see extraProperty.
     // We should check the DB list result.

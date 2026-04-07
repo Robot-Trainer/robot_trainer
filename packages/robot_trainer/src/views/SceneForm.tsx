@@ -5,8 +5,8 @@ import UiSelect from '../ui/Select';
 import UiInput from '../ui/Input';
 import { db } from '../db/db';
 import { eq, and } from 'drizzle-orm';
-import { sceneRobotsTable, sceneTeleoperatorsTable, datasetsTable, type RobotModelRecord, type RobotRecord, type SceneRecord, type TeleoperatorModelRecord } from '../db/schema';
-import { robotModelsResource, teleoperatorModelsResource, robotsResource } from '../db/resources';
+import { sceneRobotsTable, sceneTeleoperatorsTable, datasetsTable, type RobotModelRecord, type RobotRecord, type SceneRecord } from '../db/schema';
+import { robotModelsResource, robotsResource } from '../db/resources';
 import { useToast } from '../ui/ToastContext';
 import { parseMujocoCameras } from '../lib/mujoco_parser';
 import DatasetFormView from './DatasetForm';
@@ -79,13 +79,15 @@ export const SceneForm: React.FC<SceneFormProps> = ({
       }));
       setAvailableRobots(rOpts);
 
-      const teleops = await teleoperatorModelsResource.list();
-      const tOpts = teleops.map(
-        (t: TeleoperatorModelRecord) => ({
-          label: (t.data as Record<string, unknown>)?.name || t.id,
-          value: t.id,
-        }),
-      );
+      const teleops = await robotModelsResource.list();
+      const tOpts = teleops
+        .filter((t: RobotModelRecord) => t.teleoperator === true)
+        .map(
+          (t: RobotModelRecord) => ({
+            label: t.name,
+            value: t.id,
+          }),
+        );
       setAvailableTeleoperators(tOpts);
 
       const kRobots = await robotsResource.list();

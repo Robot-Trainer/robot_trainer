@@ -1,11 +1,10 @@
 import { db } from './db';
-import { userConfigTable, robotModelsTable, teleoperatorModelsTable, robotsTable, scenesTable, sceneRobotsTable } from './schema';
+import { userConfigTable, robotModelsTable, robotsTable, scenesTable, sceneRobotsTable } from './schema';
 import { tableResource } from './tableResource';
 import { eq, sql } from 'drizzle-orm';
 import type { JsonObject, JsonValue } from '../types/json';
 
 export const robotModelsResource = tableResource(robotModelsTable);
-export const teleoperatorModelsResource = tableResource(teleoperatorModelsTable);
 export const robotsResource = tableResource(robotsTable);
 
 export const scenesResource = {

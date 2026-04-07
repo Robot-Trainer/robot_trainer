@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { checkMigrationStatus, migrate, resetDatabase, MigrationStatus } from './db/migrate';
 import { seedRobotModels } from './db/seed_robot_models';
-import { seedTeleoperators } from './db/seed_teleoperators';
 import App from './app';
 import { MigrationModal } from './ui/MigrationModal';
 
@@ -52,7 +51,6 @@ export const MigrationRoot = () => {
       await migrate();
       try {
         await seedRobotModels();
-        await seedTeleoperators();
       } catch (seedErr) {
         console.warn("Seeding partial failure", seedErr);
       }

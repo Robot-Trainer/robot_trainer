@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron';
+import { SerialPort } from 'serialport';
 import path from 'node:path';
 import fs from 'fs/promises';
 import os from 'node:os';
@@ -142,6 +143,10 @@ const setupIpcHandlers = () => {
   ipcMain.handle('get-username', () => {
     return process.env.USER || process.env.USERNAME || 'user';
   });
+
+ipcMain.handle("get-default-calibration-root", async () => {
+  return path.join(app.getPath("home"), "robot_trainer", "calibrations");
+});
 
   ipcMain.handle('get-default-dataset-dir', (_event, repoId: string) => {
     const datasetName = sanitizeDatasetName(repoId);
@@ -499,7 +504,7 @@ const setupIpcHandlers = () => {
       }
     }
 
-    // 2. In Production / Packaged App: 
+    // 2. In Production / Packaged App:
     // The files are copied to the renderer output directory by vite-plugin-static-copy.
     // Structure: resources/app/.vite/renderer/main_window/pglite-admin/index.html
     // OR if using strict built directory structure:

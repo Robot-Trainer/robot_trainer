@@ -1,5 +1,5 @@
 {
-  "id": "f84cab92-12ac-421d-b080-eacfcd3e9c0b",
+  "id": "229b442c-d796-4cad-89b5-2c2e390c92b2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -263,6 +263,13 @@
           "notNull": false,
           "default": "'{\"simulated\"}'"
         },
+        "teleoperator": {
+          "name": "teleoperator",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -348,6 +355,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'real'"
+        },
+        "teleoperator": {
+          "name": "teleoperator",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -483,10 +497,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "scene_teleoperators_teleoperator_id_teleoperator_models_id_fk": {
-          "name": "scene_teleoperators_teleoperator_id_teleoperator_models_id_fk",
+        "scene_teleoperators_teleoperator_id_robot_models_id_fk": {
+          "name": "scene_teleoperators_teleoperator_id_robot_models_id_fk",
           "tableFrom": "scene_teleoperators",
-          "tableTo": "teleoperator_models",
+          "tableTo": "robot_models",
           "columnsFrom": [
             "teleoperator_id"
           ],
@@ -615,134 +629,6 @@
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.teleoperator_models": {
-      "name": "teleoperator_models",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "teleoperator_models_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "class_name": {
-          "name": "class_name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "config_class_name": {
-          "name": "config_class_name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "data": {
-          "name": "data",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::json"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.teleoperators": {
-      "name": "teleoperators",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "teleoperators_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "serial_number": {
-          "name": "serial_number",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "model": {
-          "name": "model",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "''"
-        },
-        "data": {
-          "name": "data",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'::json"
-        },
-        "created_at": {
-          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false,

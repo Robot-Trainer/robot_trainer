@@ -117,6 +117,7 @@ describe('RobotForm', () => {
       supportedModalities: ['real'],
       simProperties: {},
       realProperties: {},
+      teleoperator: false,
     },
     {
       id: 2,
@@ -127,6 +128,7 @@ describe('RobotForm', () => {
         xml_string: '<mujoco><worldbody><geom type="box" size="0.1"/></worldbody></mujoco>',
       },
       realProperties: {},
+      teleoperator: false,
     },
     {
       id: 3,
@@ -137,6 +139,25 @@ describe('RobotForm', () => {
         xml_string: '<mujoco><worldbody><geom type="sphere" size="0.2"/></worldbody></mujoco>',
       },
       realProperties: {},
+      teleoperator: false,
+    },
+    {
+      id: 69,
+      name: 'Phone',
+      dirName: 'phone',
+      supportedModalities: [],
+      simProperties: {},
+      realProperties: {},
+      teleoperator: true,
+    },
+    {
+      id: 70,
+      name: 'Keyboard',
+      dirName: 'keyboard',
+      supportedModalities: [],
+      simProperties: {},
+      realProperties: {},
+      teleoperator: true,
     },
   ];
 
@@ -189,6 +210,7 @@ describe('RobotForm', () => {
       }),
       selectDirectory: vi.fn().mockResolvedValue(null),
       writeJsonFile: vi.fn().mockResolvedValue(true),
+      getDefaultCalibrationRoot: vi.fn().mockResolvedValue('/tmp/calibration'),
     };
   });
 
@@ -210,19 +232,22 @@ describe('RobotForm', () => {
       expect(deviceElements.length).toBeGreaterThan(0);
     });
 
-    // Fill out form
-    const nameInput = screen.getByLabelText(/Robot Name/i);
-    fireEvent.change(nameInput, { target: { value: 'My Test Robot' } });
-
     // Select Robot Model A (real)
     const modelSelectTrigger = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelectTrigger);
     const modelOption = await screen.findByRole('option', { name: /Robot Model A/i });
     fireEvent.click(modelOption);
 
-    // Click device in left panel – this also collapses the panel
+    // Click device in left panel – this also collapses the panel and auto-populates name
     const deviceCard = await screen.findByRole('button', { name: /Select device 1/i });
     fireEvent.click(deviceCard);
+
+    // Override auto-populated name after device selection
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Robot Name/i)).toBeTruthy();
+    });
+    const nameInput = screen.getByLabelText(/Robot Name/i);
+    fireEvent.change(nameInput, { target: { value: 'My Test Robot' } });
 
     // Save
     const saveBtn = screen.getByText(/Save Robot/i);
@@ -538,7 +563,6 @@ describe('RobotForm', () => {
           disable_torque_on_disconnect: false,
           use_degrees: true,
           max_relative_target: 10,
-          id: 'robot-1',
           calibration_dir: '/cal/dir',
         },
       },
@@ -551,14 +575,11 @@ describe('RobotForm', () => {
     });
 
     // Verify form fields are populated from realProperties
-    const portInput = screen.getByLabelText(/LeRobot Port/i);
-    expect(portInput).toHaveProperty('value', '/dev/ttyACM0');
-
-    const configIdInput = screen.getByLabelText(/LeRobot Robot ID/i);
-    expect(configIdInput).toHaveProperty('value', 'robot-1');
-
     const calDirInput = screen.getByLabelText(/Calibration Directory/i);
     expect(calDirInput).toHaveProperty('value', '/cal/dir');
+
+    const maxInput = screen.getByLabelText(/Max Relative Target/i);
+    expect(maxInput).toHaveProperty('value', '10');
   });
 
   it('shows device panel for new robots and auto-scans on mount', async () => {
@@ -673,6 +694,7 @@ describe('RobotForm', () => {
         supportedModalities: ['real'],
         simProperties: {},
         realProperties: {},
+        teleoperator: false,
       },
     ];
     (robotModelsResource.list as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockModelsWithKoch);
@@ -686,6 +708,11 @@ describe('RobotForm', () => {
     // Click the detected device
     const deviceCard = screen.getByRole('button', { name: /Select device 1/i });
     fireEvent.click(deviceCard);
+
+    // Wait for async handleDeviceSelect to complete (auto-populates model after await)
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Robot Name/i)).toBeTruthy();
+    });
 
     // Fill name and save
     const nameInput = screen.getByLabelText(/Robot Name/i);
@@ -786,7 +813,7 @@ describe('RobotForm', () => {
     });
   });
 
-  it('renders editing mode with real robot fields and scanned devices', async () => {
+  it('renders editing mode with real robot fields populated', async () => {
     const existingRobot = {
       id: 30,
       name: 'Edit Bot',
@@ -800,7 +827,6 @@ describe('RobotForm', () => {
           disable_torque_on_disconnect: true,
           use_degrees: false,
           max_relative_target: 5,
-          id: 'my-robot',
           calibration_dir: '/home/cal',
         },
       },
@@ -812,27 +838,19 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Editing mode should show the Real Robot Configuration section
-    expect(screen.getByText(/Real Robot Configuration/)).toBeTruthy();
+    // Editing mode should populate name
+    const nameInput = screen.getByLabelText(/Robot Name/i);
+    expect(nameInput).toHaveProperty('value', 'Edit Bot');
 
-    // Verify scan button exists for editing
-    const scanBtn = screen.getByText(/Scan Ports/);
-    expect(scanBtn).toBeTruthy();
+    // Calibration directory should be populated
+    const calDirInput = screen.getByLabelText(/Calibration Directory/i);
+    expect(calDirInput).toHaveProperty('value', '/home/cal');
 
-    // Trigger scan in editing mode
-    fireEvent.click(scanBtn);
-
-    await waitFor(() => {
-      expect(mockGetPorts).toHaveBeenCalled();
-    });
-
-    // Devices appear in edit mode list
-    await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
-    });
+    // Device panel should NOT be shown in editing mode
+    expect(screen.queryByTestId('device-panel')).toBeNull();
   });
 
-  it('selects device in editing mode and populates serial number', async () => {
+  it('edits serial number directly in editing mode', async () => {
     const existingRobot = {
       id: 30,
       name: 'Edit Bot',
@@ -841,6 +859,7 @@ describe('RobotForm', () => {
       data: { type: 'real' },
       simProperties: {},
       realProperties: { config: { port: '' } },
+      serialNumber: 'old-serial',
     };
 
     render(<RobotForm onSaved={mockOnSaved} initialData={existingRobot} />);
@@ -849,20 +868,21 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Trigger scan
-    const scanBtn = screen.getByText(/Scan Ports/);
-    fireEvent.click(scanBtn);
+    // Device panel should NOT exist in editing mode
+    expect(screen.queryByTestId('device-panel')).toBeNull();
+
+    // Serial number should be editable
+    const serialInputs = screen.getAllByLabelText(/Serial Number/i);
+    expect(serialInputs.length).toBeGreaterThanOrEqual(1);
+    fireEvent.change(serialInputs[serialInputs.length - 1], { target: { value: 'new-serial' } });
+
+    fireEvent.click(screen.getByText(/Save Robot/i));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        serialNumber: 'new-serial',
+      }));
     });
-
-    // Click device in editing mode list
-    const deviceCard = screen.getByRole('button', { name: /Select device 1/i });
-    fireEvent.click(deviceCard);
-
-    // Should show SELECTED indicator
-    expect(screen.getByText(/SELECTED/)).toBeTruthy();
   });
 
   it('renders multi-modality model with explicit modality selector', async () => {
@@ -921,10 +941,6 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Fill out form
-    const nameInput = screen.getByLabelText(/Robot Name/i);
-    fireEvent.change(nameInput, { target: { value: 'Camera Bot' } });
-
     // Select real model
     const modelSelect = screen.getByLabelText(/Robot Model/i);
     fireEvent.mouseDown(modelSelect);
@@ -936,12 +952,19 @@ describe('RobotForm', () => {
       expect(mockGetPorts).toHaveBeenCalled();
     });
 
-    // Select a device
+    // Select a device (this auto-populates the name)
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
     });
     const deviceCard = screen.getByRole('button', { name: /Select device 1/i });
     fireEvent.click(deviceCard);
+
+    // Set name after device selection (device click auto-populates name)
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Robot Name/i)).toBeTruthy();
+    });
+    const nameInput = screen.getByLabelText(/Robot Name/i);
+    fireEvent.change(nameInput, { target: { value: 'Camera Bot' } });
 
     const saveBtn = screen.getByText(/Save Robot/i);
     fireEvent.click(saveBtn);
@@ -1018,12 +1041,13 @@ describe('RobotForm', () => {
     const extendedModels = [
       ...mockRobotModels,
       {
-        id: 70,
+        id: 200,
         name: 'Detected Bot X',
         dirName: 'detected_bot_x',
         supportedModalities: ['real'],
         simProperties: {},
         realProperties: {},
+        teleoperator: false,
       },
     ];
     (robotModelsResource.list as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(extendedModels);
@@ -1264,15 +1288,9 @@ describe('RobotForm', () => {
     const modelOption = await screen.findByRole('option', { name: /Robot Model A/i });
     fireEvent.click(modelOption);
 
-    // Modify real config fields
-    const portInput = screen.getByLabelText(/LeRobot Port/i);
-    fireEvent.change(portInput, { target: { value: '/dev/ttyUSB1' } });
-
+    // Modify real config fields (LeRobot Port and LeRobot Robot ID fields were removed)
     const maxInput = screen.getByLabelText(/Max Relative Target/i);
     fireEvent.change(maxInput, { target: { value: '10' } });
-
-    const robotIdInput = screen.getByLabelText(/LeRobot Robot ID/i);
-    fireEvent.change(robotIdInput, { target: { value: 'arm-1' } });
 
     const nameInput = screen.getByLabelText(/Robot Name/i);
     fireEvent.change(nameInput, { target: { value: 'Configured Bot' } });
@@ -1286,9 +1304,7 @@ describe('RobotForm', () => {
         name: 'Configured Bot',
         realProperties: expect.objectContaining({
           config: expect.objectContaining({
-            port: '/dev/ttyUSB1',
             max_relative_target: 10,
-            id: 'arm-1',
           }),
         }),
       }));
@@ -1651,7 +1667,7 @@ describe('RobotForm', () => {
     });
   });
 
-  it('editing mode: selects device from scan and shows SELECTED', async () => {
+  it('editing mode: updates serial number via input', async () => {
     const existingRobot = {
       id: 65,
       name: 'Edit Sel Bot',
@@ -1662,6 +1678,7 @@ describe('RobotForm', () => {
       realProperties: {
         config: { port: '/dev/ttyUSB0' },
       },
+      serialNumber: '0x0403:0x6001',
     };
 
     render(<RobotForm onSaved={mockOnSaved} initialData={existingRobot} />);
@@ -1670,18 +1687,19 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Scan
-    fireEvent.click(screen.getByText(/Scan Ports/));
+    // No device panel in editing mode
+    expect(screen.queryByTestId('device-panel')).toBeNull();
+
+    // Update serial number via the editing-mode input
+    const serialInputs = screen.getAllByLabelText(/Serial Number/i);
+    fireEvent.change(serialInputs[serialInputs.length - 1], { target: { value: 'updated-serial' } });
+
+    fireEvent.click(screen.getByText(/Save Robot/i));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
-    });
-
-    // Select second device
-    fireEvent.click(screen.getByRole('button', { name: /Select device 2/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/SELECTED/)).toBeTruthy();
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        serialNumber: 'updated-serial',
+      }));
     });
   });
 
@@ -1723,9 +1741,7 @@ describe('RobotForm', () => {
     });
   });
 
-  it('editing mode: device click auto-populates robot model when detected', async () => {
-    mockDetect.mockResolvedValue('robot_model_a');
-
+  it('editing mode: can change robot model selection', async () => {
     const existingRobot = {
       id: 70,
       name: 'Detect Bot',
@@ -1744,19 +1760,21 @@ describe('RobotForm', () => {
       expect(robotModelsResource.list).toHaveBeenCalled();
     });
 
-    // Trigger scan to get detected devices
-    fireEvent.click(screen.getByText(/Scan Ports/));
+    // No device panel in editing mode
+    expect(screen.queryByTestId('device-panel')).toBeNull();
+
+    // Select Robot Model A
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    const modelOption = await screen.findByRole('option', { name: /Robot Model A/i });
+    fireEvent.click(modelOption);
+
+    fireEvent.click(screen.getByText(/Save Robot/i));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
-    });
-
-    // Click device to auto-populate model from detected model
-    fireEvent.click(screen.getByRole('button', { name: /Select device 1/i }));
-
-    // The robot model should be auto-selected
-    await waitFor(() => {
-      expect(screen.getByText(/SELECTED/)).toBeTruthy();
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        robotModelId: 1,
+      }));
     });
   });
 
@@ -1867,5 +1885,138 @@ describe('RobotForm', () => {
         }),
       }));
     });
+  });
+
+  it('shows teleoperator checkbox and filters models when checked', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // The teleoperator checkbox should be present
+    const teleopCheckbox = screen.getByLabelText(/Teleoperator/i);
+    expect(teleopCheckbox).toBeTruthy();
+
+    // Without teleoperator checked, robot models should be visible
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    expect(await screen.findByRole('option', { name: /Robot Model A/i })).toBeTruthy();
+    // Teleoperator models should NOT be listed
+    expect(screen.queryByRole('option', { name: /Phone/i })).toBeNull();
+    // Close dropdown
+    fireEvent.keyDown(modelSelect, { key: 'Escape' });
+
+    // Check the teleoperator checkbox
+    fireEvent.click(teleopCheckbox);
+
+    // Now only teleoperator models should appear in dropdown
+    fireEvent.mouseDown(modelSelect);
+    expect(await screen.findByRole('option', { name: /Phone/i })).toBeTruthy();
+    expect(await screen.findByRole('option', { name: /Keyboard/i })).toBeTruthy();
+    // Robot models should NOT be listed
+    expect(screen.queryByRole('option', { name: /Robot Model A/i })).toBeNull();
+  });
+
+  it('includes teleoperator=true in save payload when checkbox is checked', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Check teleoperator
+    const teleopCheckbox = screen.getByLabelText(/Teleoperator/i);
+    fireEvent.click(teleopCheckbox);
+
+    // Fill name
+    const nameInput = screen.getByLabelText(/Robot Name/i);
+    fireEvent.change(nameInput, { target: { value: 'My Teleoperator' } });
+
+    // Save
+    fireEvent.click(screen.getByText(/Save Robot/i));
+
+    await waitFor(() => {
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'My Teleoperator',
+        teleoperator: true,
+      }));
+    });
+  });
+
+  it('includes teleoperator=false in save payload when checkbox is unchecked', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Wait for auto scan and select device
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Select device/ }).length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Select device 1/i }));
+
+    // Select real model
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    fireEvent.click(await screen.findByRole('option', { name: /Robot Model A/i }));
+
+    const nameInput = screen.getByLabelText(/Robot Name/i);
+    fireEvent.change(nameInput, { target: { value: 'Regular Robot' } });
+
+    fireEvent.click(screen.getByText(/Save Robot/i));
+
+    await waitFor(() => {
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Regular Robot',
+        teleoperator: false,
+      }));
+    });
+  });
+
+  it('pre-selects teleoperator checkbox when editing a teleoperator robot', async () => {
+    const teleoperatorRobot = {
+      id: 100,
+      name: 'My Teleop',
+      modality: 'real',
+      robotModelId: 69,
+      teleoperator: true,
+      data: {},
+      simProperties: {},
+      realProperties: { config: { port: '' } },
+    };
+
+    render(<RobotForm onSaved={mockOnSaved} initialData={teleoperatorRobot} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Teleoperator checkbox should be checked
+    const teleopCheckbox = screen.getByLabelText(/Teleoperator/i);
+    expect(teleopCheckbox.querySelector('input[type="checkbox"]')?.checked ?? (teleopCheckbox as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('resets robot model selection when toggling teleoperator checkbox', async () => {
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Select a robot model
+    const modelSelect = screen.getByLabelText(/Robot Model/i);
+    fireEvent.mouseDown(modelSelect);
+    fireEvent.click(await screen.findByRole('option', { name: /Robot Model A/i }));
+
+    // Toggle teleoperator on — should reset model selection
+    const teleopCheckbox = screen.getByLabelText(/Teleoperator/i);
+    fireEvent.click(teleopCheckbox);
+
+    // Model select should be reset (show default placeholder)
+    // After toggling teleoperator, robotModelId state resets to ""
+    // Verify the previous selection is no longer displayed
+    expect(modelSelect.textContent).not.toContain('Robot Model A');
   });
 });

@@ -1,4 +1,4 @@
-import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, uuid, json, text, timestamp, primaryKey, jsonb, pgEnum, boolean } from "drizzle-orm/pg-core";
 import type { InferSelectModel } from "drizzle-orm";
 import * as v from "valibot";
 import type { InferInput } from "valibot";
@@ -56,7 +56,6 @@ export type CameraEntry = InferInput<typeof CameraEntrySchema>;
 export const RobotRealPropertiesSchema = v.object({
   config: v.optional(
     v.object({
-      id: v.optional(v.string()),
       calibration_dir: v.optional(v.string()),
       port: v.optional(v.string()),
       disable_torque_on_disconnect: v.optional(v.boolean()),
@@ -81,6 +80,7 @@ export const robotModelsTable = pgTable("robot_models", {
   supportedModalities: robotModalityEnum("supported_modalities")
     .array()
     .default(["simulated"]),
+  teleoperator: boolean("teleoperator").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -121,19 +121,9 @@ export const robotsTable = pgTable("robots", {
     { onDelete: "set null" },
   ),
   modality: robotModalityEnum("modality").default("real"),
+  teleoperator: boolean("teleoperator").default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
-
-export const teleoperatorsTable = pgTable("teleoperators", {
-  id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  serialNumber: varchar("serial_number").default(""),
-  name: varchar("name").default(""),
-  model: varchar("model").default(""),
-  notes: text("notes").default(""),
-  data: json("data").default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-
 
 export const scenesTable = pgTable("scenes", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
@@ -145,14 +135,6 @@ export const scenesTable = pgTable("scenes", {
 });
 
 
-export const teleoperatorModelsTable = pgTable("teleoperator_models", {
-  id: integer().primaryKey().generatedByDefaultAsIdentity(),
-  className: varchar("class_name"),
-  configClassName: varchar("config_class_name"),
-  data: json("data").default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-
 export const sceneRobotsTable = pgTable("scene_robots", {
   sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
   robotId: integer("robot_id").references(() => robotsTable.id, { onDelete: "cascade" }).notNull(),
@@ -163,7 +145,7 @@ export const sceneRobotsTable = pgTable("scene_robots", {
 
 export const sceneTeleoperatorsTable = pgTable("scene_teleoperators", {
   sceneId: integer("scene_id").references(() => scenesTable.id, { onDelete: "cascade" }).notNull(),
-  teleoperatorId: integer("teleoperator_id").references(() => teleoperatorModelsTable.id, { onDelete: "cascade" }).notNull(),
+  teleoperatorId: integer("teleoperator_id").references(() => robotModelsTable.id, { onDelete: "cascade" }).notNull(),
   snapshot: jsonb("snapshot").notNull(),
 }, (t) => [
   primaryKey({ columns: [t.sceneId, t.teleoperatorId] }),
@@ -207,7 +189,6 @@ export type SceneRecord = InferSelectModel<typeof scenesTable>;
 export type SceneRobotRecord = InferSelectModel<typeof sceneRobotsTable>;
 export type SceneTeleoperatorRecord = InferSelectModel<typeof sceneTeleoperatorsTable>;
 export type SkillRecord = InferSelectModel<typeof skillsTable>;
-export type TeleoperatorModelRecord = InferSelectModel<typeof teleoperatorModelsTable>;
-export type TeleoperatorRecord = InferSelectModel<typeof teleoperatorsTable>;
+
 export type UsbVendorRecord = InferSelectModel<typeof usbVendorsTable>;
 export type UserConfigRecord = InferSelectModel<typeof userConfigTable>;

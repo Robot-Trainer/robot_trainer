@@ -9,12 +9,24 @@ import {
   CircularProgress,
   Tooltip,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Link,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import UsbIcon from "@mui/icons-material/Usb";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CableIcon from "@mui/icons-material/Cable";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
@@ -107,6 +119,97 @@ const getDetectedModelDisplayName = (
   return matchedModel?.name || detectedModel;
 };
 
+const TroubleshootingModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+}> = ({ open, onClose }) => {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Troubleshooting Device Connection</DialogTitle>
+      <DialogContent dividers>
+        <Typography variant="body1" paragraph>
+          If your device is not showing up or its model isn't being detected automatically, there might be a connectivity or permission issue.
+        </Typography>
+
+        <Typography variant="h6" gutterBottom>
+          Linux (Permissions)
+        </Typography>
+        <Typography variant="body2" paragraph>
+          On Linux, your user might not have permission to access the serial device. Every time a device is plugged in, some permissions get reset unless configured correctly.
+        </Typography>
+
+        <Accordion variant="outlined">
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="subtitle2">1. Permanent solution: Add your user to the device group (Recommended)</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body2" paragraph>
+              This is the standard and safest way to gain persistent access. Once added, you will have permission to use any device that joins that group.
+            </Typography>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <li>
+                <Typography variant="body2">
+                  <strong>Identify the group:</strong> Run <code>ls -l /dev/ttyACM*</code> or <code>ls -l /dev/ttyUSB*</code>. Look for the group name in the fourth column (typically <code>dialout</code> on Ubuntu/Debian or <code>uucp</code> on Arch/Fedora).
+                </Typography>
+              </li>
+              <li style={{ marginTop: 8 }}>
+                <Typography variant="body2">
+                  <strong>Add your user:</strong> Run the following command (replace <code>dialout</code> with the group you found, and <code>your_username</code> with your login):
+                </Typography>
+                <Box sx={{ bgcolor: 'action.hover', p: 1, borderRadius: 1, mt: 1, mb: 1 }}>
+                  <code>sudo usermod -a -G dialout your_username</code>
+                </Box>
+              </li>
+              <li style={{ marginTop: 8 }}>
+                <Typography variant="body2">
+                  <strong>Apply changes:</strong> You must log out and log back in (or reboot) for the group change to take effect.
+                </Typography>
+              </li>
+            </ul>
+          </AccordionDetails>
+        </Accordion>
+
+        <Accordion variant="outlined" sx={{ mt: 1 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="subtitle2">2. Create a UDEV rule</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body2" paragraph>
+              If the group method fails or you want specific permissions for one particular device, you can automate the chmod process using a udev rule.
+            </Typography>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <li>
+                <Typography variant="body2">
+                  <strong>Create a new rules file:</strong>
+                </Typography>
+                <Box sx={{ bgcolor: 'action.hover', p: 1, borderRadius: 1, mt: 1, mb: 1 }}>
+                  <code>sudo nano /etc/udev/rules.d/99-serial.rules</code>
+                </Box>
+              </li>
+              <li style={{ marginTop: 8 }}>
+                <Typography variant="body2">
+                  <strong>Add this line</strong> to give read/write access to all ttyACM devices:
+                </Typography>
+                <Box sx={{ bgcolor: 'action.hover', p: 1, borderRadius: 1, mt: 1, mb: 1 }}>
+                  <code>KERNEL=="ttyACM[0-9]*", MODE="0666"</code>
+                </Box>
+              </li>
+              <li style={{ marginTop: 8 }}>
+                <Typography variant="body2">
+                  <strong>Save and exit.</strong> The rule will apply automatically the next time you plug in the device.
+                </Typography>
+              </li>
+            </ul>
+          </AccordionDetails>
+        </Accordion>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="ghost">Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const CUSTOM_MODEL_VALUE = "custom";
 
 const RobotForm: React.FC<RobotFormProps> = ({
@@ -131,13 +234,14 @@ const RobotForm: React.FC<RobotFormProps> = ({
     { label: string; value: string }[]
   >([]);
   const [submitting, setSubmitting] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [isTeleoperator, setIsTeleoperator] = useState(false);
 
   const [realPortPath, setRealPortPath] = useState<string>("");
   const [disableTorqueOnDisconnect, setDisableTorqueOnDisconnect] =
     useState(true);
   const [useDegrees, setUseDegrees] = useState(false);
   const [maxRelativeTarget, setMaxRelativeTarget] = useState<string>("");
-  const [robotConfigId, setRobotConfigId] = useState<string>("");
   const [calibrationDir, setCalibrationDir] = useState<string>("");
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationData, setCalibrationData] = useState<Record<string, unknown> | null>(null);
@@ -169,6 +273,13 @@ const RobotForm: React.FC<RobotFormProps> = ({
   // Camera discovery state for real robots
   const [discoveredCameras, setDiscoveredCameras] = useState<CameraEntry[]>([]);
 
+  const filteredModelOptionItems = modelOptionItems.filter((opt) => {
+    const model = modelOptions.find(
+      (m: typeof robotModelsTable.$inferSelect) => String(m.id) === String(opt.value),
+    );
+    return model ? model.teleoperator === isTeleoperator : true;
+  });
+
   const isCustomModel = robotModelId === CUSTOM_MODEL_VALUE;
   const isXmlCustomized =
     !!robotModelId &&
@@ -198,6 +309,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
     setName(initialData.name || "");
     setModality((initialData.modality as RobotModality) || "real");
     setSerialNumber(initialData.serialNumber || "");
+    setIsTeleoperator(initialData.teleoperator === true);
 
     if (initialData.robotModelId) {
       setRobotModelId(String(initialData.robotModelId));
@@ -217,7 +329,6 @@ const RobotForm: React.FC<RobotFormProps> = ({
     setMaxRelativeTarget(
       cfg.max_relative_target != null ? String(cfg.max_relative_target) : "",
     );
-    setRobotConfigId(cfg.id || "");
     setCalibrationDir(cfg.calibration_dir || "");
     setCalibrationData(realProps.calibration || null);
 
@@ -356,6 +467,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
           modality: "simulated" as const,
           serialNumber: "",
           robotModelId: parsedModelId,
+          teleoperator: isTeleoperator,
           data: { ...(initialData?.data || {}), type: "simulation" },
           simProperties: simProps,
           realProperties: {},
@@ -377,7 +489,6 @@ const RobotForm: React.FC<RobotFormProps> = ({
           disable_torque_on_disconnect: disableTorqueOnDisconnect,
           max_relative_target: maxRelativeTargetValue,
           use_degrees: useDegrees,
-          id: robotConfigId || undefined,
           calibration_dir: calibrationDir || undefined,
         },
         calibration: calibrationData || undefined,
@@ -407,6 +518,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
         modality: "real" as const,
         serialNumber,
         robotModelId: parsedModelId,
+        teleoperator: isTeleoperator,
         data: { ...(initialData?.data || {}), type: "real" },
         realProperties: realProps,
         simProperties: {},
@@ -510,10 +622,17 @@ const RobotForm: React.FC<RobotFormProps> = ({
   // Auto-scan serial ports when adding a new robot
   useEffect(() => { if (!isEditing) { scanPorts(); } }, []);
 
-  const handleDeviceSelect = (dp: DiscoveredPort, index: number) => {
+  const handleDeviceSelect = async (dp: DiscoveredPort, index: number) => {
     setSelectedPortIndex(index);
+    const initialName = dp.detectedModel || dp.vendorLabel || `Device ${index + 1}`;
+    setName(initialName);
     setSerialNumber(dp.vendorId && dp.productId ? `${dp.vendorId}:${dp.productId}` : "");
     setDevicePanelCollapsed(true);
+    if (calibrationDir == "") {
+      const defaultDir = await window.electronAPI.getDefaultCalibrationRoot();
+      const calibrationPath = initialName.replace(/\s+/g, "_").toLowerCase();
+      setCalibrationDir(`${defaultDir}/${calibrationPath}`);
+    }
 
     // Auto-populate robotModel if a model was detected and exists in loaded options
     if (dp.detectedModel) {
@@ -521,6 +640,8 @@ const RobotForm: React.FC<RobotFormProps> = ({
         (m) => m.dirName === dp.detectedModel,
       );
       if (matchingModel) {
+        setIsTeleoperator(matchingModel.teleoperator === true);
+
         setRobotModelId(String(matchingModel.id));
       }
     }
@@ -676,6 +797,18 @@ const RobotForm: React.FC<RobotFormProps> = ({
                 );
               })}
             </Stack>
+
+            <Box mt={2} display="flex" alignItems="center" justifyContent="center">
+              <Link
+                component="button"
+                variant="caption"
+                color="text.secondary"
+                onClick={() => setShowTroubleshooting(true)}
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, textAlign: 'center' }}
+              >
+                Don't see your device, or it's not auto-detecting the robot type? <HelpOutlineIcon fontSize="inherit" />
+              </Link>
+            </Box>
           </Paper>
         </Box>
       )}
@@ -713,132 +846,10 @@ const RobotForm: React.FC<RobotFormProps> = ({
         </Grid>
 
         {modality === "real" && (
-          <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
-            <Stack justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" fontSize="1rem">
-                Real Robot Configuration (LeRobot)
-              </Typography>
-              {isEditing && (
-                <Button variant="ghost" onClick={scanPorts} disabled={scanning}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    {scanning ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <RefreshIcon fontSize="small" />
-                    )}
-                    <span>{scanning ? "Scanning..." : "Scan Ports"}</span>
-                  </Stack>
-                </Button>
-              )}
-            </Stack>
+          <>
 
             {isEditing && (
               <>
-                {scanError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {scanError}
-                  </Alert>
-                )}
-
-                {discoveredPorts.length === 0 && !scanning ? (
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    align="center"
-                    sx={{ py: 2 }}
-                  >
-                    No serial devices found. Connect a device and click Scan.
-                  </Typography>
-                ) : (
-                  <Stack spacing={1}>
-                    {discoveredPorts.map((dp, i) => {
-                      const isSelected = selectedPortIndex === i;
-                      const detectedModelDisplayName = getDetectedModelDisplayName(
-                        dp.detectedModel,
-                        modelOptions,
-                      );
-                      const label = detectedModelDisplayName
-                        ? `Device ${i + 1} (${detectedModelDisplayName})`
-                        : `Device ${i + 1}`;
-                      return (
-                        <Paper
-                          key={i}
-                          variant="outlined"
-                          onClick={() => {
-                            setSelectedPortIndex(i);
-                            setSerialNumber(dp.vendorId && dp.productId ? `${dp.vendorId}:${dp.productId}` : "");
-                            if (dp.detectedModel) {
-                              const matchingModel = modelOptions.find(
-                                (m) => m.dirName === dp.detectedModel,
-                              );
-                              if (matchingModel) {
-                                setRobotModelId(String(matchingModel.id));
-                              }
-                            }
-                          }}
-                          sx={{
-                            p: 1.5,
-                            cursor: "pointer",
-                            borderColor: isSelected
-                              ? "primary.main"
-                              : "divider",
-                            bgcolor: isSelected
-                              ? "rgba(25, 118, 210, 0.08)"
-                              : "background.default",
-                            transition: "all 0.2s",
-                            "&:hover": { borderColor: "primary.main" },
-                          }}
-                          role="button"
-                          aria-label={`Select device ${i + 1}`}
-                        >
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={2}
-                          >
-                            <UsbIcon
-                              color={isSelected ? "primary" : "action"}
-                            />
-                            <Box flexGrow={1}>
-                              <Typography variant="subtitle2">
-                                {label}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="textSecondary"
-                              >
-                                {[
-                                  dp.vendorLabel,
-                                  detectedModelDisplayName || dp.productId,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" : ") || "Unknown"}
-                              </Typography>
-                              {dp.detectedModel && (
-                                <Typography
-                                  variant="caption"
-                                  color="primary"
-                                  display="block"
-                                >
-                                  ({dp.detectedModel})
-                                </Typography>
-                              )}
-                            </Box>
-                            {isSelected && (
-                              <Typography
-                                variant="caption"
-                                color="primary"
-                                fontWeight="bold"
-                              >
-                                SELECTED
-                              </Typography>
-                            )}
-                          </Stack>
-                        </Paper>
-                      );
-                    })}
-                  </Stack>
-                )}
 
                 <Box mt={2}>
                   <Input
@@ -854,7 +865,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
             )}
 
             <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
+            {/* <Grid size={{ xs: 12, md: 6 }}>
               <Input
                 label="LeRobot Port"
                 value={realPortPath}
@@ -863,7 +874,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
                 }
                 placeholder="/dev/ttyUSB0"
               />
-            </Grid>
+            </Grid> */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Select
                 label="Disable Torque on Disconnect"
@@ -901,16 +912,6 @@ const RobotForm: React.FC<RobotFormProps> = ({
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Input
-                label="LeRobot Robot ID"
-                value={robotConfigId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setRobotConfigId(e.target.value)
-                }
-                placeholder="optional"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
               <Stack spacing={2}>
                 <Stack direction="row" spacing={1} alignItems="flex-end">
                   <Box sx={{ flex: 1 }}>
@@ -941,9 +942,23 @@ const RobotForm: React.FC<RobotFormProps> = ({
               </Stack>
             </Grid>
           </Grid>
-        </Box>
+        </>
       )}
       <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={isTeleoperator}
+                onChange={(e) => {
+                  setIsTeleoperator(e.target.checked);
+                  setRobotModelId("");
+                }}
+              />
+            }
+            label="Teleoperator"
+          />
+        </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Stack direction="row" alignItems="flex-end" spacing={1}>
             {!isEditing && devicePanelCollapsed && (
@@ -968,7 +983,7 @@ const RobotForm: React.FC<RobotFormProps> = ({
                 options={[
                   { label: "Select Robot Model...", value: "" },
                   { label: "Custom", value: CUSTOM_MODEL_VALUE },
-                  ...modelOptionItems,
+                  ...filteredModelOptionItems,
                 ]}
                 renderOption={(opt) => {
                   if (opt.value === "" || opt.value === CUSTOM_MODEL_VALUE)
@@ -1210,7 +1225,11 @@ const RobotForm: React.FC<RobotFormProps> = ({
           robotType={selectedModel?.dirName || "so100_follower"}
         />
       )}
-    </Stack>
+        <TroubleshootingModal
+          open={showTroubleshooting}
+          onClose={() => setShowTroubleshooting(false)}
+        />
+      </Stack>
     </Box>
   );
 };

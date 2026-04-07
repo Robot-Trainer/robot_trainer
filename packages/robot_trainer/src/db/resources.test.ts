@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { db } from './db';
-import { configResource, scenesResource, robotModelsResource, teleoperatorModelsResource, robotsResource } from './resources';
+import { configResource, scenesResource, robotModelsResource, robotsResource } from './resources';
 
 vi.mock('./db', () => ({
   db: {}
@@ -14,7 +14,6 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('./schema', () => ({
   userConfigTable: { id: 'id' },
   robotModelsTable: {},
-  teleoperatorModelsTable: {},
   robotsTable: { name: 'name', modality: 'modality', id: 'id' },
   scenesTable: { id: 'id', name: 'name', notes: 'notes', sceneXmlPath: 'sceneXmlPath', createdAt: 'createdAt', data: 'data' },
   sceneRobotsTable: { sceneId: 'sceneId', robotId: 'robotId' }
@@ -32,7 +31,6 @@ describe('resources.ts', () => {
   describe('exports', () => {
     it('exports resources mapped by tableResource', () => {
       expect(robotModelsResource).toEqual({ testResource: true });
-      expect(teleoperatorModelsResource).toEqual({ testResource: true });
       expect(robotsResource).toEqual({ testResource: true });
     });
   });
@@ -63,7 +61,7 @@ describe('resources.ts', () => {
         const limitMock = vi.fn().mockResolvedValue([]);
         const fromMock = vi.fn().mockReturnValue({ limit: limitMock });
         db.select = vi.fn().mockReturnValue({ from: fromMock });
-        
+
         const res = await configResource.getAll();
         expect(res).toEqual({});
       });
@@ -71,7 +69,7 @@ describe('resources.ts', () => {
       it('returns empty object if config is not a json object (e.g. array)', async () => {
         const limitMock = vi.fn().mockResolvedValue([{ config: [1, 2] }]);
         db.select = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ limit: limitMock }) });
-        
+
         const res = await configResource.getAll();
         expect(res).toEqual({});
       });
@@ -79,16 +77,16 @@ describe('resources.ts', () => {
       it('returns empty object if config is not a json object (null)', async () => {
         const limitMock = vi.fn().mockResolvedValue([{ config: null }]);
         db.select = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ limit: limitMock }) });
-        
+
         const res = await configResource.getAll();
         expect(res).toEqual({});
       });
-      
+
       it('returns config if it is a valid json object', async () => {
         const configData = { foo: 'bar' };
         const limitMock = vi.fn().mockResolvedValue([{ config: configData }]);
         db.select = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ limit: limitMock }) });
-        
+
         const res = await configResource.getAll();
         expect(res).toEqual(configData);
       });
@@ -98,7 +96,7 @@ describe('resources.ts', () => {
       it('inserts new config if no existing row', async () => {
         const limitMock = vi.fn().mockResolvedValue([]);
         db.select = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ limit: limitMock }) });
-        
+
         const valuesMock = vi.fn().mockResolvedValue(undefined);
         db.insert = vi.fn().mockReturnValue({ values: valuesMock });
 
@@ -111,7 +109,7 @@ describe('resources.ts', () => {
       it('updates existing config if row exists', async () => {
         const limitMock = vi.fn().mockResolvedValue([{ id: 123 }]);
         db.select = vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ limit: limitMock }) });
-        
+
         const whereMock = vi.fn().mockResolvedValue(undefined);
         const setMock = vi.fn().mockReturnValue({ where: whereMock });
         db.update = vi.fn().mockReturnValue({ set: setMock });
@@ -148,7 +146,7 @@ describe('resources.ts', () => {
         const res = await configResource.getKey('a.b');
         expect(res).toBeUndefined();
       });
-      
+
       it('handles null within traversal', async () => {
         vi.spyOn(configResource, 'getAll').mockResolvedValue({ a: { b: null } });
         const res = await configResource.getKey('a.b.c');
@@ -192,7 +190,7 @@ describe('resources.ts', () => {
         await configResource.setKey('x.y.z', 42);
         expect(configResource.setAll).toHaveBeenCalledWith({ x: { y: { z: 42 } } });
       });
-      
+
       it('creates object if traversing null', async () => {
         vi.spyOn(configResource, 'getAll').mockResolvedValue({ x: null as unknown });
         await configResource.setKey('x.y.z', 42);

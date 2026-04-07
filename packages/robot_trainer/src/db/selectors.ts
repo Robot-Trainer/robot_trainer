@@ -6,7 +6,6 @@ import {
   sceneTeleoperatorsTable,
   robotsTable,
   robotModelsTable,
-  teleoperatorModelsTable
 } from './schema';
 import { normalizeCameraList } from '../types/camera';
 
@@ -31,11 +30,11 @@ export const getSceneSnapshot = async (sceneId: number) => {
 
   const teleoperators = await db
     .select({
-      teleoperator: teleoperatorModelsTable,
+      teleoperator: robotModelsTable,
       snapshot: sceneTeleoperatorsTable.snapshot
     })
     .from(sceneTeleoperatorsTable)
-    .innerJoin(teleoperatorModelsTable, eq(sceneTeleoperatorsTable.teleoperatorId, teleoperatorModelsTable.id))
+    .innerJoin(robotModelsTable, eq(sceneTeleoperatorsTable.teleoperatorId, robotModelsTable.id))
     .where(eq(sceneTeleoperatorsTable.sceneId, sceneId));
 
   const sceneData = config.data as Record<string, unknown> | undefined;

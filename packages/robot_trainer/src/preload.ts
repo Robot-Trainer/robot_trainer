@@ -16,6 +16,7 @@ const electronAPI: ElectronAPI = {
   saveSystemSettings: (settings: SystemSettings) =>
     ipcRenderer.invoke("save-system-settings", settings),
   loadSystemSettings: () => ipcRenderer.invoke("load-system-settings"),
+  getDefaultCalibrationRoot: () => ipcRenderer.invoke("get-default-calibration-root"),
   checkAnaconda: () => ipcRenderer.invoke("check-anaconda"),
   createAnacondaEnv: (name: string) =>
     ipcRenderer.invoke("create-anaconda-env", name),
