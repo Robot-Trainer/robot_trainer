@@ -52,7 +52,7 @@ import { RobotDetectorManager } from "../lib/robot_detectors";
 import {
   getManagedWebSerialPorts,
   type ManagedWebSerialPort,
-} from "../../../serial";
+} from "@robot-trainer/serial";
 
 interface DiscoveredPort {
   port: ManagedWebSerialPort["port"];
@@ -1223,6 +1223,9 @@ const RobotForm: React.FC<RobotFormProps> = ({
           onClose={() => setIsCalibrating(false)}
           onSave={handleCalibrationSave}
           robotType={selectedModel?.dirName || "so100_follower"}
+          port={selectedPortIndex != null ? discoveredPorts[selectedPortIndex]?.port as SerialPort : undefined}
+          serialNumber={serialNumber}
+          robotName={name || selectedModel?.name}
         />
       )}
         <TroubleshootingModal

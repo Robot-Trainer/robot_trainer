@@ -1,13 +1,16 @@
+import { SerialPortCoordinator } from "./coordinator.js";
+
 /**
- * Lightweight Web Serial port wrapper with immediate lock release.
+ * Web Serial port wrapper backed by the {@link SerialPortCoordinator}.
  *
- * Each `read()` or `write()` acquires a stream lock, performs the I/O,
- * and immediately releases the lock.  This is simpler than the
- * coordinator-based {@link SerialConnection} and is well-suited for
- * scenarios where exclusive ownership bookkeeping is not needed.
+ * All I/O is mutex-protected through the coordinator so concurrent
+ * callers are safely serialized.  Call {@link initialize} before any
+ * read/write to register ownership with the coordinator.
  */
 export class WebSerialPortWrapper {
-  private port: SerialPort;
+  private readonly port: SerialPort;
+  private readonly ownerId = Symbol("port-wrapper-owner");
+  private readonly coordinator = SerialPortCoordinator.getInstance();
 
   constructor(port: SerialPort) {
     this.port = port;
@@ -23,33 +26,31 @@ export class WebSerialPortWrapper {
   }
 
   /**
-   * Asserts that the port is ready for I/O.
+   * Opens (or registers) the port with the coordinator.
    *
-   * @throws If the port lacks readable or writable streams.
+   * If the port is already open it will be adopted; otherwise it is
+   * opened at the given baud rate.
+   *
+   * @param baudRate - Baud rate to use (default `1_000_000`).
+   * @throws If the port is already owned by another connection.
    */
-  async initialize(): Promise<void> {
-    if (!this.port.readable || !this.port.writable) {
-      throw new Error("Port is not open for reading/writing");
+  async initialize(baudRate: number = 1_000_000): Promise<void> {
+    const opened = await this.coordinator.open(this.port, this.ownerId, baudRate);
+    if (!opened) {
+      throw new Error("Port is already owned by another connection");
     }
   }
 
   /**
-   * Writes data to the port, acquiring and immediately releasing the writer lock.
+   * Writes data to the port under the coordinator mutex.
    *
    * @param data - The bytes to send.
-   * @throws If the port is not open for writing.
+   * @throws If the port has not been initialized.
    */
   async write(data: Uint8Array): Promise<void> {
-    if (!this.port.writable) {
-      throw new Error("Port not open for writing");
-    }
-
-    const writer = this.port.writable.getWriter();
-    try {
+    await this.coordinator.withWriter(this.port, this.ownerId, async (writer) => {
       await writer.write(data);
-    } finally {
-      writer.releaseLock();
-    }
+    });
   }
 
   /**
@@ -60,13 +61,7 @@ export class WebSerialPortWrapper {
    * @throws On timeout, if the port is closed mid-read, or if no data arrives.
    */
   async read(timeout: number = 1000): Promise<Uint8Array> {
-    if (!this.port.readable) {
-      throw new Error("Port not open for reading");
-    }
-
-    const reader = this.port.readable.getReader();
-
-    try {
+    return this.coordinator.withReader(this.port, this.ownerId, async (reader) => {
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Read timeout")), timeout);
       });
@@ -79,23 +74,13 @@ export class WebSerialPortWrapper {
       }
 
       return new Uint8Array(value);
-    } finally {
-      reader.releaseLock();
-    }
+    });
   }
 
   /**
-   * Closes the underlying serial port.
-   *
-   * Errors during close are logged but not rethrown.
+   * Closes the port and releases ownership via the coordinator.
    */
   async close(): Promise<void> {
-    try {
-      if (this.port && this.port.readable) {
-        await this.port.close();
-      }
-    } catch (error) {
-      console.warn("Error closing serial port:", error);
-    }
+    await this.coordinator.close(this.port, this.ownerId);
   }
 }

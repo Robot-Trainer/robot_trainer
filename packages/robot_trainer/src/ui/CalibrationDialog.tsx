@@ -1,4 +1,4 @@
-import React, { useState,  } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -7,16 +7,21 @@ import {
   Button,
   Typography,
   Box,
-
   Alert,
 } from "@mui/material";
-import { calibrate } from "../../../lerobot/dist";
+import { calibrate, type CalibrationProcess } from "@robot-trainer/lerobot";
 
-interface CalibrationDialogProps {
+export interface CalibrationDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (results: unknown) => void;
   robotType: string;
+  /** Pre-selected WebSerial port from the parent form — skips manual port selection */
+  port?: SerialPort;
+  /** Serial number of the robot for identification */
+  serialNumber?: string;
+  /** Display name for the robot */
+  robotName?: string;
 }
 
 export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
@@ -24,19 +29,29 @@ export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
   onClose,
   onSave,
   robotType,
+  port: externalPort,
+  serialNumber,
+  robotName,
 }) => {
   const [step, setStep] = useState<"initial" | "calibrating" | "done" | "error">("initial");
-  const [_, setPort] = useState<unknown>(null);
   const [progressMsg, setProgressMsg] = useState("");
   const [liveData, setLiveData] = useState<Record<string, Record<string, number>>>({});
   const [errorObj, setErrorObj] = useState<unknown>(null);
   const [results, setResults] = useState<unknown>(null);
-  const [calProcess, setCalProcess] = useState<unknown>(null);
+  const [calProcess, setCalProcess] = useState<CalibrationProcess | null>(null);
+  const autoStarted = useRef(false);
+
+  // Auto-start calibration when opened with a pre-selected port
+  useEffect(() => {
+    if (open && externalPort && step === "initial" && !autoStarted.current) {
+      autoStarted.current = true;
+      startCalibration(externalPort);
+    }
+  }, [open, externalPort]);
 
   const requestPort = async () => {
     try {
       const p = await navigator.serial.requestPort();
-      setPort(p);
       startCalibration(p);
     } catch (err) {
       console.error(err);
@@ -45,11 +60,17 @@ export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
     }
   };
 
-  const startCalibration = async (p: unknown) => {
+  const startCalibration = async (p: SerialPort) => {
     setStep("calibrating");
     try {
       const process = await calibrate({
-        robot: { robotType, port: p },
+        robot: {
+          port: p,
+          robotType: robotType as "so100_follower" | "so100_leader",
+          name: robotName || robotType,
+          isConnected: true,
+          serialNumber: serialNumber || "",
+        },
         onLiveUpdate: (data) => setLiveData(data),
         onProgress: (msg) => setProgressMsg(msg),
       });
@@ -73,9 +94,9 @@ export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
   const handleClose = () => {
     handleStop();
     setStep("initial");
-    setPort(null);
     setResults(null);
     setErrorObj(null);
+    autoStarted.current = false;
     onClose();
   };
 
@@ -87,7 +108,7 @@ export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
           {step === "initial" && (
             <Box textAlign="center">
               <Typography variant="body1" paragraph>
-                To calibrate your robot ({robotType}), make sure it is connected via USB.
+                To calibrate your robot ({robotName || robotType}), make sure it is connected via USB.
               </Typography>
               <Button variant="contained" onClick={requestPort}>
                 Select Port & Start Calibration
@@ -125,7 +146,7 @@ export const CalibrationDialog: React.FC<CalibrationDialogProps> = ({
 
           {step === "error" && (
             <Alert severity="error">
-              {errorObj ? (errorObj.message || String(errorObj)) : "Unknown error occurred"}
+              {errorObj ? ((errorObj as Error).message || String(errorObj)) : "Unknown error occurred"}
             </Alert>
           )}
         </Box>

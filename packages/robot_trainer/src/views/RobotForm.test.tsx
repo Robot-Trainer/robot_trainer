@@ -95,9 +95,14 @@ vi.mock('../ui/CameraDiscovery', () => ({
 
 // Mock CalibrationDialog
 vi.mock('../ui/CalibrationDialog', () => ({
-  CalibrationDialog: ({ open, onClose, onSave }: Record<string, unknown>) => (
+  CalibrationDialog: ({ open, onClose, onSave, robotType, port, serialNumber, robotName }: Record<string, unknown>) => (
     open ? (
-      <div data-testid="calibration-dialog">
+      <div data-testid="calibration-dialog"
+        data-robot-type={robotType as string || ''}
+        data-has-port={port ? 'true' : 'false'}
+        data-serial-number={serialNumber as string || ''}
+        data-robot-name={robotName as string || ''}
+      >
         <button data-testid="calibration-close" onClick={onClose as () => void} />
         <button data-testid="calibration-save" onClick={() => (onSave as (r: Record<string, unknown>) => void)?.({ motor1: 0, motor2: 1 })} />
       </div>
@@ -1410,9 +1415,12 @@ describe('RobotForm', () => {
     const calibrateBtn = screen.getByText(/Calibrate Robot/i);
     fireEvent.click(calibrateBtn);
 
-    // Dialog should open
+    // Dialog should open with robot context
     await waitFor(() => {
-      expect(screen.getByTestId('calibration-dialog')).toBeTruthy();
+      const dialog = screen.getByTestId('calibration-dialog');
+      expect(dialog).toBeTruthy();
+      expect(dialog.getAttribute('data-robot-type')).toBe('robot_model_a');
+      expect(dialog.getAttribute('data-robot-name')).toBe('Cal Bot');
     });
 
     // Close dialog
@@ -1463,6 +1471,38 @@ describe('RobotForm', () => {
       '/cal/output/calibration.json',
       { motor1: 0, motor2: 1 },
     );
+  });
+
+  it('passes selected port and serial info to calibration dialog', async () => {
+    mockDetect.mockResolvedValue('robot_model_a');
+    render(<RobotForm onSaved={mockOnSaved} />);
+
+    await waitFor(() => {
+      expect(robotModelsResource.list).toHaveBeenCalled();
+    });
+
+    // Wait for auto-scan to complete and device cards to appear
+    await waitFor(() => {
+      expect(mockGetPorts).toHaveBeenCalled();
+    });
+
+    // Click first device card to select it
+    const deviceCard = await screen.findByRole('button', { name: /Select device 1/i });
+    fireEvent.click(deviceCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Calibrate Robot/i)).toBeTruthy();
+    });
+
+    // Open calibration dialog
+    fireEvent.click(screen.getByText(/Calibrate Robot/i));
+
+    await waitFor(() => {
+      const dialog = screen.getByTestId('calibration-dialog');
+      expect(dialog).toBeTruthy();
+      expect(dialog.getAttribute('data-has-port')).toBe('true');
+      expect(dialog.getAttribute('data-robot-type')).toBe('robot_model_a');
+    });
   });
 
   it('handles MujocoPreview error and success callbacks', async () => {

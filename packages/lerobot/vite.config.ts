@@ -17,7 +17,7 @@ export default defineConfig({
       formats: ["es"], fileName: "index"
     },
     rollupOptions: {
-      external: ["typescript"],
+      external: ["typescript", "@robot-trainer/serial"],
     },
   },
 });
