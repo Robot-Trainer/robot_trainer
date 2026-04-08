@@ -72,7 +72,7 @@
     "@mui/material": "^7.3.9",
     "@mui/system": "^7.3.9",
     "@mui/x-data-grid": "^8.28.2",
-    "@mui/x-date-pickers": "^8.27.2",
+    "@mui/x-date-pickers": "^9.0.0",
     "@rjsf/core": "^6.4.2",
     "@rjsf/utils": "^6.4.2",
     "@rjsf/validator-ajv8": "^6.4.2",
