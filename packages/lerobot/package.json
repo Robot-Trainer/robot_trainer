@@ -48,13 +48,13 @@
   },
   "devDependencies": {
     "@types/w3c-web-serial": "^1.0.8",
-    "@vitest/coverage-v8": "^4.1.2",
-    "@vitest/ui": "^4.1.2",
-    "eslint": "^10.1.0",
-    "jsdom": "^29.0.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.3",
-    "vitest": "^4.1.2"
+    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/ui": "^4.1.7",
+    "eslint": "^10.4.0",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.13",
+    "vitest": "^4.1.7"
   },
   "peerDependencies": {
     "typescript": ">=4.5.0"
